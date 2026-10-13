@@ -8,6 +8,7 @@ import { admit, LimitError } from "@/lib/demo/limits";
 import { verifyChallenge } from "@/lib/demo/pow";
 import { admitQueued, demoEnabled, ensureDemoRunner, recordStart, rememberSecrets } from "@/lib/demo/runner";
 import { getRun, insertRun, spendChallenge } from "@/lib/demo/store";
+import { aiDisclosureCheckEnabled } from "@/lib/evals/scoring/disclosure";
 import { classifyTarget, normalizeHttpsUrl, TargetInputError } from "@/lib/demo/target";
 import { pinPublic, WebError } from "@/lib/demo/web";
 
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
     tokenHash: hash, locale: body.locale, spec: classified.spec, targetHost,
     docsUrl: docsUrl.href, docsHost: docsUrl.hostname, clientHash: client,
     auth: Object.keys(classified.secrets).length > 0, queued, attribution: requestAttribution(request),
+    disclosure: aiDisclosureCheckEnabled(),
   });
   rememberSecrets(id, classified.secrets);
   if (queued) {

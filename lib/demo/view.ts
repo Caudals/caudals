@@ -1,3 +1,4 @@
+import { readDisclosure, type DisclosureResult } from "@/lib/evals/scoring/disclosure";
 import type { DemoCase } from "./generate";
 import type { DemoAnswer, DemoSummary, DemoVerdict } from "./judge";
 import type { Durations } from "./eta";
@@ -13,6 +14,8 @@ export type ViewExtras = {
   durations: Pick<Durations, "p50" | "p90">;
   service: ServiceLevel;
   notifyAvailable: boolean;
+  /** AI_DISCLOSURE_CHECK is on: show the check's result (launch L-29). Off hides it at once. */
+  disclosure?: boolean;
 };
 
 /** What the visitor's page receives: never the client key, page text or target configuration. */
@@ -41,6 +44,8 @@ export type DemoView = {
   durations: Pick<Durations, "p50" | "p90">;
   service: ServiceLevel;
   notify: { available: boolean; requested: boolean; sent: boolean };
+  /** The AI-disclosure check (launch L-29): evidence beside the report, never part of the score. */
+  disclosure: DisclosureResult | null;
 };
 
 /**
@@ -83,5 +88,6 @@ export function viewOf(run: RunRow, extras: ViewExtras = DEFAULT_EXTRAS): DemoVi
     durations: extras.durations,
     service: extras.service,
     notify: { available: extras.notifyAvailable, requested: Boolean(run.notify_requested_at), sent: Boolean(run.notified_at) },
+    disclosure: extras.disclosure && run.phase === "done" ? readDisclosure(run.disclosure?.result) : null,
   };
 }

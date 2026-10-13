@@ -2,7 +2,7 @@ import "server-only";
 import { getPostgresPool } from "@/lib/db/client";
 import { maxActive, maxActiveWebsite } from "./config";
 import { DEFAULT_DURATIONS, nextAdmissible, type Durations, type Slots } from "./eta";
-import { STARTED, WAITING, type RunRow } from "./store";
+import { normalizeRun, STARTED, WAITING, type RunRow } from "./store";
 export { queueEta, runEta, type Durations } from "./eta";
 
 /**
@@ -51,7 +51,7 @@ export async function admitWaiting(options: { limit?: number } = {}): Promise<Ar
       if (next.target_kind === "website") slots.website++;
       // Only model work sends a run back to the queue, never reading, so a
       // run still reading leaves the queue for the first time.
-      admitted.push({ ...rows[0], first: next.phase === "reading" });
+      admitted.push({ ...normalizeRun(rows[0]), first: next.phase === "reading" });
     }
     await client.query("COMMIT");
     return admitted;

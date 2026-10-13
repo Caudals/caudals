@@ -26,6 +26,7 @@ import {
   type TenantTransaction,
 } from "./store";
 import { TargetExecutionWorker } from "./target-worker";
+import { aiDisclosureCheckEnabled } from "../scoring/disclosure";
 import type { Keyring } from "../security/envelope";
 import { browserInvocationSession, browserConnectionSession } from "../security/secrets";
 
@@ -160,6 +161,7 @@ export class BrowserJobWorker {
         destinationCheck: this.destinationCheck,
         storageState,
         signal: context.signal,
+        captureGreeting: aiDisclosureCheckEnabled(),
       });
       this.sessions.set(context.attempt_id, session);
       return await session.invoke(input, replyDeadline(context, WEBSITE_REPLY_MS));

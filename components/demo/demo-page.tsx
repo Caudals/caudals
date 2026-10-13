@@ -12,6 +12,7 @@ import { queueEta, runEta } from "@/lib/demo/eta";
 import { solveChallenge } from "./pow";
 import { VerdictMark } from "./verdict";
 import { plainAnswer, RichAnswer } from "./answer-text";
+import { DemoDisclosure } from "./disclosure";
 import "./demo.css";
 
 type Key = NamespaceKeys<"demo">;
@@ -446,6 +447,7 @@ function RunView({ handle, onReset }: { handle: Handle; onReset: () => void }) {
       {running && run.notify.available ? <Notify run={run} handle={handle} compact /> : null}
       <p className="sr-only" aria-live="polite">{announcement}</p>
       {run.cases.length ? <Ledger run={run} /> : null}
+      {run.phase === "done" && run.disclosure ? <DemoDisclosure result={run.disclosure} /> : null}
       {run.phase === "done" ? <Upsell run={run} handle={handle} /> : null}
     </>
   );

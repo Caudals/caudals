@@ -760,6 +760,8 @@ async function invokeOpenWebsite(args: {
   recipe: WebsiteRecipe;
   input: CandidateInput;
   context: InvocationContext;
+  /** Keep the chat's own messages shown before the first prompt (the AI-disclosure check, launch L-29). */
+  greeting?: boolean;
 }) {
   assertScorableWebsiteRecipe(args.recipe);
   if (args.context.signal.aborted) throw new Error("target_execution_aborted");
@@ -767,6 +769,7 @@ async function invokeOpenWebsite(args: {
   const session = args.session;
   const deadline = new Date(args.context.deadline).getTime();
   let previous = await textSnapshot(session.root, args.recipe);
+  const greeting = args.greeting ? previous.slice(-4).join("\n").slice(0, 1_500) : "";
   const prompt = [...args.input.messages]
     .reverse()
     .find((message) => message.role === "user")?.content;
@@ -870,6 +873,7 @@ async function invokeOpenWebsite(args: {
           duplicate_free: duplicateFree,
           ...(actions.length ? { actions: actions.map((action) => action.label) } : {}),
           ...(guided.length ? { guided } : {}),
+          ...(greeting ? { greeting } : {}),
         },
       },
     }),
@@ -883,6 +887,8 @@ export async function openWebsiteAttemptSession(args: {
   destinationCheck: DestinationCheck;
   storageState?: BrowserStorageState;
   signal?: AbortSignal;
+  /** Record the chat's greeting on the first turn (AI_DISCLOSURE_CHECK, launch L-29). */
+  captureGreeting?: boolean;
 }) {
   assertScorableWebsiteRecipe(args.recipe);
   const session = await openRecipe(args);
@@ -903,7 +909,7 @@ export async function openWebsiteAttemptSession(args: {
       const abort = () => { void session.context.close().catch(() => {}); };
       context.signal.addEventListener("abort", abort, { once: true });
       try {
-        const observation = await invokeOpenWebsite({ session, recipe: args.recipe, input, context });
+        const observation = await invokeOpenWebsite({ session, recipe: args.recipe, input, context, greeting: Boolean(args.captureGreeting) && !previousMessages });
         identity ??= { runId: context.run_id, targetRevisionId: context.target_revision_id, attemptId: context.attempt_id };
         previousMessages = observation.messages;
         return observation;

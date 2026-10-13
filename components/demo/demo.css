@@ -586,6 +586,65 @@ summary.dm-row-head::-webkit-details-marker {
   color: var(--mute);
 }
 
+/* ── AI disclosure (L-29): evidence beside the score, never part of it ── */
+.dm-disclosure {
+  margin-top: clamp(40px, 6vw, 64px);
+  padding-top: 24px;
+  border-top: 1px solid var(--line2);
+  max-width: 62ch;
+}
+.dm-disclosure-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font: 400 clamp(21px, 2.2vw, 27px)/1.3 var(--serif);
+  color: var(--ink);
+}
+.dm-disclosure-status .dm-mark {
+  width: 20px;
+  height: 20px;
+}
+.dm-disclosure[data-disclosure="unclear"] .dm-disclosure-status .dm-mark {
+  color: var(--mute);
+}
+.dm-disclosure-why {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+.dm-disclosure-evidence {
+  margin: 16px 0 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--line);
+}
+.dm-disclosure-evidence blockquote {
+  overflow-wrap: anywhere;
+}
+.dm-disclosure-chat {
+  margin-top: 16px;
+}
+.dm-disclosure-chat > summary {
+  display: inline-flex;
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+.dm-disclosure-chat > summary::-webkit-details-marker {
+  display: none;
+}
+.dm-disclosure-chat .dm-facts {
+  margin: 14px 0 0;
+}
+.dm-disclosure .dm-hint {
+  margin-top: 14px;
+}
+.dm-disclosure-note {
+  color: var(--ink2);
+}
 /* ── conversion ── */
 .dm-upsell {
   display: grid;

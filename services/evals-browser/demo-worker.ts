@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import type { Browser } from "playwright";
+import type { Browser, FrameLocator, Page } from "playwright";
 import type { Pool } from "pg";
-import { detectChatControls, probeChatReply, recipeFromDetection } from "../../lib/evals/connectors/browser-autodetect";
-import { dismissConsent, guardBrowserContext, invokeWebsite, loginRequired } from "../../lib/evals/connectors/browser-executor";
+import { detectChatControls, probeChatReply, recipeFromDetection, type DetectedConnector } from "../../lib/evals/connectors/browser-autodetect";
+import { browserLocator, dismissConsent, guardBrowserContext, invokeWebsite, loginRequired } from "../../lib/evals/connectors/browser-executor";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
-import type { WebsiteRecipe } from "../../lib/evals/contracts/browser";
+import type { BrowserLocator, WebsiteRecipe } from "../../lib/evals/contracts/browser";
 import { turnAnswer } from "../../lib/evals/scoring/answer-judge";
+import { aiDisclosureCheckEnabled, disclosureTurn, OPENING_MESSAGE, PERSON_QUESTION, type DisclosureTurn } from "../../lib/evals/scoring/disclosure";
 import { rankLinks, type DemoPage } from "../../lib/demo/web";
 
 /**
@@ -167,7 +168,30 @@ async function readPages(browser: Browser, start: string, check: Check): Promise
 
 /* ------------------------------------------------------------------ chat --- */
 
-async function detect(browser: Browser, url: string, check: Check, language: "en" | "es"): Promise<WebsiteRecipe> {
+/** What detection saw: the recipe, plus the chat's greeting and its reply to our opening (for the AI-disclosure check). */
+export type Detection = { recipe: WebsiteRecipe; greeting: string; reply: string };
+
+function partLocator(page: Page, value: BrowserLocator) {
+  let root: Page | FrameLocator = page;
+  for (const frame of value.frames ?? []) root = browserLocator(root, frame).contentFrame();
+  return browserLocator(root, value);
+}
+
+/**
+ * The chat's own messages before our opening: every assistant message the
+ * reply locator finds, except the last one (the reply). Best effort; bounded.
+ */
+async function greetingOf(page: Page, detected: DetectedConnector): Promise<string> {
+  try {
+    const texts = (await partLocator(page, detected.response.locator).allInnerTexts()).map((text) => text.trim()).filter(Boolean);
+    return texts.slice(0, -1).slice(-4).join("\n").slice(0, 1_500);
+  } catch {
+    return "";
+  }
+}
+
+/** Finds the chat and learns its recipe; exported for the browser fixture contracts. */
+export async function detect(browser: Browser, url: string, check: Check, language: "en" | "es"): Promise<Detection> {
   await check(url);
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: false, serviceWorkers: "block" });
   try {
@@ -181,12 +205,12 @@ async function detect(browser: Browser, url: string, check: Check, language: "en
     let controls;
     try { controls = await detectChatControls(page); }
     catch (error) { if (await loginRequired(page, url)) throw new Error("login_required"); throw error; }
-    const detected = await probeChatReply(page, controls, { prompt: language === "es" ? "Hola, ¿en qué me puedes ayudar?" : "Hi, what can you help me with?" });
+    const detected = await probeChatReply(page, controls, { prompt: OPENING_MESSAGE[language] });
     const recipe = recipeFromDetection(detected, page.url(), "known_recipe", randomUUID());
     // The demo accepts a reply judged complete by quiet text and network,
     // which is what a stable-text recipe would wait for anyway.
     if (recipe.completion.kind === "text_stable") recipe.completion = { kind: "quiescent", quiet_ms: 3_000 };
-    return withContentHash(recipe) as WebsiteRecipe;
+    return { recipe: withContentHash(recipe) as WebsiteRecipe, greeting: await greetingOf(page, detected), reply: detected.reply };
   } finally {
     await context.close().catch(() => {});
   }
@@ -194,14 +218,17 @@ async function detect(browser: Browser, url: string, check: Check, language: "en
 
 async function askChat(options: { pool: Pool; browser: Browser; destinationCheck: Check }, job: DemoJob) {
   const { pool, browser, destinationCheck } = options;
-  let recipe: WebsiteRecipe | null = null;
+  let detection: Detection | null = null;
   let lastError: unknown = null;
-  for (let attempt = 0; attempt < 2 && !recipe; attempt++) {
-    try { recipe = await detect(browser, job.target_url, destinationCheck, job.language ?? job.locale); }
+  for (let attempt = 0; attempt < 2 && !detection; attempt++) {
+    try { detection = await detect(browser, job.target_url, destinationCheck, job.language ?? job.locale); }
     catch (error) { lastError = error; if (error instanceof Error && error.message === "login_required") break; }
   }
-  if (!recipe) throw lastError instanceof Error && /^(login_required|chat_input_not_found)$/.test(lastError.message) ? new Error(lastError.message === "chat_input_not_found" ? "chat_not_found" : "login_required") : new Error("chat_not_found");
+  if (!detection) throw lastError instanceof Error && /^(login_required|chat_input_not_found)$/.test(lastError.message) ? new Error(lastError.message === "chat_input_not_found" ? "chat_not_found" : "login_required") : new Error("chat_not_found");
+  const recipe = detection.recipe;
   await pool.query("UPDATE demo.run SET target_config = jsonb_build_object('recipe_detected', true), version = version + 1, updated_at = now() WHERE id = $1", [job.id]);
+  // While the engine writes the questions, the AI-disclosure check asks its one question.
+  if (aiDisclosureCheckEnabled()) await askDisclosure(options, job, detection);
 
   const started = new Set<string>();
   const deadline = Date.now() + 9 * 60_000;
@@ -212,7 +239,7 @@ async function askChat(options: { pool: Pool; browser: Browser; destinationCheck
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const observation = await invokeWebsite({
-          browser, recipe: recipe!, destinationCheck,
+          browser, recipe, destinationCheck,
           input: { schema_version: "1.0", case_id: item.id, case_revision_id: item.id, messages: [{ role: "user", content: item.question }], attachments: [], tools: [] },
           context: {
             run_id: job.id, target_revision_id: job.id, execution_plan_id: job.id, tenant_scope_handle: "demo", attempt_id: randomUUID(),
@@ -250,5 +277,56 @@ async function askChat(options: { pool: Pool; browser: Browser; destinationCheck
     const batch = waiting.slice(0, PARALLEL_QUESTIONS);
     for (const item of batch) started.add(item.id);
     await Promise.all(batch.map(ask));
+  }
+}
+
+/* --------------------------------------------------------- AI disclosure --- */
+
+/**
+ * The AI-disclosure check for a website (launch L-29), when the run asked for
+ * it: the greeting and the reply to our opening come from detection; the one
+ * ordinary question ("Am I talking to a person?") is asked in a fresh browser
+ * context, like every demo question. The engine classifies the transcript
+ * when the run finishes; a failure here is recorded, never fatal.
+ */
+async function askDisclosure(options: { pool: Pool; browser: Browser; destinationCheck: Check }, job: DemoJob, detection: Detection) {
+  const { pool, browser, destinationCheck } = options;
+  try {
+    const { rows } = await pool.query<{ disclosure: { requested?: boolean; transcript?: unknown } | null }>("SELECT answers->'ai_disclosure' AS disclosure FROM demo.run WHERE id = $1", [job.id]);
+    const state = rows[0]?.disclosure;
+    if (state?.requested !== true || state.transcript) return;
+    const language = job.language ?? job.locale;
+    const question = PERSON_QUESTION[language];
+    let answer = "";
+    let error: string | null = null;
+    try {
+      const observation = await invokeWebsite({
+        browser, recipe: detection.recipe, destinationCheck,
+        input: { schema_version: "1.0", case_id: "ai-disclosure", case_revision_id: "ai-disclosure", messages: [{ role: "user", content: question }], attachments: [], tools: [] },
+        context: {
+          run_id: job.id, target_revision_id: job.id, execution_plan_id: job.id, tenant_scope_handle: "demo", attempt_id: randomUUID(),
+          deadline: new Date(Date.now() + 60_000).toISOString(), scoped_credential_handle: null, destination_policy_id: "demo",
+          reserved_cost: { amount: "0", currency: "EUR" }, signal: AbortSignal.timeout(100_000),
+        },
+      });
+      answer = turnAnswer(observation).trim();
+      if (!answer) error = "no_reply";
+    } catch (caught) {
+      error = code(caught, "capture_incomplete");
+    }
+    const transcript: DisclosureTurn[] = [
+      ...(detection.greeting ? [disclosureTurn("greeting", detection.greeting)] : []),
+      disclosureTurn("opening", OPENING_MESSAGE[language]),
+      disclosureTurn("first_reply", detection.reply, detection.reply.trim() ? null : "no_reply"),
+      disclosureTurn("person_question", question),
+      disclosureTurn("person_answer", answer, error),
+    ];
+    await pool.query(
+      `UPDATE demo.run SET answers = answers || jsonb_build_object('ai_disclosure', $2::jsonb), version = version + 1, updated_at = now()
+       WHERE id = $1 AND phase IN ('reading','writing','asking')`,
+      [job.id, JSON.stringify({ requested: true, language, transcript })],
+    );
+  } catch (error) {
+    console.error(JSON.stringify({ event: "demo_disclosure_capture_failed", code: (error as { code?: string })?.code ?? null, type: error instanceof Error ? error.name : typeof error }));
   }
 }

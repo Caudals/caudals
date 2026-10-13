@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { detectSourceLanguage } from "@/lib/evals/generation/auto-draft";
+import { disclosureJudgeMessages, disclosureTurn, finalizeDisclosure, needsDisclosureJudge, OPENING_MESSAGE, parseDisclosureJudgement, PERSON_QUESTION, type DisclosureResult, type JudgeVerdict } from "@/lib/evals/scoring/disclosure";
 import { CHAT_DETECTION_MS, PHASE_LIMIT_MS, queueEnabled, queueMaxWaitMs, RUN_LIMIT_MS } from "./config";
 import { demoFinished, demoStarted } from "./events";
 import { acceptTest, buildExcerpts, completeObjects, DEMO_CASES, generationMessages, type DemoCase } from "./generate";
@@ -10,7 +11,7 @@ import { capacityOpen } from "./limits";
 import { CapacityError, chat, ModelError, QuotaError, type ChatUsage } from "./llm";
 import { pendingNotifications, sendPendingNotification } from "./notify";
 import { admitWaiting, hasWaiting } from "./queue";
-import { appendCase, claimRun, countLlmCall, finishRun, getRun, patchRun, recordModelUse, renewLease, requeueRun, setAnswer, sweep, type RunRow } from "./store";
+import { appendCase, claimRun, countLlmCall, finishRun, getRun, patchRun, recordModelUse, renewLease, requeueRun, setAnswer, setDisclosureCapture, sweep, type RunRow } from "./store";
 import { askApi, type TargetSecrets, type TargetSpec } from "./target";
 import { readSite, WebError, type DemoPage } from "./web";
 
@@ -330,7 +331,35 @@ async function asking(run: RunRow, signal: AbortSignal) {
     await sleep(1_000);
   }
   if (signal.aborted) return;
+  if (run.disclosure && !run.disclosure.transcript) await askApiDisclosure(run, spec, entry?.secrets ?? {}, signal);
+  if (signal.aborted) return;
   await patchRun(run.id, { phase: "grading" });
+}
+
+/**
+ * The AI-disclosure check for an API (launch L-29): the opening a visitor
+ * would send, then the one ordinary question, each in a fresh conversation.
+ * A failure is recorded in the transcript and never fails the run.
+ */
+async function askApiDisclosure(run: RunRow, spec: Exclude<TargetSpec, { kind: "website" }>, secrets: TargetSecrets, signal: AbortSignal) {
+  const language = run.language ?? run.locale;
+  try {
+    const first = await demoIo.askApi(spec, secrets, OPENING_MESSAGE[language], signal);
+    await sleep(1_000);
+    const person = await demoIo.askApi(spec, secrets, PERSON_QUESTION[language], signal);
+    await setDisclosureCapture(run.id, {
+      requested: true,
+      language,
+      transcript: [
+        disclosureTurn("opening", OPENING_MESSAGE[language]),
+        disclosureTurn("first_reply", first.text, first.error),
+        disclosureTurn("person_question", PERSON_QUESTION[language]),
+        disclosureTurn("person_answer", person.text, person.error),
+      ],
+    });
+  } catch (error) {
+    console.warn("demo_disclosure_capture_failed", { run_id: run.id, error_type: error instanceof Error ? error.name : typeof error });
+  }
 }
 
 async function askWebsite(run: RunRow, signal: AbortSignal) {
@@ -380,5 +409,32 @@ async function grading(run: RunRow, signal: AbortSignal) {
     for (const { item, answer } of pending) verdicts[item.id] = judged.get(item.id) ?? lexicalVerdict(item, answer, locale);
   }
   if (signal.aborted) return;
-  await ended(await finishRun(run.id, { verdicts, summary: summarize(run.cases, verdicts), phase: "done" }));
+  const disclosure = run.disclosure ? { ...run.disclosure, result: await classifyDisclosure(run, signal) } : undefined;
+  if (signal.aborted) return;
+  await ended(await finishRun(run.id, { verdicts, summary: summarize(run.cases, verdicts), disclosure, phase: "done" }));
+}
+
+/**
+ * Classifies the AI-disclosure capture (launch L-29): patterns first, then one
+ * small judge call when they cannot decide. It is kept apart from the verdicts
+ * and the summary, so it never counts toward the score; a judge that cannot
+ * answer leaves the result Unclear and never holds up the report.
+ */
+async function classifyDisclosure(run: RunRow, signal: AbortSignal): Promise<DisclosureResult> {
+  const transcript = run.disclosure?.transcript ?? [];
+  const language = run.disclosure?.language ?? run.language ?? run.locale;
+  let judged: JudgeVerdict | null = null;
+  if (needsDisclosureJudge(transcript)) {
+    try {
+      await countLlmCall(run.id);
+      const result = await chat({
+        messages: disclosureJudgeMessages(transcript), maxTokens: 400, temperature: 0, json: true, timeoutMs: 60_000, signal, onUsage: record(run.id),
+        accept: (text) => parseDisclosureJudgement(text, transcript) !== null,
+      });
+      judged = parseDisclosureJudgement(result.text, transcript);
+    } catch (error) {
+      console.warn("demo_disclosure_judge_failed", { run_id: run.id, code: error instanceof CapacityError ? error.code : error instanceof Error ? error.name : "unknown" });
+    }
+  }
+  return finalizeDisclosure({ transcript, language, judged });
 }

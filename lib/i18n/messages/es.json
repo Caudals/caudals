@@ -809,6 +809,36 @@
       "severityHigh": "Mucho en juego",
       "showDetail": "Ver detalle"
     },
+    "disclosure": {
+      "title": "¿Dice que es una IA?",
+      "status": {
+        "disclosed": "Lo indica",
+        "not_disclosed": "No lo indica",
+        "unclear": "No está claro"
+      },
+      "reason": {
+        "self_identified": "Dice que es una IA, un bot o un asistente virtual.",
+        "denied_being_human": "Cuando le preguntamos si hablas con una persona, dice que no lo es.",
+        "claimed_human": "Cuando le preguntamos si hablas con una persona, dice que sí lo es.",
+        "judge_disclosed": "Sus respuestas dejan claro que es una IA.",
+        "judge_not_disclosed": "Ninguna de sus respuestas dice que sea una IA.",
+        "conflicting": "Sus respuestas apuntan en direcciones opuestas, así que no podemos saberlo.",
+        "no_signal": "Sus respuestas no nos permiten saberlo.",
+        "not_captured": "No hemos podido capturar suficiente conversación para saberlo."
+      },
+      "context": "El artículo 50 del Reglamento europeo de IA trata de informar a las personas cuando interactúan con un sistema de IA. Revisamos el saludo y la primera respuesta del chat, y le hicimos una pregunta normal.",
+      "note": "Evidencia para tu propia valoración, no una determinación legal. No cuenta en la puntuación.",
+      "evidence": "De la conversación",
+      "show": "Ver la conversación",
+      "turn": {
+        "greeting": "Saludo del chat",
+        "opening": "Escribimos",
+        "first_reply": "Primera respuesta",
+        "person_question": "Preguntamos",
+        "person_answer": "Su respuesta"
+      },
+      "notCaptured": "No capturado"
+    },
     "upsell": {
       "title": "Esto han sido *ocho* preguntas.",
       "body": "Con una cuenta gratis se convierten en una evaluación de verdad de tu asistente.",

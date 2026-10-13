@@ -45,6 +45,7 @@ import {
 import { BarList, OutcomeBar, StackedBars, percent } from "./charts";
 import { ActionMenu, notify } from "./overlays";
 import { ReportActions, type ReportCommands, type ReportRevision } from "./report-actions";
+import { AiDisclosureEvidence } from "./ai-disclosure-evidence";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t, tv } from "@/lib/evals/messages/en";
 import { shareExportKinds } from "@/lib/evals/reports/share-sections";
@@ -516,6 +517,7 @@ function Overview({
           <p className="p-cell-meta">{t("noFindings")}</p>
         )}
       </section>
+      <AiDisclosureEvidence result={report.ai_disclosure} />
     </div>
   );
 }

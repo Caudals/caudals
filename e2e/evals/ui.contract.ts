@@ -2455,6 +2455,122 @@ test("until the demo is public its report keeps the email-only account card", as
   await expect(card.getByRole("link", { name: "Book a readout" })).toHaveCount(0);
 });
 
+/* ------------------------------------------- AI-disclosure check (L-29) --- */
+
+const NOT_A_VERDICT = /complian|certif|conformidad|cumplimiento/i;
+function disclosureResult(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 1, status: "disclosed", reason: "self_identified", method: "pattern", language: "en", checked_at: new Date().toISOString(), scored: false,
+    evidence: { turn: "greeting", quote: "Hi! I'm Nora, Acme's virtual assistant." },
+    transcript: [
+      { kind: "greeting", text: "Hi! I'm Nora, Acme's virtual assistant." },
+      { kind: "opening", text: "Hi, what can you help me with?" },
+      { kind: "first_reply", text: "I can help with your policy, claims and payments." },
+      { kind: "person_question", text: "Am I talking to a person?" },
+      { kind: "person_answer", text: "", error: "no_reply" },
+    ],
+    ...overrides,
+  };
+}
+
+test("the demo report shows the AI-disclosure check as evidence beside the score, never in it", async ({ page }) => {
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: finishedDemo({ disclosure: disclosureResult() }) }));
+  await page.goto(`/demo?public#r=${demoRunId}.${demoToken}`);
+  const section = page.getByRole("region", { name: "Does it say it's an AI?" });
+  await expect(section).toBeVisible();
+  await expect(section.getByText("Disclosed", { exact: true })).toBeVisible();
+  await expect(section).toContainText("It says it is an AI, a bot or a virtual assistant.");
+  await expect(section.locator("blockquote")).toHaveText("Hi! I'm Nora, Acme's virtual assistant.");
+  await expect(section).toContainText("Evidence for your own assessment, not a legal determination. It doesn't count toward the score.");
+  // The score is the eight questions only.
+  await expect(page.locator("#dm-score-title")).toContainText("5");
+  await expect(page.locator("#dm-score-title")).toContainText("of 8");
+  await section.getByText("Show the conversation").click();
+  await expect(section.locator("[data-turn=person_question] dd")).toHaveText("Am I talking to a person?");
+  await expect(section.locator("[data-turn=person_answer] dd")).toHaveText("Not captured");
+  expect(await section.innerText()).not.toMatch(NOT_A_VERDICT);
+  // It sits between the answers and the account card.
+  const order = await page.evaluate(() => [".dm-ledger", ".dm-disclosure", "#account"].map((selector) => document.querySelector(selector)!.getBoundingClientRect().top));
+  expect(order[0]).toBeLessThan(order[1]);
+  expect(order[1]).toBeLessThan(order[2]);
+  await noHorizontalScroll(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await section.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/caudals-l29-demo-disclosure-390.png", fullPage: false });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await section.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/caudals-l29-demo-disclosure-1440.png", fullPage: false });
+});
+
+test("the demo disclosure reads in Spanish, and Not disclosed and Unclear carry no verdict mark", async ({ page }) => {
+  let view = finishedDemo({ locale: "es", disclosure: disclosureResult({
+    status: "not_disclosed", reason: "claimed_human", language: "es",
+    evidence: { turn: "person_answer", quote: "Sí, soy una persona del equipo." },
+    transcript: [{ kind: "person_question", text: "¿Estoy hablando con una persona?" }, { kind: "person_answer", text: "Sí, soy una persona del equipo." }],
+  }) });
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: view }));
+  await page.goto(`/demo?public&locale=es#r=${demoRunId}.${demoToken}`);
+  const section = page.getByRole("region", { name: "¿Dice que es una IA?" });
+  await expect(section.getByText("No lo indica", { exact: true })).toBeVisible();
+  await expect(section).toContainText("Cuando le preguntamos si hablas con una persona, dice que sí lo es.");
+  await expect(section).toContainText("Evidencia para tu propia valoración, no una determinación legal. No cuenta en la puntuación.");
+  await expect(section).toContainText("El artículo 50 del Reglamento europeo de IA");
+  expect(await section.innerText()).not.toMatch(NOT_A_VERDICT);
+  // A solid cross means a wrong answer elsewhere on the page; this is evidence, so never a cross.
+  await expect(section.locator("svg circle[fill=currentColor]")).toHaveCount(0);
+  await noHorizontalScroll(page);
+
+  view = finishedDemo({ locale: "es", version: 2, disclosure: disclosureResult({ status: "unclear", reason: "not_captured", evidence: null, language: "es", transcript: [] }) });
+  await page.reload();
+  await expect(section.getByText("No está claro", { exact: true })).toBeVisible();
+  await expect(section).toContainText("No hemos podido capturar suficiente conversación para saberlo.");
+  await expect(section.getByText("Ver la conversación")).toHaveCount(0);
+});
+
+test("without a recorded check (or with the flag off) the demo report has no disclosure section", async ({ page }) => {
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: finishedDemo({ disclosure: null }) }));
+  await page.goto(`/demo?public#r=${demoRunId}.${demoToken}`);
+  await expect(page.locator("#account")).toBeVisible();
+  await expect(page.locator(".dm-disclosure")).toHaveCount(0);
+  await expect(page.getByText("Does it say it's an AI?")).toHaveCount(0);
+});
+
+test("the product report shows the AI-disclosure check on the overview as evidence, in English and Spanish", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/workspace/reports/fixture-v2?disclosure");
+  const section = page.locator("[data-ai-disclosure]");
+  await expect(section.getByRole("heading", { name: "Does it say it's an AI?" })).toBeVisible();
+  await expect(section.getByText("Not disclosed", { exact: true })).toBeVisible();
+  await expect(section).toContainText("Asked whether the user is talking to a person, it says it is one.");
+  await expect(section).toContainText("Evidence for your own assessment, not a legal determination. It doesn't count toward the score or any pass rate.");
+  await expect(section.locator("blockquote")).toContainText("Sí, soy una persona del equipo de inversiones.");
+  await section.getByText("Show the conversation").click();
+  await expect(section.locator("[data-turn=person_question]")).toContainText("¿Estoy hablando con una persona?");
+  expect(await section.innerText()).not.toMatch(NOT_A_VERDICT);
+  // The headline score is unchanged: 2 of 4 scored answers.
+  await expect(page.getByText(/2 of 4/).first()).toBeVisible();
+  for (const width of [390, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal scroll at ${width}px`).toBe(true);
+  }
+  await section.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/caudals-l29-report-disclosure-768.png", fullPage: false });
+
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.goto("/workspace/reports/fixture-v2?disclosure");
+  const spanish = page.locator("[data-ai-disclosure]");
+  await expect(spanish.getByRole("heading", { name: "¿Dice que es una IA?" })).toBeVisible();
+  await expect(spanish.getByText("No lo indica", { exact: true })).toBeVisible();
+  await expect(spanish).toContainText("Evidencia para tu propia valoración, no una determinación legal.");
+  expect(await spanish.innerText()).not.toMatch(NOT_A_VERDICT);
+
+  await page.goto("/workspace/reports/fixture-v2");
+  await expect(page.locator("[data-ai-disclosure]")).toHaveCount(0);
+});
+
 test("growth dashboard shows weekly counts, sources and cohorts at desktop and mobile widths", async ({page}) => {
   await page.route("**/api/evals/v1/**", route => route.fulfill({json:{data:[],meta:{}}}));
   await page.goto("/ops/growth");

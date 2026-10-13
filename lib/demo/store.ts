@@ -1,12 +1,30 @@
 import { sanitizeAttribution, type Attribution } from "@/lib/analytics/events";
 import "server-only";
 import { getPostgresPool } from "@/lib/db/client";
+import type { DisclosureResult, DisclosureTurn } from "@/lib/evals/scoring/disclosure";
 import type { DemoCase } from "./generate";
 import type { DemoAnswer, DemoSummary, DemoVerdict } from "./judge";
 import type { TargetSpec } from "./target";
 import type { DemoPage } from "./web";
 
 export type Phase = "reading" | "writing" | "asking" | "grading" | "done" | "failed";
+
+/**
+ * The AI-disclosure check (launch L-29) lives in `answers` under this key,
+ * beside the case answers (`q1`…`q8`), so the browser worker can write its
+ * capture with the grants it already has (no migration). `normalizeRun`
+ * moves it to `disclosure`, so code that reads `answers` sees case answers only.
+ */
+export const DISCLOSURE_KEY = "ai_disclosure";
+export type DemoDisclosure = {
+  /** The check was on when the run started. */
+  requested: true;
+  /** The conversation captured for it (by the engine for APIs, the browser worker for websites). */
+  transcript?: DisclosureTurn[];
+  language?: "en" | "es";
+  /** Classified when the run finishes; never part of the summary or the score. */
+  result?: DisclosureResult;
+};
 export type BrowserState = "queued" | "running" | "done" | "failed" | null;
 
 export type RunRow = {
@@ -24,6 +42,8 @@ export type RunRow = {
   pages: DemoPage[];
   cases: DemoCase[];
   answers: Record<string, DemoAnswer>;
+  /** The AI-disclosure check, when requested (see DISCLOSURE_KEY). */
+  disclosure: DemoDisclosure | null;
   verdicts: Record<string, DemoVerdict>;
   summary: DemoSummary | null;
   browser_docs: BrowserState;
@@ -63,6 +83,15 @@ export function isWaiting(run: Pick<RunRow, "started_at" | "queued_at" | "phase"
 
 const db = () => getPostgresPool();
 
+/** Every run read from the database passes here: the disclosure check leaves `answers`. */
+export function normalizeRun<T extends RunRow | undefined>(row: T): T {
+  if (!row) return row;
+  const raw = (row.answers ?? {}) as Record<string, unknown>;
+  const { [DISCLOSURE_KEY]: disclosure, ...answers } = raw;
+  const value = disclosure && typeof disclosure === "object" && (disclosure as { requested?: unknown }).requested === true ? disclosure as DemoDisclosure : null;
+  return { ...row, answers: answers as Record<string, DemoAnswer>, disclosure: value };
+}
+
 export async function insertRun(input: {
   tokenHash: string;
   locale: "en" | "es";
@@ -76,6 +105,8 @@ export async function insertRun(input: {
   /** Join the queue instead of starting at once (DEMO_QUEUE_ENABLED). */
   queued?: boolean;
   attribution?: Attribution;
+  /** Run the AI-disclosure check (AI_DISCLOSURE_CHECK when the run starts). */
+  disclosure?: boolean;
 }) {
   const { spec } = input;
   const config = {
@@ -83,9 +114,10 @@ export async function insertRun(input: {
     ...(input.auth ? { auth: true } : {}),
   };
   const { rows } = await db().query<{ id: string }>(
-    `INSERT INTO demo.run (token_hash, locale, target_kind, target_url, target_host, target_config, docs_url, docs_host, client_hash, browser_chat, queued_at, started_at, attribution)
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10, now(), CASE WHEN $11::boolean THEN NULL ELSE now() END, $12::jsonb) RETURNING id`,
-    [input.tokenHash, input.locale, spec.kind, spec.url, input.targetHost, JSON.stringify(config), input.docsUrl, input.docsHost, input.clientHash, spec.kind === "website" ? "queued" : null, Boolean(input.queued), JSON.stringify(sanitizeAttribution(input.attribution))],
+    `INSERT INTO demo.run (token_hash, locale, target_kind, target_url, target_host, target_config, docs_url, docs_host, client_hash, browser_chat, queued_at, started_at, attribution, answers)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10, now(), CASE WHEN $11::boolean THEN NULL ELSE now() END, $12::jsonb, $13::jsonb) RETURNING id`,
+    [input.tokenHash, input.locale, spec.kind, spec.url, input.targetHost, JSON.stringify(config), input.docsUrl, input.docsHost, input.clientHash, spec.kind === "website" ? "queued" : null, Boolean(input.queued), JSON.stringify(sanitizeAttribution(input.attribution)),
+      JSON.stringify(input.disclosure ? { [DISCLOSURE_KEY]: { requested: true } satisfies DemoDisclosure } : {})],
   );
   return rows[0].id;
 }
@@ -95,12 +127,14 @@ export async function getRun(id: string, tokenHash?: string): Promise<RunRow | n
     `SELECT * FROM demo.run WHERE id = $1 ${tokenHash ? "AND token_hash = $2" : ""} AND expires_at > now()`,
     tokenHash ? [id, tokenHash] : [id],
   );
-  return rows[0] ?? null;
+  return normalizeRun(rows[0]) ?? null;
 }
 
 type Patch = Partial<Pick<RunRow, "phase" | "error_code" | "language" | "summary" | "browser_docs" | "browser_chat" | "target_config">> & {
   pages?: DemoPage[];
   verdicts?: Record<string, DemoVerdict>;
+  /** The AI-disclosure check's stored state (its result, when the run finishes). */
+  disclosure?: DemoDisclosure;
   finished?: boolean;
 };
 
@@ -130,13 +164,17 @@ async function update(id: string, patch: Patch, returning: boolean): Promise<Run
   if (patch.target_config !== undefined) add("target_config", JSON.stringify(patch.target_config), "::jsonb");
   if (patch.pages !== undefined) add("pages", JSON.stringify(patch.pages), "::jsonb");
   if (patch.verdicts !== undefined) add("verdicts", JSON.stringify(patch.verdicts), "::jsonb");
+  if (patch.disclosure !== undefined) {
+    values.push(JSON.stringify(patch.disclosure));
+    sets.push(`answers = answers || jsonb_build_object('${DISCLOSURE_KEY}', $${values.length}::jsonb)`);
+  }
   if (patch.finished) sets.push("finished_at = now()", "lease_owner = NULL", "lease_until = NULL");
   if (!sets.length) return null;
   const { rows } = await db().query<RunRow>(
     `UPDATE demo.run SET ${sets.join(", ")}, version = version + 1, updated_at = now() WHERE id = $1 AND phase NOT IN ('done','failed') ${returning ? "RETURNING *" : ""}`,
     values,
   );
-  return rows[0] ?? null;
+  return normalizeRun(rows[0]) ?? null;
 }
 
 /**
@@ -181,6 +219,15 @@ export async function setAnswer(id: string, caseId: string, answer: DemoAnswer) 
   );
 }
 
+/** The conversation captured for the AI-disclosure check, while the run still asks. */
+export async function setDisclosureCapture(id: string, capture: DemoDisclosure) {
+  await db().query(
+    `UPDATE demo.run SET answers = answers || jsonb_build_object('${DISCLOSURE_KEY}', $2::jsonb), version = version + 1, updated_at = now()
+     WHERE id = $1 AND phase IN ('reading','writing','asking')`,
+    [id, JSON.stringify(capture)],
+  );
+}
+
 export async function countLlmCall(id: string) {
   await db().query("UPDATE demo.run SET llm_calls = llm_calls + 1 WHERE id = $1", [id]);
 }
@@ -194,7 +241,7 @@ export async function claimRun(owner: string, exclude: string[]): Promise<RunRow
      RETURNING *`,
     [owner, exclude],
   );
-  return rows[0] ?? null;
+  return normalizeRun(rows[0]) ?? null;
 }
 
 export async function renewLease(id: string, owner: string) {
@@ -221,7 +268,7 @@ export async function sweep(options: { runLimitMs: number; queueMaxWaitMs: numbe
      RETURNING *`,
     [options.runLimitMs / 1000, options.queueMaxWaitMs / 1000],
   );
-  return rows;
+  return rows.map((row) => normalizeRun(row));
 }
 
 export async function spendChallenge(digest: string) {

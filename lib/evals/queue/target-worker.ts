@@ -15,6 +15,8 @@ import { jobSchema,type JobData } from "./boss";
 import { digest,event,projectWorkflow,targetExecutionSchema,type Tenant,type TenantTransaction } from "./store";
 import { chargeMeter,engineBillingMode,meterCovered,questionMeter,type EngineBillingMode } from "../../billing/engine";
 import { pauseWorkflowForCredits } from "./credit-pause";
+import { aiDisclosureCheckEnabled } from "../scoring/disclosure";
+import { attachDisclosureProbe,DISCLOSURE_TARGET_KINDS,isDisclosureUnit } from "./disclosure-probe";
 import { dispatchTargetCall,markTargetCallUnknown,recordFailedBrowserCalls,recordTargetCall,recoverDispatchedTargetCalls,
   markTargetDispatched,markTargetFailure,recordTargetObservation,
   releaseTargetClaim,reserveTargetInvocation,targetCapacity } from "./target-ledger";
@@ -23,7 +25,9 @@ type Step={id:string;workflow_id:string;step_kind:string;input:unknown;input_has
 type Execute=(config:TargetConfig,input:CandidateInput,context:InvocationContext,credential:(versionId:string,attemptId:string)=>Promise<Buffer>)=>Promise<Observation>;
 type Options={tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;leaseSeconds?:number;execute?:Execute;onAttemptFinished?:(attemptId:string)=>Promise<void>;
  /** Credit layer mode (L-11), read per call; defaults to BILLING_CREDITS_ENABLED / BILLING_ENFORCE. */
- billing?:()=>EngineBillingMode};
+ billing?:()=>EngineBillingMode;
+ /** The AI-disclosure check (L-29), read per claim; defaults to AI_DISCLOSURE_CHECK. */
+ disclosure?:()=>boolean};
 
 async function locked(c:PoolClient,orgId:string,stepId:string){
  const step=(await c.query("SELECT * FROM evals.workflow_step WHERE org_id=$1 AND id=$2 FOR UPDATE",[orgId,stepId])).rows[0] as Step|undefined;
@@ -122,7 +126,9 @@ export class TargetExecutionWorker{
    await c.query("UPDATE evals.case_unit SET status='running',attempt_id=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attemptId]);
    await c.query("UPDATE evals.execution_workflow SET status='running',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,workflow.id]);
    await event(c,tenant.orgId,workflow.id,"target_claimed");
-   return {step:updated,workflow,input,attemptId,config,ordinal:(previous?.ordinal??0)+1 as number};
+   // L-29: one AI-disclosure check per run, on its first case unit.
+   const disclosure=(this.options.disclosure??aiDisclosureCheckEnabled)()&&DISCLOSURE_TARGET_KINDS.has(config.kind)&&await isDisclosureUnit(c,tenant.orgId,input.runId,input.caseUnitId);
+   return {step:updated,workflow,input,attemptId,config,ordinal:(previous?.ordinal??0)+1 as number,disclosure};
   });
   if(!claimed)return;
   const controller=new AbortController(),timer=setInterval(()=>{void this.options.tx(tenant,async c=>{const renewed=await c.query("UPDATE evals.workflow_step SET lease_until=now()+$4::int*interval '1 second' WHERE org_id=$1 AND id=$2 AND fence=$3 AND status='running' AND lease_until>now() RETURNING id",[tenant.orgId,claimed.step.id,claimed.step.fence,this.lease]);if(!renewed.rowCount)controller.abort();}).catch(()=>controller.abort());},Math.max(1000,Math.floor(this.lease*1000/3)));
@@ -152,11 +158,11 @@ export class TargetExecutionWorker{
    const execute=this.options.execute??(async(config,input,ctx,resolve)=>new HttpTargetAdapter(config,{credential:resolve}).invoke(input,ctx));
    const callScope={orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId};
    let callOrdinal=0;
-   const executeMetered=async(input:CandidateInput)=>{
+   const executeMetered=async(input:CandidateInput,callContext:InvocationContext=context)=>{
     const ordinal=++callOrdinal;
     await this.options.tx(tenant,c=>dispatchTargetCall(c,callScope,ordinal,input,claimed.config.limits.max_output_tokens,claimed.config.requests_per_minute));
     try{
-     const result=await execute(claimed.config,input,context,credential);
+     const result=await execute(claimed.config,input,callContext,credential);
      await this.options.tx(tenant,c=>recordTargetCall(c,callScope,ordinal,result));
      return result;
     }catch(error){
@@ -174,7 +180,11 @@ export class TargetExecutionWorker{
    // a fresh browser; on the last attempt its reply is recorded as the answer.
    const reply=answered.messages.at(-1);
    if(claimed.config.kind==="website"&&claimed.ordinal<3&&reply?.role==="assistant"&&transientErrorReply(reply.content))throw new Error("target_reply_error");
-   const observation=answered;
+   // L-29: after the case's own answer, the AI-disclosure check in the same attempt. Its result is an
+   // extension on this observation; the case's messages and grade are unchanged, and a failure is recorded, never fatal.
+   const observation=claimed.disclosure&&answered.status==="succeeded"
+    ?await attachDisclosureProbe({kind:claimed.config.kind,answered,candidate:claimed.input.candidateInput,invoke:input=>executeMetered(input,{...context,deadline:new Date(Date.now()+60_000).toISOString()})})
+    :answered;
    await this.options.tx(tenant,async c=>{const current=await locked(c,tenant.orgId,claimed.step.id);if(current.step.status!=="running"||current.step.fence!==claimed.step.fence||!current.step.lease_until||current.step.lease_until.getTime()<=Date.now())return;await c.query("INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,attempt_id,content_hash,document,execution_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[observation.observation_id,tenant.orgId,claimed.input.runId,claimed.input.caseUnitId,claimed.attemptId,observation.content_hash,observation,observation.status]);await recordTargetObservation(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},observation);await c.query("UPDATE evals.target_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId]);await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,observation.status,observation.error?.code??null]);
     // §6.8 step 5: the question's platform meter, only for a captured (succeeded) answer.
     const mode=this.mode();

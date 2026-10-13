@@ -26,6 +26,8 @@ services:
       # scripts/deploy-evals-production.sh so web and workers always agree.
       BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
       BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
+      # AI-disclosure check (launch L-29), from the app credentials.
+      AI_DISCLOSURE_CHECK: "${AI_DISCLOSURE_CHECK:-false}"
       # Error reporting (launch L-08): DSN from a versioned secret, release =
       # the deployed image commit; scrubbed of personal data in the process.
       SENTRY_DSN_FILE: /run/secrets/sentry_dsn
@@ -217,6 +219,8 @@ services:
       # scripts/deploy-evals-production.sh so web and workers always agree.
       BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
       BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
+      # AI-disclosure check (launch L-29), from the app credentials.
+      AI_DISCLOSURE_CHECK: "${AI_DISCLOSURE_CHECK:-false}"
       EVALS_BROWSER_EGRESS_HOST: evals-browser-egress
       EVALS_BROWSER_EGRESS_PORT: "3128"
       EVALS_BROWSER_INTERACTIVE_SESSIONS: "2"

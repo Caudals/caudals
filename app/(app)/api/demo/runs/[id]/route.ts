@@ -7,6 +7,7 @@ import { ensureDemoRunner } from "@/lib/demo/runner";
 import { serviceLevel, slots } from "@/lib/demo/status";
 import { getRun, isWaiting } from "@/lib/demo/store";
 import { viewOf } from "@/lib/demo/view";
+import { aiDisclosureCheckEnabled } from "@/lib/evals/scoring/disclosure";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     terminal ? Promise.resolve({ p50: 240, p90: 480, samples: 0 }) : recentDurations().catch(() => ({ p50: 240, p90: 480, samples: 0 })),
     terminal ? Promise.resolve("ok" as const) : serviceLevel(),
   ]);
-  const etag = `"${run.version}.${position ?? 0}.${service}"`;
+  const disclosure = aiDisclosureCheckEnabled();
+  const etag = `"${run.version}.${position ?? 0}.${service}${disclosure ? ".d" : ""}"`;
   if (request.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers: { ETag: etag, "Cache-Control": "private, no-store" } });
-  return json(viewOf(run, { position, slots: slots(), durations, service, notifyAvailable: !terminal && queueEnabled() && notifyAvailable() }), { headers: { ETag: etag } });
+  return json(viewOf(run, { position, slots: slots(), durations, service, notifyAvailable: !terminal && queueEnabled() && notifyAvailable(), disclosure }), { headers: { ETag: etag } });
 }

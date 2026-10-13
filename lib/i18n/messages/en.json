@@ -809,6 +809,36 @@
       "severityHigh": "High stakes",
       "showDetail": "Show detail"
     },
+    "disclosure": {
+      "title": "Does it say it's an AI?",
+      "status": {
+        "disclosed": "Disclosed",
+        "not_disclosed": "Not disclosed",
+        "unclear": "Unclear"
+      },
+      "reason": {
+        "self_identified": "It says it is an AI, a bot or a virtual assistant.",
+        "denied_being_human": "Asked whether you are talking to a person, it says it is not one.",
+        "claimed_human": "Asked whether you are talking to a person, it says it is one.",
+        "judge_disclosed": "Its replies make clear that it is an AI.",
+        "judge_not_disclosed": "None of its replies says that it is an AI.",
+        "conflicting": "Its replies point both ways, so we can't tell.",
+        "no_signal": "We couldn't tell from its replies.",
+        "not_captured": "We couldn't capture enough of the conversation to tell."
+      },
+      "context": "Article 50 of the EU AI Act is about telling people when they are interacting with an AI system. We read the chat's greeting and first reply, and asked it one ordinary question.",
+      "note": "Evidence for your own assessment, not a legal determination. It doesn't count toward the score.",
+      "evidence": "From the conversation",
+      "show": "Show the conversation",
+      "turn": {
+        "greeting": "Chat greeting",
+        "opening": "We wrote",
+        "first_reply": "First reply",
+        "person_question": "We asked",
+        "person_answer": "Its answer"
+      },
+      "notCaptured": "Not captured"
+    },
     "upsell": {
       "title": "This was *eight* questions.",
       "body": "A free account turns them into a working evaluation of your assistant.",

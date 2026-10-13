@@ -80,6 +80,12 @@ unset stripe_prefix
 BILLING_TEST_WORKSPACE_IDS=$(credential BILLING_TEST_WORKSPACE_IDS)
 [[ -z $BILLING_TEST_WORKSPACE_IDS || $BILLING_TEST_WORKSPACE_IDS =~ ^[0-9a-f-]{36}(,[0-9a-f-]{36})*$ ]] || { echo 'BILLING_TEST_WORKSPACE_IDS must be comma-separated workspace ids' >&2; exit 1; }
 export BILLING_STRIPE_MODE BILLING_TEST_WORKSPACE_IDS
+# AI-disclosure check (launch L-29): the worker and browser services ask the
+# check's question only while the app credentials say true, like the web process.
+AI_DISCLOSURE_CHECK=$(credential AI_DISCLOSURE_CHECK)
+AI_DISCLOSURE_CHECK=${AI_DISCLOSURE_CHECK:-false}
+[[ $AI_DISCLOSURE_CHECK == true || $AI_DISCLOSURE_CHECK == false ]] || { echo 'AI_DISCLOSURE_CHECK must be true or false' >&2; exit 1; }
+export AI_DISCLOSURE_CHECK
 
 # Email flags (launch L-07) from the same app credentials, so web and scheduler
 # send the same templates. Lifecycle mail stays off until the founder switches it.
