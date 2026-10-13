@@ -245,6 +245,8 @@ The evaluation detail page exposes **AI models** in a compact, keyboard-accessib
 
 **Empty states** carry an icon in a 44px rounded mark, a title, one line of copy and at most one action. Never a bare sentence. A quiet text link to the example evaluation may sit in the copy; for viewers, who have no create action, it is the action.
 
+**Report v2** (launch L-17) — the Overview opens with the executive summary, `.p-summary`: a quiet "Executive summary" label, three sentences at subtitle size (each followed by a text-button "Evidence (n)" that filters the results), the sample line above a hairline, then the status badges (`StatusBadge`) each with its one-line explanation, then the next steps (`.p-summary-cta`): Book a readout is the one primary (black) action, Share and Download PDF are secondary, Request expert review is ghost. On phones the steps stack full width. The pass rate under it is a whole percentage (`.p-score`); decimals live in Methodology. "Fix these first" (`.p-fixes`, `.p-fix`) is a numbered hairline list: title, a meta row (severity badge, answer count, the cause labelled "(hypothesis)"), what to do, and its actions (Evidence, and a disabled "Re-run these questions" with a visible note until re-runs of a subset exist); CSV and Markdown exports sit in the section heading as ghost buttons. The shared page (`/share`) adds `.p-share-intro` (a surface-2 panel: what the report is, private and not a certification) above the report and `.p-share-cta` (a bordered card: "Test your own assistant free" with one primary action) below it.
+
 **Example evaluation** (`/workspace/example`) — the standard report page with an "Example" pill (`Badge` tone `strong`) first in the heading meta, an info `Status` with the synthetic-data line above the report on every tab, and the three-run trend and comparison at the top of Overview (`.p-report-intro`). Page headings keep at least 10rem for the title; actions that leave less drop below it.
 
 ## 10. Motion
@@ -340,6 +342,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-12 | Report v2 and share page (L-17): `.p-summary` with next steps, `.p-fixes`, `.p-share-intro` and `.p-share-cta`; whole-percent headline. |
 | 2026-10-12 | Example evaluation and public sample report (L-33): `.p-report-intro`, wrapping compact lists (`data-wrap`), a 10rem minimum for page-heading titles, and the Paper sample report page. |
 | 2026-10-12 | Branded EN/ES emails (L-07): the Paper email frame in §13. |
 | 2026-10-12 | The free test becomes the front door (L-04): the two-line free-test pill, the header's "Try it free" and "Sign in", and the demo account sheet's action order. |

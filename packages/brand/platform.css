@@ -4378,6 +4378,161 @@
 .p-takeaways p {
   padding-top: 2px;
 }
+/* Executive summary, next steps and "Fix these first" (launch L-17). */
+.p-summary {
+  display: grid;
+  gap: 14px;
+  padding: 22px 24px;
+  border-radius: var(--p-radius-lg);
+  box-shadow: var(--p-shadow-border);
+}
+.p-summary-title {
+  font-size: var(--p-text-micro);
+  font-weight: 500;
+  letter-spacing: var(--p-tracking-micro);
+  color: var(--p-text-secondary);
+}
+.p-summary-sentences {
+  display: grid;
+  gap: 8px;
+  max-width: 72ch;
+}
+.p-summary-sentences p {
+  font-size: var(--p-text-subtitle);
+  line-height: 1.5;
+  letter-spacing: var(--p-tracking-title);
+  color: var(--p-text);
+}
+.p-summary-evidence {
+  font-size: var(--p-text-label);
+  white-space: nowrap;
+}
+.p-summary-sample {
+  padding-top: 12px;
+  border-top: 1px solid var(--p-border-hairline);
+  font-size: var(--p-text-label);
+  font-weight: 500;
+}
+.p-summary-status {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.p-summary-status div {
+  display: grid;
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+}
+.p-summary-status dt,
+.p-summary-status dd {
+  margin: 0;
+}
+.p-summary-status dd {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.p-summary-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+@media (max-width: 599px) {
+  .p-summary {
+    padding: 18px 16px;
+  }
+  .p-summary-status div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .p-summary-cta > * {
+    flex: 1 1 100%;
+  }
+}
+.p-fixes {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--p-border-hairline);
+}
+.p-fix {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--p-border-hairline);
+}
+.p-fix-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.p-fix-title {
+  font-size: var(--p-text-body);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.p-fix-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+}
+.p-fix-action {
+  max-width: 72ch;
+  color: var(--p-text-secondary);
+}
+.p-fix-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+/* Shared report page: what the report is, and the invitation to test one's own assistant. */
+.p-share-intro {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 28px;
+  padding: 16px 18px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface-2);
+}
+.p-share-intro h2 {
+  font-size: var(--p-text-subtitle);
+  letter-spacing: var(--p-tracking-title);
+}
+.p-share-intro p {
+  max-width: 78ch;
+}
+.p-share-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 40px;
+  padding: 22px 24px;
+  border-radius: var(--p-radius-lg);
+  box-shadow: var(--p-shadow-border);
+}
+.p-share-cta h2 {
+  font-size: var(--p-text-title);
+  letter-spacing: var(--p-tracking-title);
+}
+.p-share-cta p {
+  margin-top: 4px;
+  max-width: 62ch;
+  color: var(--p-text-secondary);
+}
+@media (max-width: 599px) {
+  .p-share-cta > .p-btn {
+    flex: 1 1 100%;
+  }
+}
 .p-findings {
   margin: 0;
   padding: 0;

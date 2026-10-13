@@ -2,17 +2,28 @@
 
 /**
  * The evaluation report (spec §5.4, §15.2): Overview · Findings · Test results
- * · Improvements · Methodology. Every figure states its denominator; an
- * incomplete run shows its limitations before any score; every finding links
- * to the results that support it. The same snapshot renders the PDF.
+ * · Improvements · Methodology. The Overview opens with the executive summary
+ * and its next steps, then "Fix these first" (launch L-17). Every figure
+ * states its denominator; an incomplete run shows its limitations before any
+ * score; every finding and summary sentence links to the results that support
+ * it. The same snapshot renders the PDF and the Word document.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Copy, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, RotateCcw, Share2, UserCheck, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
+import { buildExecutiveSummary, type ExecutiveSummary } from "@/lib/evals/reports/summary";
+import { answerCount, failingCsv, fixesCsv, fixesMarkdown, isFailing, type Fix } from "@/lib/evals/reports/fixes";
+import { summaryCopy } from "@/lib/evals/reports/summary-copy";
+import { reportDownloadName } from "@/lib/evals/reports/file-name";
+import { reportDate } from "@/lib/evals/reports/i18n";
+import { demoReferralLink, readoutLink, workspaceRef } from "@/lib/evals/reports/referral";
+import { localizePathname } from "@/lib/i18n/routing";
+import { trackProductEvent } from "@/lib/analytics/funnel-events";
 import { evalRequest } from "./api";
 import {
   Action,
+  ActionAnchor,
   DataTable,
   DefinitionList,
   EmptyState,
@@ -32,8 +43,8 @@ import {
   humanize,
 } from "./primitives";
 import { BarList, OutcomeBar, percent } from "./charts";
-import { ActionMenu, SidePanel } from "./overlays";
-import { ReportActions, type ReportRevision } from "./report-actions";
+import { ActionMenu, notify } from "./overlays";
+import { ReportActions, type ReportCommands, type ReportRevision } from "./report-actions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t, tv } from "@/lib/evals/messages/en";
 import { shareExportKinds } from "@/lib/evals/reports/share-sections";
@@ -72,6 +83,8 @@ export function ReportView({
   onResultChange,
   badge,
   overviewIntro,
+  cta,
+  sample = false,
 }: {
   report: Partial<ReportSnapshot>;
   actions?: ReactNode;
@@ -83,6 +96,10 @@ export function ReportView({
   badge?: ReactNode;
   /** Shown at the top of the Overview tab (the example evaluation's trend and comparison). */
   overviewIntro?: ReactNode;
+  /** The next-step buttons under the executive summary (share, download, readout, expert review). */
+  cta?: ReportCta;
+  /** The example evaluation: its review is simulated, and the summary says so. */
+  sample?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>(initialResult ? "results" : (["overview", "findings", "results", "improvements", "methodology"] as const).find((value) => value === initialTab) ?? "overview");
   const [resultFilter, setResultFilter] = useState<{ ids: string[]; label: string } | null>(null);
@@ -127,8 +144,7 @@ export function ReportView({
         </PageHeading>
       )}
       <Tabs value={tab} onChange={setTab} label={t("reportSections")} options={tabs} />
-      {tab === "overview" && overviewIntro ? <div className="p-report-intro">{overviewIntro}</div> : null}
-      {tab === "overview" && <Overview report={report} findings={findings} onFinding={() => setTab("findings")} onResults={showResults} onAllResults={() => { setResultFilter(null); setTab("results"); }} />}
+      {tab === "overview" && <Overview report={report} findings={findings} cta={cta} sample={sample} intro={overviewIntro} onFinding={() => setTab("findings")} onResults={showResults} onAllResults={() => { setResultFilter(null); setTab("results"); }} />}
       {tab === "findings" && <Findings findings={findings} onResults={showResults} />}
       {tab === "results" && (
         <Results
@@ -137,6 +153,7 @@ export function ReportView({
           onClearFilter={() => setResultFilter(null)}
           initialResult={initialResult ?? null}
           onResultChange={onResultChange}
+          onExportFailing={() => saveText(fileName(report, "failing", "text/csv"), failingCsv(results), "text/csv;charset=utf-8")}
         />
       )}
       {tab === "improvements" && <Improvements improvements={improvements} findings={findings} />}
@@ -147,21 +164,189 @@ export function ReportView({
 
 /* ------------------------------------------------------------- overview --- */
 
+/** What the executive summary's next-step row can do; a missing entry hides its button. */
+export type ReportCta = {
+  onShare?: () => void;
+  onDownload?: () => void;
+  downloading?: boolean;
+  readoutHref?: string | null;
+  expertHref?: string | null;
+};
+
+/** Save text built in the browser (fix list, failing answers) as a file. */
+function saveText(name: string, content: string, type: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+const fileName = (report: Partial<ReportSnapshot>, suffix: string, type: string) =>
+  reportDownloadName(report.report_revision_id ?? "report", type, `${report.system?.name ?? ""} ${suffix}`.trim(), report.created_at ?? null);
+
+/**
+ * The executive summary (spec P-20): three sentences from the structured
+ * results, each with its evidence, the sample size and the review status with
+ * a one-line explanation of each badge, then the next steps. The same object
+ * renders the PDF and the Word document.
+ */
+function SummaryBlock({ summary, hasResults, cta, onResults }: { summary: ExecutiveSummary; hasResults: boolean; cta?: ReportCta; onResults: (ids: string[], label: string) => void }) {
+  return (
+    <section className="p-summary" aria-labelledby="report-summary-title" data-summary>
+      <h2 id="report-summary-title" className="p-summary-title">{summary.title}</h2>
+      <div className="p-summary-sentences">
+        {summary.sentences.map((sentence) => (
+          <p key={sentence.key} data-sentence={sentence.key}>
+            <span data-summary-text>{sentence.text}</span>
+            {hasResults && sentence.assessment_ids.length > 0 && (
+              <>
+                {" "}
+                <button type="button" className="p-text-button p-summary-evidence" onClick={() => onResults(sentence.assessment_ids, sentence.text)}>
+                  {t("evidence")} ({sentence.assessment_ids.length})
+                </button>
+              </>
+            )}
+          </p>
+        ))}
+      </div>
+      <p className="p-summary-sample" data-sample>{summary.sample}</p>
+      <dl className="p-summary-status">
+        {summary.status.map((item) => (
+          <div key={item.key} data-status={item.key}>
+            <dt><StatusBadge value={item.key} label={item.label} /></dt>
+            <dd>{item.text}</dd>
+          </div>
+        ))}
+      </dl>
+      {cta && <NextSteps cta={cta} />}
+    </section>
+  );
+}
+
+/** Share · Download · Book a readout · Request expert review (spec P-11, P-20). */
+function NextSteps({ cta }: { cta: ReportCta }) {
+  if (!cta.onShare && !cta.onDownload && !cta.readoutHref && !cta.expertHref) return null;
+  return (
+    <div className="p-summary-cta" role="group" aria-label={t("reportNextSteps")}>
+      {cta.readoutHref && (
+        <ActionAnchor href={cta.readoutHref} target="_blank" rel="noopener noreferrer" title={t("bookReadoutHelp")} onClick={() => void trackProductEvent("readout_link_clicked", { surface: "report" })}>
+          <CalendarDays aria-hidden="true" />
+          {t("bookReadout")}
+        </ActionAnchor>
+      )}
+      {cta.onShare && (
+        <Action variant="secondary" onClick={cta.onShare}>
+          <Share2 aria-hidden="true" />
+          {t("share")}
+        </Action>
+      )}
+      {cta.onDownload && (
+        <Action variant="secondary" onClick={cta.onDownload} disabled={cta.downloading} aria-busy={cta.downloading}>
+          <Download aria-hidden="true" />
+          {cta.downloading ? t("pdfPreparing") : t("downloadPdf")}
+        </Action>
+      )}
+      {cta.expertHref && (
+        <ActionAnchor variant="ghost" href={cta.expertHref} target="_blank" rel="noopener noreferrer" title={t("requestExpertReviewHelp")}>
+          <UserCheck aria-hidden="true" />
+          {t("requestExpertReview")}
+        </ActionAnchor>
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Fix these first" (spec P-18): three to five fixes grouped by likely cause
+ * and source page, each with its evidence. Causes are labelled hypotheses.
+ * Re-running only a fix's questions arrives with re-run and compare (L-18),
+ * so the button is shown disabled with that note. CSV and Markdown exports
+ * carry the evidence for a vendor.
+ */
+function FixList({ report, fixes, rerun, onResults }: { report: Partial<ReportSnapshot>; fixes: Fix[]; rerun: boolean; onResults: (ids: string[], label: string) => void }) {
+  const locale = getLocale();
+  const copy = summaryCopy(locale);
+  const results = report.results ?? [];
+  const date = report.created_at ? reportDate(report.created_at, locale) : "";
+  if (!results.some(isFailing)) return null;
+  return (
+    <section aria-labelledby="report-fixes-title" data-fixes>
+      <SectionHeading
+        id="report-fixes-title"
+        title={copy.fixesTitle}
+        actions={
+          <>
+            <Action variant="ghost" size="sm" onClick={() => saveText(fileName(report, "fixes", "text/csv"), fixesCsv(results, fixes), "text/csv;charset=utf-8")}>
+              <Download aria-hidden="true" />
+              {copy.exportCsv}
+            </Action>
+            <Action variant="ghost" size="sm" onClick={() => saveText(fileName(report, "fixes", "text/markdown"), fixesMarkdown({ system: report.system, results }, fixes, locale, date), "text/markdown;charset=utf-8")}>
+              <FileText aria-hidden="true" />
+              {copy.exportMarkdown}
+            </Action>
+          </>
+        }
+      >
+        {copy.fixesLead}
+      </SectionHeading>
+      <ol className="p-fixes">
+        {fixes.map((fix) => (
+          <li key={fix.id} className="p-fix" data-fix={fix.rank}>
+            <span className="p-takeaway-index" aria-hidden="true">{fix.rank}</span>
+            <div className="p-fix-body">
+              <h3 className="p-fix-title">{fix.title}</h3>
+              <p className="p-fix-meta">
+                <StatusBadge value={fix.severity} />
+                <span>{answerCount(fix.assessment_ids.length, locale)}</span>
+                <span>{fix.basis}</span>
+              </p>
+              <p className="p-fix-action">{fix.action}</p>
+              <div className="p-fix-actions">
+                <Action variant="secondary" size="sm" onClick={() => onResults(fix.assessment_ids, fix.title)}>
+                  {copy.fixEvidence} ({fix.assessment_ids.length})
+                  <ArrowRight aria-hidden="true" />
+                </Action>
+                {rerun && (
+                  <Action variant="ghost" size="sm" disabled title={copy.rerunSoon} aria-describedby="report-fixes-rerun">
+                    <RotateCcw aria-hidden="true" />
+                    {copy.rerun}
+                  </Action>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="p-field-hint" id="report-fixes-rerun">{rerun ? `${copy.rerunSoon} ` : ""}{t("fixesExportNote")}</p>
+    </section>
+  );
+}
+
 function Overview({
   report,
   findings,
+  cta,
+  sample,
+  intro,
   onFinding,
   onResults,
   onAllResults,
 }: {
   report: Partial<ReportSnapshot>;
   findings: Finding[];
+  cta?: ReportCta;
+  sample: boolean;
+  intro?: ReactNode;
   onFinding: () => void;
   onResults: (ids: string[], label: string) => void;
   onAllResults: () => void;
 }) {
   const m = report.metrics;
   const results = useMemo(() => report.results ?? [], [report.results]);
+  const summary = useMemo(() => buildExecutiveSummary(report, getLocale(), { sample }), [report, sample]);
   const topics = useMemo(() => {
     const map = new Map<string, { pass: number; scored: number }>();
     for (const item of results) {
@@ -189,6 +374,8 @@ function Overview({
   if (!m) return <Status>{t("reportMetricsHidden")}</Status>;
   return (
     <div className="p-stack-lg">
+      {summary && <SummaryBlock summary={summary} hasResults={results.length > 0} cta={cta} onResults={onResults} />}
+      {intro ? <div className="p-report-intro">{intro}</div> : null}
       {m.headline_status === "incomplete" && (
         <Status tone="warn">
           <strong>{t("incompleteHeadline")}</strong> {t("incompleteReport")}
@@ -204,7 +391,7 @@ function Overview({
       <section className="p-scoreboard" aria-label={t("headlineResult")}>
         <div className="p-scoreboard-main">
           <p className="p-eyebrow">{t("strictPassRate")}</p>
-          <p className="p-score" data-empty={m.strict_pass_rate == null ? "true" : undefined}>{m.strict_pass_rate == null ? t("noScoreYet") : percent(m.strict_pass_rate, 1)}</p>
+          <p className="p-score" data-empty={m.strict_pass_rate == null ? "true" : undefined}>{m.strict_pass_rate == null ? t("noScoreYet") : (summary?.percentText ?? percent(m.strict_pass_rate))}</p>
           <p className="p-headline">{tv("answersCorrectOf", { pass: m.n_pass, scored: m.n_scorable })}</p>
           {m.wilson_interval ? (
             <p className="p-scoreboard-caption">
@@ -227,6 +414,8 @@ function Overview({
           {m.rubric_score != null ? <Stat label={t("rubricScore")} value={`${Math.round(m.rubric_score)}/100`} meta={t("rubricScoreHelp")} /> : <Stat label={t("findings")} value={findings.length} meta={t("findingsHelp")} />}
         </StatGrid>
       </section>
+
+      {summary && summary.fixes.length > 0 && <FixList report={report} fixes={summary.fixes} rerun={!!cta} onResults={onResults} />}
 
       {report.takeaways && report.takeaways.length > 0 && (
         <section>
@@ -396,17 +585,20 @@ function Results({
   onClearFilter,
   initialResult,
   onResultChange,
+  onExportFailing,
 }: {
   results: Result[];
   filter: { ids: string[]; label: string } | null;
   onClearFilter: () => void;
   initialResult: string | null;
   onResultChange?: (assessmentId: string | null) => void;
+  onExportFailing?: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [outcome, setOutcome] = useState<LabelFilter>("all");
   const [severity, setSeverity] = useState("all");
   const [topic, setTopic] = useState("all");
+  const [sort, setSort] = useState<"severity" | "result">("severity");
   const [selected, setSelected] = useState<string | null>(initialResult);
   const [lastOpened, setLastOpened] = useState<string | null>(null);
   const topics = useMemo(() => [...new Set(results.map((item) => item.topic))].sort(), [results]);
@@ -421,7 +613,12 @@ function Results({
         (topic === "all" || item.topic === topic) &&
         (!needle || `${item.title} ${item.input} ${item.output} ${item.expected ?? ""} ${item.rationale} ${item.topic}`.toLowerCase().includes(needle)),
     )
-    .sort((a, b) => LABEL_META[labelOf(a)].rank - LABEL_META[labelOf(b)].rank || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
+    // Severity first by default (critical failures at the top), failures first within a level.
+    .sort((a, b) => {
+      const bySeverityRank = SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity);
+      const byLabel = LABEL_META[labelOf(a)].rank - LABEL_META[labelOf(b)].rank;
+      return sort === "severity" ? bySeverityRank || byLabel : byLabel || bySeverityRank;
+    });
   // Browse within what the list shows; a deep link to a filtered-out result still opens it alone.
   const sequence = visible.some((item) => item.assessment_id === selected) ? visible : results.filter((item) => item.assessment_id === selected);
   const index = sequence.findIndex((item) => item.assessment_id === selected);
@@ -486,6 +683,16 @@ function Results({
             <option key={item} value={item}>{humanize(item)}</option>
           ))}
         </InlineSelect>
+        <InlineSelect id="result-sort" label={t("sortBy")} value={sort} onChange={(event) => setSort(event.target.value === "result" ? "result" : "severity")}>
+          <option value="severity">{t("sortSeverity")}</option>
+          <option value="result">{t("sortResult")}</option>
+        </InlineSelect>
+        {onExportFailing && results.some(isFailing) && (
+          <Action variant="ghost" size="sm" onClick={onExportFailing} title={t("exportFailingHelp")}>
+            <Download aria-hidden="true" />
+            {t("exportFailing")}
+          </Action>
+        )}
       </Toolbar>
       <div className="p-toolbar">
         <FilterChips value={outcome} onChange={setOutcome} label={t("filterOutcome")} options={chips} />
@@ -519,6 +726,16 @@ function Results({
       )}
     </>
   );
+}
+
+/** Copy a question to send to a vendor or paste into the assistant; the clipboard can be blocked. */
+async function copyQuestion(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    notify(t("questionCopied"));
+  } catch {
+    // Blocked clipboard: the question is still on the page to select.
+  }
 }
 
 const FACT_ICON = { present: CheckCircle2, missing: MinusCircle, contradicted: XCircle } as const;
@@ -581,6 +798,10 @@ function ResultReview({
           {t("allResults")}
         </Action>
         <span className="p-review-position">{tv("resultPosition", { position, total })}</span>
+        <Action variant="ghost" size="sm" onClick={() => void copyQuestion(result.input || result.title)}>
+          <Copy aria-hidden="true" />
+          {t("copyQuestion")}
+        </Action>
         <span className="p-row p-nowrap">
           <button type="button" className="p-btn" data-variant="secondary" data-shape="icon" aria-label={t("previousResult")} disabled={!onPrevious} onClick={() => onPrevious?.()}>
             <ChevronLeft aria-hidden="true" />
@@ -596,6 +817,7 @@ function ResultReview({
         <section className="p-verdict" data-tone={meta.tone} aria-label={t("whyThisResult")}>
           <div className="p-verdict-head">
             <ResultBadge result={result} />
+            <StatusBadge value={result.severity} />
             {category && <span>{category}</span>}
             {cause && <span>{t("likelyCause")}: {cause} ({t("hypothesisTag")})</span>}
             <span>{graded}</span>
@@ -792,6 +1014,8 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
             <SectionHeading title={t("denominators")}>{t("denominatorsHelp")}</SectionHeading>
             <DefinitionList
               items={[
+                ...(metrics.strict_pass_rate != null ? [{ term: t("exactPassRate"), value: `${percent(metrics.strict_pass_rate, 1)} (${metrics.n_pass} ${t("of")} ${metrics.n_scorable})` }] : []),
+                ...(metrics.wilson_interval ? [{ term: `95% ${t("interval")}`, value: `${percent(metrics.wilson_interval.low, 1)}–${percent(metrics.wilson_interval.high, 1)}` }] : []),
                 { term: t("planned"), value: metrics.n_planned },
                 { term: t("eligible"), value: metrics.n_eligible },
                 { term: t("executed"), value: metrics.n_executed },
@@ -827,11 +1051,36 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
 
 /* ------------------------------------------------------ authenticated --- */
 
-export function AuthenticatedReport({ reportId }: { reportId: string }) {
+export function AuthenticatedReport({
+  reportId,
+  readoutUrl,
+  marketingOrigin,
+}: {
+  reportId: string;
+  /** The booking page (`CALCOM_LINK`, read on the server); its link carries a hashed workspace id. */
+  readoutUrl?: string | null;
+  /** caudals.com, for the expert-review request until the in-app request exists (L-26). */
+  marketingOrigin?: string | null;
+}) {
   const { orgId, role, operator, withOrg } = useWorkspace();
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const commands = useRef<ReportCommands | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [workspace, setWorkspace] = useState<string | null>(null);
+  useEffect(() => {
+    if (!orgId) return;
+    let live = true;
+    void workspaceRef(orgId)
+      .then((value) => {
+        if (live) setWorkspace(value);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [orgId]);
   const [data, setData] = useState<{ report: { current_revision_id: string | null; publication_status: string; title: string }; revisions: ReportRevision[] } | null>(null);
   const [error, setError] = useState("");
   const [revisionId, setRevisionId] = useState<string | null>(null);
@@ -887,6 +1136,13 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
   const canWrite = ["owner", "editor", "operator"].includes(role);
   const canManage = ["owner", "operator"].includes(role);
   const isCurrent = revision.id === data.report.current_revision_id;
+  const cta: ReportCta = {
+    onShare: canManage ? () => commands.current?.share() : undefined,
+    onDownload: canWrite ? () => commands.current?.downloadPdf() : undefined,
+    downloading: preparing,
+    readoutHref: readoutUrl ? readoutLink(readoutUrl, "report", workspace) : null,
+    expertHref: marketingOrigin ? `${marketingOrigin}${localizePathname("/contact", getLocale())}?offer=pilot-evaluation` : null,
+  };
   return (
     <>
       {!isCurrent && (
@@ -900,8 +1156,11 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
         initialResult={params.get("result")}
         initialTab={params.get("tab")}
         onResultChange={setResult}
+        cta={cta}
         actions={
           <ReportActions
+            commands={commands}
+            onPreparingChange={setPreparing}
             orgId={orgId}
             reportId={reportId}
             revisions={data.revisions}
@@ -1022,7 +1281,12 @@ function SharedDownloads({ token, report }: { token: string; report: Partial<Rep
   );
 }
 
-export function SharedReport() {
+/**
+ * The shared report page (spec P-21): what the report is, the report itself,
+ * then an invitation to test one's own assistant, carrying the sharing
+ * workspace's referral code (a hash, never its id) to the public demo.
+ */
+export function SharedReport({ marketingOrigin = "https://caudals.com" }: { marketingOrigin?: string }) {
   const token = useSyncExternalStore(
     () => () => {},
     readShareToken,
@@ -1030,6 +1294,7 @@ export function SharedReport() {
   );
   const [report, setReport] = useState<Partial<ReportSnapshot> | null>(null);
   const [share, setShare] = useState<{ label: string | null; expiresAt: string | null } | null>(null);
+  const [referral, setReferral] = useState<string | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     if (!token) return;
@@ -1037,11 +1302,13 @@ export function SharedReport() {
     void fetch("/api/evals/v1/share/exchange", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) })
       .then(async (response) => {
         if (!response.ok) throw new Error();
-        const body = await response.json();
-        setShare(body.meta?.share ?? null);
-        return body.data;
+        return (await response.json()) as { data: Partial<ReportSnapshot>; meta?: { share?: { label: string | null; expiresAt: string | null } | null; referral?: unknown } };
       })
-      .then(setReport)
+      .then((body) => {
+        setShare(body.meta?.share ?? null);
+        setReport(body.data);
+        setReferral(typeof body.meta?.referral === "string" && /^sr-[0-9a-f]{12}$/.test(body.meta.referral) ? body.meta.referral : null);
+      })
       .catch(() => setError(t("shareUnavailable")));
   }, [token]);
   if (!token || error)
@@ -1059,6 +1326,12 @@ export function SharedReport() {
     );
   return (
     <>
+      <section className="p-share-intro" aria-labelledby="share-intro-title" data-share-intro>
+        <h2 id="share-intro-title">{t("shareIntroTitle")}</h2>
+        <p>{t("shareIntroBody")}</p>
+        {/* A prospect snapshot is Caudals' own test of a public assistant, not shared by its owner (launch L-21). */}
+        {share?.label !== "external_snapshot" && <p className="p-cell-meta">{t("shareIntroPrivate")}</p>}
+      </section>
       {/* A prospect snapshot (launch L-21): say what the evidence is and when the link ends. */}
       {share?.label === "external_snapshot" && (
         <Status tone="info">
@@ -1066,6 +1339,16 @@ export function SharedReport() {
         </Status>
       )}
       <ReportView report={report} actions={<SharedDownloads token={token} report={report} />} />
+      <aside className="p-share-cta" aria-labelledby="share-cta-title" data-share-cta>
+        <div>
+          <h2 id="share-cta-title">{t("shareCtaTitle")}</h2>
+          <p>{t("shareCtaBody")}</p>
+        </div>
+        <ActionAnchor href={demoReferralLink(marketingOrigin, getLocale(), referral)}>
+          {t("shareCtaAction")}
+          <ArrowRight aria-hidden="true" />
+        </ActionAnchor>
+      </aside>
     </>
   );
 }

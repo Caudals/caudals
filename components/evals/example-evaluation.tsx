@@ -116,6 +116,7 @@ export function ExampleEvaluation({ view, pdfHref }: { view: ExampleView; pdfHre
         report={view.report}
         badge={<Badge tone="strong">{t("exampleLabel")}</Badge>}
         overviewIntro={history}
+        sample
         initialResult={opened.id}
         initialTab={params.get("tab")}
         onResultChange={setResult}

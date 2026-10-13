@@ -28,7 +28,8 @@ export function FunnelVisitTracker() {
       let destination: URL;
       try { destination = new URL(href, location.origin); } catch { return; }
       if (![location.hostname, "caudals.com", "app.caudals.com"].includes(destination.hostname)) return;
-      const surface = pathname.startsWith("/workspace") || pathname.startsWith("/ops") ? "workspace" : pathname.includes("/demo") ? "demo" : "public";
+      // A report's next steps and the shared report page are their own surfaces (launch L-17).
+      const surface = pathname.startsWith("/workspace/reports") ? "report" : pathname.startsWith("/share") ? "share" : pathname.startsWith("/workspace") || pathname.startsWith("/ops") ? "workspace" : pathname.includes("/demo") ? "demo" : "public";
       const funnelEvent = funnelLinkEvent(destination.pathname);
       if (funnelEvent) void trackProductEvent(funnelEvent, { surface });
       if (/^\/sample-report\/[\w-]+\.pdf$/.test(destination.pathname)) void trackProductEvent("example_viewed", { surface: "pdf" });

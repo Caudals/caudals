@@ -4,13 +4,17 @@
  * HTML only: every value from the snapshot is escaped, no script runs, and all
  * charts are plain HTML/SVG so the text stays selectable.
  *
- * Structure (spec §15.2): summary and headline metrics with denominators →
- * results at a glance → findings → improvements → test results → interaction
- * evidence → methodology, limitations and identifiers.
+ * Structure (spec §15.2, launch L-17): a cover with the headline metrics and
+ * their denominators → the executive summary, "Fix these first" and the key
+ * takeaways → results at a glance → findings → improvements → test results →
+ * interaction evidence → methodology, limitations and identifiers.
  */
 import type { ReportSnapshot } from "./contracts";
 import { GEIST_MONO_WOFF2, GEIST_WOFF2 } from "./fonts";
+import { answerCount, testRefs } from "./fixes";
 import { localizeReportText, reportDate, reportLabel, reportStrings, type ReportLocale } from "./i18n";
+import { buildExecutiveSummary } from "./summary";
+import { summaryCopy } from "./summary-copy";
 
 type Result = ReportSnapshot["results"][number];
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
@@ -121,17 +125,29 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   const incomplete = m.headline_status === "incomplete";
   const ordered = [...results].sort((a, b) => OUTCOME_ORDER.indexOf(a.outcome) - OUTCOME_ORDER.indexOf(b.outcome) || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
   const number = new Map(ordered.map((item, index) => [item.assessment_id, index + 1]));
-  const refs = (ids: string[]) =>
-    ids
-      .map((id) => number.get(id))
-      .filter((value): value is number => value != null)
-      .sort((a, b) => a - b)
-      .map((value) => `T${value}`)
-      .join(", ");
+  const refs = (ids: string[]) => testRefs(ids, number);
   const dates = day(report.scope.started_at) === day(report.scope.finished_at) ? day(report.scope.started_at) : `${day(report.scope.started_at)} – ${day(report.scope.finished_at)}`;
 
   const takeaways = report.takeaways.length
     ? `<section class="block keep"><h2>${S.keyTakeaways}</h2><ol class="takeaways">${report.takeaways.map((item) => `<li><p>${escapeHtml(tx(item.text))}</p>${item.assessment_ids.length ? `<span class="ref">${S.evidence}: ${refs(item.assessment_ids)}</span>` : ""}</li>`).join("")}</ol></section>`
+    : "";
+
+  // The executive summary and "Fix these first" (launch L-17): the same object the web report renders.
+  const C = summaryCopy(locale);
+  const summary = show("metrics") ? buildExecutiveSummary({ metrics: m, results: show("results") ? results : [], scope: show("scope") ? report.scope : undefined }, locale, { sample: options.sample }) : null;
+  const fixes = summary?.fixes ?? [];
+  const summaryBlock = summary
+    ? `<div class="summary" data-summary>
+  ${summary.sentences.map((item) => `<p class="sentence" data-sentence="${item.key}">${escapeHtml(item.text)}${item.assessment_ids.length && show("results") ? ` <span class="ref">${S.evidence}: ${refs(item.assessment_ids)}</span>` : ""}</p>`).join("\n  ")}
+  <p class="sample-size" data-sample>${escapeHtml(summary.sample)}</p>
+  <dl class="status">${summary.status.map((item) => `<div><dt><span class="chip" data-tone="${item.key === "reviewed" || item.key === "complete" ? "pass" : item.key === "incomplete" ? "warn" : "neutral"}">${escapeHtml(item.label)}</span></dt><dd>${escapeHtml(item.text)}</dd></div>`).join("")}</dl>
+</div>`
+    : "";
+  const fixesBlock = show("results") && results.some((item) => item.outcome === "fail" || item.outcome === "partial")
+    ? `<div class="block"><h2>${C.fixesTitle}</h2><p class="lead">${C.fixesLead}</p>
+  <table class="grid fixes"><colgroup><col style="width:7mm"><col style="width:46%"><col style="width:25mm"><col></colgroup><thead><tr><th class="n">#</th><th>${S.fix}</th><th>${S.answersWord}</th><th>${C.fixDo}</th></tr></thead><tbody>${fixes
+    .map((fix) => `<tr><td class="n">${fix.rank}</td><td><b>${escapeHtml(fix.title)}</b><br><span class="muted">${escapeHtml(fix.basis)}</span><br><span class="ref">${S.evidence}: ${refs(fix.assessment_ids)}</span></td><td><span class="count">${escapeHtml(answerCount(fix.assessment_ids.length, locale))}</span><br>${chip(fix.severity)}</td><td>${escapeHtml(fix.action)}</td></tr>`)
+    .join("")}</tbody></table></div>`
     : "";
 
   const findingBlocks = findings.length
@@ -223,7 +239,8 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
     <dt>${S.reviewCoverage}</dt><dd>${escapeHtml(tx(report.methodology.review_coverage || "—"))}</dd>
     <dt>${S.scoring}</dt><dd>${escapeHtml(report.methodology.scorer_version)} · CEF ${escapeHtml(report.methodology.cef_version)} · ${S.graders} ${escapeHtml(report.methodology.grader_revisions.join(", ") || "—")}</dd>
     ${show("metrics") && m.pass_bounds ? `<dt>${S.missingBounds}</dt><dd>${pct(m.pass_bounds.low)}–${pct(m.pass_bounds.high)} ${S.missingBoundsHelp}</dd>` : ""}
-    ${show("metrics") && m.wilson_interval ? `<dt>${S.uncertainty}</dt><dd>${S.wilson}: ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}</dd>` : ""}
+    ${show("metrics") && m.strict_pass_rate != null ? `<dt>${S.exactRate}</dt><dd>${pct(m.strict_pass_rate, 1)} (${m.n_pass} ${S.of} ${m.n_scorable})</dd>` : ""}
+    ${show("metrics") && m.wilson_interval ? `<dt>${S.uncertainty}</dt><dd>${S.wilson}: ${pct(m.wilson_interval.low, 1)}–${pct(m.wilson_interval.high, 1)}</dd>` : ""}
     <dt>${S.sources}</dt><dd>${report.methodology.source_revisions.length} ${report.methodology.source_revisions.length === 1 ? S.sourceRevision : S.sourceRevisions}</dd>
     ${show("scope") ? `<dt>${S.testSet}</dt><dd class="mono">${escapeHtml(report.scope.suite_version_id)}</dd>` : ""}
     ${identifiers}
@@ -231,7 +248,16 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   <div class="block"><h3 style="font-size:10pt;margin-bottom:6px">${S.limitations}</h3>${limitations.length ? `<ul class="plain">${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p class="muted">${S.noLimitations}</p>`}</div>`
     : `<h2><span class="num">B</span>${S.identifiers}</h2>
   <dl class="defs">${identifiers}</dl>`;
+  const summaryPage = summaryBlock || fixesBlock || takeaways
+    ? `<section class="section summary-page">
+  ${summary ? `<h2>${summary.title}</h2>
+  ${summaryBlock}` : ""}
+  ${fixesBlock}
+  ${takeaways}
+</section>`
+    : "";
   const body = [
+    summaryPage,
     // Without the results, findings and improvements are short enough to share a page.
     glance || findingsPart ? `<section class="section">
   ${glance}
@@ -271,7 +297,18 @@ p{margin:0}
 .brandbar .spacer{flex:1}
 .mark{width:15px;height:15px;fill:var(--ink)}
 .cover{padding-top:0}
-.cover .eyebrow{margin-top:24mm}
+.cover .eyebrow{margin-top:34mm}
+.summary-page > h2:first-child{font-size:18pt;letter-spacing:-.025em;margin-bottom:12px}
+.summary{padding:14px 18px;border:1px solid var(--line);border-radius:8px;break-inside:avoid}
+.summary .sentence{font-size:12pt;line-height:1.45;color:var(--ink);margin:0 0 8px}
+.summary .sentence .ref{display:block;margin-top:1px;font-size:8pt}
+.summary .sample-size{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:9.5pt;color:var(--ink-2);font-weight:500}
+dl.status{margin:6px 0 0;font-size:8.5pt;color:var(--muted)}
+dl.status div{display:grid;grid-template-columns:24mm 1fr;gap:8px;padding:3px 0;align-items:baseline}
+dl.status dt,dl.status dd{margin:0}
+table.fixes td{overflow-wrap:anywhere}
+table.fixes .ref{display:inline-block;margin-top:2px}
+table.fixes .count{white-space:nowrap}
 .eyebrow{font-size:9pt;font-weight:500;color:var(--muted)}
 h1{font-size:27pt;line-height:1.1;letter-spacing:-.03em;margin:6px 0 10px}
 .lede{font-size:11.5pt;color:var(--ink-2);max-width:150mm}
@@ -370,7 +407,7 @@ ul.plain li{margin:3px 0}
   ${show("metrics") ? `<div class="headline">
     <div class="score">
       <span class="k">${S.strictPassRate}</span>
-      <span class="big">${pct(m.strict_pass_rate, 1)}</span>
+      <span class="big">${summary?.percentText ?? pct(m.strict_pass_rate)}</span>
       <span class="cap">${m.n_pass} ${S.of} ${m.n_scorable} ${S.assessedTestsPassed}${m.wilson_interval ? ` · ${S.interval95} ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}` : ""}</span>
       <div class="outcomes">${outcomeBar({ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable })}</div>
     </div>
@@ -380,7 +417,6 @@ ul.plain li{margin:3px 0}
       ${m.rubric_score != null || show("findings") ? `<div><span>${m.rubric_score != null ? S.rubricScore : S.findings}</span><b>${m.rubric_score != null ? `${Math.round(m.rubric_score)}/100` : findings.length}<small>${m.rubric_score != null ? S.weightedCriteria : S.evidencePatterns}</small></b></div>` : ""}
     </div>
   </div>` : ""}
-  ${takeaways}
 </section>
 
 ${body}

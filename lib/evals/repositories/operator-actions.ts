@@ -12,7 +12,9 @@ export function listReportShares(scope: EvidenceScope, reportId: string) {
     const report = (await db.query("SELECT id FROM evals.report WHERE org_id=$1 AND id=$2", [scope.orgId, reportId])).rows[0];
     if (!report) throw new EvalError("SCOPE_DENIED", 404);
     return (await db.query(`SELECT s.id,s.report_revision_id,s.audience,s.recipient,s.permitted_fields,s.expires_at,s.revoked_at,s.created_at,
-        (SELECT count(*)::int FROM evals.share_access_event e WHERE e.org_id=s.org_id AND e.share_id=s.id) AS access_count
+        (SELECT count(*)::int FROM evals.share_access_event e WHERE e.org_id=s.org_id AND e.share_id=s.id) AS access_count,
+        (SELECT count(*)::int FROM evals.share_access_event e WHERE e.org_id=s.org_id AND e.share_id=s.id AND e.action='view') AS open_count,
+        (SELECT max(e.created_at) FROM evals.share_access_event e WHERE e.org_id=s.org_id AND e.share_id=s.id AND e.action='view') AS last_opened_at
       FROM evals.share_grant s JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(s.org_id,s.report_revision_id)
       WHERE s.org_id=$1 AND rr.report_id=$2 ORDER BY s.created_at DESC LIMIT 50`, [scope.orgId, reportId])).rows;
   });

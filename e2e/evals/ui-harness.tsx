@@ -8,7 +8,8 @@ import { NewEvaluationFlow, WorkspaceEvaluations } from "../../components/evals/
 import { EvaluationJourney } from "../../components/evals/evaluation-detail";
 import { WorkspaceReports } from "../../components/evals/workspace-reports";
 import { WorkspaceSettings } from "../../components/evals/workspace-settings";
-import { AuthenticatedReport, ReportView } from "../../components/evals/report-view";
+import { AuthenticatedReport, ReportView, SharedReport } from "../../components/evals/report-view";
+import { PublicFrame } from "../../components/evals/public-frame";
 import { ReviewQueue } from "../../components/evals/assessment-review";
 import { PlatformConsole } from "../../components/evals/platform-console";
 import { EngineSettings } from "../../components/evals/engine-settings";
@@ -25,8 +26,6 @@ import { ExpertManagement } from "../../components/evals/expert-management";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
 import { OperatorOverview } from "../../components/evals/operator-overview";
 import { NewProspectSnapshot, ProspectSnapshotDetail, ProspectSnapshots } from "../../components/evals/prospect-snapshot";
-import { SharedReport } from "../../components/evals/report-view";
-import { PublicFrame } from "../../components/evals/public-frame";
 import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
 import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
@@ -117,6 +116,8 @@ const identity = {
   ],
 };
 const demoPage = location.pathname === "/demo";
+/** A privately shared report (launch L-17): no shell, the public frame only; its API is routed by each test. */
+const sharePage = location.pathname === "/share";
 /** The public sample report (launch L-33), in the Paper frame without the platform shell. */
 const sampleReportPage = location.pathname === "/sample-report";
 const sampleLocale = params.get("locale") === "es" ? "es" as const : "en" as const;
@@ -127,7 +128,12 @@ const opsKpis = { stage: "gate_a" as const, targets: { sessions: 150, demoStarts
   demo: { starts: 9, finished: 9, succeeded: 7, successRate: 7 / 9, p50Seconds: 192, failures: [{ reason: "site_thin", count: 2 }], queue: 1, primaryDown: false, fallbackDown: false } };
 const content =
   location.pathname === "/analytics-fixture" ? <FunnelVisitTracker /> :
-  location.pathname === "/share" ? <PublicFrame contextKey="sharedPrivately"><SharedReport /></PublicFrame> :
+  sharePage ? (
+    <PublicFrame contextKey="sharedPrivately">
+      <FunnelVisitTracker />
+      <SharedReport marketingOrigin="https://caudals.com" />
+    </PublicFrame>
+  ) :
   location.pathname === "/ops/prospects" ? <ProspectSnapshots /> :
   location.pathname === "/ops/prospects/new" ? <NewProspectSnapshot limits={{ dailyCap: 25, maxQuestions: 10, requestsPerMinute: 4, concurrentSessions: 1, runsPerMonth: 3, helpPages: 10 }} /> :
   location.pathname.startsWith("/ops/prospects/") ? <ProspectSnapshotDetail id={location.pathname.split("/").at(-1)!} /> :
@@ -205,7 +211,7 @@ const content =
   ) : location.pathname === "/ops/review" ? (
     <ReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (
-    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" />
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" />
   ) : location.pathname === "/workspace/reports/fixture-v2" ? (
     <ReportView initialTab={params.get("tab")} initialResult={params.get("result")} report={gradingV2Fixture()} />
   ) : location.pathname === "/workspace/reports/fixture" ? (
@@ -221,7 +227,7 @@ const content =
     <WorkspaceEvaluations />
   );
 createRoot(document.getElementById("root")!).render(
-  authPage || demoPage || sampleReportPage ? (
+  authPage || demoPage || sampleReportPage || sharePage ? (
     content
   ) : anonymous ? (
     <div className="p-root">

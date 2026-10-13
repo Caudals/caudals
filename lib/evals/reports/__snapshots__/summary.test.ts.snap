@@ -1,0 +1,349 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`executive summary > example-en (en) matches its snapshot 1`] = `
+{
+  "fixes": [
+    {
+      "answers": 2,
+      "basis": "Likely cause (hypothesis): wrong source",
+      "rank": 1,
+      "severity": "critical",
+      "title": "Make answers use “Table of limits and excesses (2026)”",
+    },
+    {
+      "answers": 3,
+      "basis": "Likely cause (hypothesis): wrong source",
+      "rank": 2,
+      "severity": "high",
+      "title": "Make answers use “Hogar Completo general conditions (2026 edition)”",
+    },
+    {
+      "answers": 2,
+      "basis": "Likely cause (hypothesis): outdated document",
+      "rank": 3,
+      "severity": "high",
+      "title": "Update the outdated content behind “Hogar Completo general conditions (2026 edition)”",
+    },
+    {
+      "answers": 1,
+      "basis": "Likely cause (hypothesis): invented answer",
+      "rank": 4,
+      "severity": "critical",
+      "title": "Stop invented details about “Hogar Completo general conditions (2026 edition)”",
+    },
+    {
+      "answers": 1,
+      "basis": "Likely cause (hypothesis): outdated document",
+      "rank": 5,
+      "severity": "high",
+      "title": "Update the outdated content behind “Home insurance FAQ (2026)”",
+    },
+  ],
+  "percent": "76%",
+  "sample": "Sample: 46 scored answers out of 48 questions.",
+  "sentences": [
+    {
+      "evidence": 40,
+      "key": "result",
+      "text": "35 of 46 answers matched your sources (76%). 5 more were partly right.",
+    },
+    {
+      "evidence": 9,
+      "key": "problems",
+      "text": "The main problems are incomplete answers (5) and wrong information (4).",
+    },
+    {
+      "evidence": 2,
+      "key": "start",
+      "text": "Start with: Make answers use “Table of limits and excesses (2026)” (2 answers, 1 critical).",
+    },
+  ],
+  "status": [
+    "Reviewed: Simulated in this example: it shows how a report reads after a person checks the grades.",
+    "Complete: Every critical question and enough of the rest were scored for the score to stand.",
+  ],
+}
+`;
+
+exports[`executive summary > example-en (es) matches its snapshot 1`] = `
+{
+  "fixes": [
+    {
+      "answers": 2,
+      "basis": "Causa probable (hipótesis): fuente equivocada",
+      "rank": 1,
+      "severity": "critical",
+      "title": "Haz que las respuestas usen «Table of limits and excesses (2026)»",
+    },
+    {
+      "answers": 3,
+      "basis": "Causa probable (hipótesis): fuente equivocada",
+      "rank": 2,
+      "severity": "high",
+      "title": "Haz que las respuestas usen «Hogar Completo general conditions (2026 edition)»",
+    },
+    {
+      "answers": 2,
+      "basis": "Causa probable (hipótesis): documento desactualizado",
+      "rank": 3,
+      "severity": "high",
+      "title": "Actualiza el contenido desactualizado de «Hogar Completo general conditions (2026 edition)»",
+    },
+    {
+      "answers": 1,
+      "basis": "Causa probable (hipótesis): respuesta inventada",
+      "rank": 4,
+      "severity": "critical",
+      "title": "Evita datos inventados sobre «Hogar Completo general conditions (2026 edition)»",
+    },
+    {
+      "answers": 1,
+      "basis": "Causa probable (hipótesis): documento desactualizado",
+      "rank": 5,
+      "severity": "high",
+      "title": "Actualiza el contenido desactualizado de «Home insurance FAQ (2026)»",
+    },
+  ],
+  "percent": "76 %",
+  "sample": "Muestra: 46 respuestas puntuadas de 48 preguntas.",
+  "sentences": [
+    {
+      "evidence": 40,
+      "key": "result",
+      "text": "35 de 46 respuestas coincidieron con tus fuentes (76 %). Otras 5 fueron parcialmente correctas.",
+    },
+    {
+      "evidence": 9,
+      "key": "problems",
+      "text": "Los principales problemas son las respuestas incompletas (5) y la información incorrecta (4).",
+    },
+    {
+      "evidence": 2,
+      "key": "start",
+      "text": "Empieza por: Haz que las respuestas usen «Table of limits and excesses (2026)» (2 respuestas, 1 crítica).",
+    },
+  ],
+  "status": [
+    "Revisado: Simulado en este ejemplo: muestra cómo se lee un informe después de que una persona compruebe las calificaciones.",
+    "Completo: Se puntuaron todas las preguntas críticas y suficientes de las demás para que la puntuación sea válida.",
+  ],
+}
+`;
+
+exports[`executive summary > preliminary-es (en) matches its snapshot 1`] = `
+{
+  "fixes": [
+    {
+      "answers": 2,
+      "basis": "Likely cause (hypothesis): outdated document",
+      "rank": 1,
+      "severity": "critical",
+      "title": "Update the outdated content behind “Tarifas y comisiones 2026”",
+    },
+    {
+      "answers": 1,
+      "basis": "Likely cause (hypothesis): knowledge gap",
+      "rank": 2,
+      "severity": "medium",
+      "title": "Give the assistant the content of “Preguntas frecuentes — Inversión”",
+    },
+    {
+      "answers": 1,
+      "basis": "What went wrong: unanswered questions",
+      "rank": 3,
+      "severity": "medium",
+      "title": "Answer instead of deflecting",
+    },
+  ],
+  "percent": "33%",
+  "sample": "Sample: 6 scored answers out of 8 questions.",
+  "sentences": [
+    {
+      "evidence": 3,
+      "key": "result",
+      "text": "2 of 6 answers matched your sources (33%). 1 more was partly right.",
+    },
+    {
+      "evidence": 3,
+      "key": "problems",
+      "text": "The main problems are wrong information (2) and unanswered questions (1).",
+    },
+    {
+      "evidence": 2,
+      "key": "start",
+      "text": "Start with: Update the outdated content behind “Tarifas y comisiones 2026” (2 answers, 1 critical).",
+    },
+  ],
+  "status": [
+    "Preliminary: Graded automatically; no expert has reviewed the grades yet.",
+    "Incomplete: Some questions could not be scored, so the score describes only the scored ones.",
+  ],
+}
+`;
+
+exports[`executive summary > preliminary-es (es) matches its snapshot 1`] = `
+{
+  "fixes": [
+    {
+      "answers": 2,
+      "basis": "Causa probable (hipótesis): documento desactualizado",
+      "rank": 1,
+      "severity": "critical",
+      "title": "Actualiza el contenido desactualizado de «Tarifas y comisiones 2026»",
+    },
+    {
+      "answers": 1,
+      "basis": "Causa probable (hipótesis): laguna de conocimiento",
+      "rank": 2,
+      "severity": "medium",
+      "title": "Da al asistente el contenido de «Preguntas frecuentes — Inversión»",
+    },
+    {
+      "answers": 1,
+      "basis": "Qué falló: las preguntas sin respuesta",
+      "rank": 3,
+      "severity": "medium",
+      "title": "Responde en lugar de desviar la pregunta",
+    },
+  ],
+  "percent": "33 %",
+  "sample": "Muestra: 6 respuestas puntuadas de 8 preguntas.",
+  "sentences": [
+    {
+      "evidence": 3,
+      "key": "result",
+      "text": "2 de 6 respuestas coincidieron con tus fuentes (33 %). Otra fue parcialmente correcta.",
+    },
+    {
+      "evidence": 3,
+      "key": "problems",
+      "text": "Los principales problemas son la información incorrecta (2) y las preguntas sin respuesta (1).",
+    },
+    {
+      "evidence": 2,
+      "key": "start",
+      "text": "Empieza por: Actualiza el contenido desactualizado de «Tarifas y comisiones 2026» (2 respuestas, 1 crítica).",
+    },
+  ],
+  "status": [
+    "Preliminar: Calificado automáticamente; ningún experto ha revisado aún las calificaciones.",
+    "Incompleto: Algunas preguntas no se pudieron puntuar, así que la puntuación describe solo las puntuadas.",
+  ],
+}
+`;
+
+exports[`executive summary > stress-en (en) matches its snapshot 1`] = `
+{
+  "fixes": [
+    {
+      "answers": 6,
+      "basis": "Likely cause (hypothesis): knowledge gap",
+      "rank": 1,
+      "severity": "critical",
+      "title": "Give the assistant the content of “Pricing table”",
+    },
+    {
+      "answers": 6,
+      "basis": "Likely cause (hypothesis): treated as out of scope",
+      "rank": 2,
+      "severity": "critical",
+      "title": "Answer the in-scope questions covered by “Data processing addendum — schedule 3: sub-processors and international transfers”",
+    },
+    {
+      "answers": 6,
+      "basis": "What went wrong: incomplete answers",
+      "rank": 3,
+      "severity": "high",
+      "title": "Complete the answers about “Release notes”",
+    },
+    {
+      "answers": 6,
+      "basis": "Likely cause (hypothesis): wrong source",
+      "rank": 4,
+      "severity": "high",
+      "title": "Make answers use “Refunds FAQ”",
+    },
+  ],
+  "percent": "33%",
+  "sample": "Sample: 36 scored answers out of 36 questions.",
+  "sentences": [
+    {
+      "evidence": 24,
+      "key": "result",
+      "text": "12 of 36 answers matched your sources (33%). 12 more were partly right.",
+    },
+    {
+      "evidence": 18,
+      "key": "problems",
+      "text": "The main problems are incomplete answers (12) and answers that contradict your documentation (6).",
+    },
+    {
+      "evidence": 6,
+      "key": "start",
+      "text": "Start with: Give the assistant the content of “Pricing table” (6 answers, 3 critical).",
+    },
+  ],
+  "status": [
+    "Preliminary: Graded automatically; no expert has reviewed the grades yet.",
+    "Complete: Every critical question and enough of the rest were scored for the score to stand.",
+  ],
+}
+`;
+
+exports[`executive summary > stress-en (es) matches its snapshot 1`] = `
+{
+  "fixes": [
+    {
+      "answers": 6,
+      "basis": "Causa probable (hipótesis): laguna de conocimiento",
+      "rank": 1,
+      "severity": "critical",
+      "title": "Da al asistente el contenido de «Pricing table»",
+    },
+    {
+      "answers": 6,
+      "basis": "Causa probable (hipótesis): tratada como fuera de alcance",
+      "rank": 2,
+      "severity": "critical",
+      "title": "Responde las preguntas de su ámbito que cubre «Data processing addendum — schedule 3: sub-processors and international transfers»",
+    },
+    {
+      "answers": 6,
+      "basis": "Qué falló: las respuestas incompletas",
+      "rank": 3,
+      "severity": "high",
+      "title": "Completa las respuestas sobre «Release notes»",
+    },
+    {
+      "answers": 6,
+      "basis": "Causa probable (hipótesis): fuente equivocada",
+      "rank": 4,
+      "severity": "high",
+      "title": "Haz que las respuestas usen «Refunds FAQ»",
+    },
+  ],
+  "percent": "33 %",
+  "sample": "Muestra: 36 respuestas puntuadas de 36 preguntas.",
+  "sentences": [
+    {
+      "evidence": 24,
+      "key": "result",
+      "text": "12 de 36 respuestas coincidieron con tus fuentes (33 %). Otras 12 fueron parcialmente correctas.",
+    },
+    {
+      "evidence": 18,
+      "key": "problems",
+      "text": "Los principales problemas son las respuestas incompletas (12) y las respuestas que contradicen tu documentación (6).",
+    },
+    {
+      "evidence": 6,
+      "key": "start",
+      "text": "Empieza por: Da al asistente el contenido de «Pricing table» (6 respuestas, 3 críticas).",
+    },
+  ],
+  "status": [
+    "Preliminar: Calificado automáticamente; ningún experto ha revisado aún las calificaciones.",
+    "Completo: Se puntuaron todas las preguntas críticas y suficientes de las demás para que la puntuación sea válida.",
+  ],
+}
+`;

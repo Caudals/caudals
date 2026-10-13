@@ -6,18 +6,23 @@
  * revisions and draft validated takeaways. Controls appear only for roles the
  * server also enforces.
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, ChevronDown, Download, Eye, FileText, GitCompare, History, Pencil, RefreshCcw, Share2, Sparkles, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
-import { Action, ActionAnchor, Badge, Check, DataTable, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
+import { Action, ActionAnchor, Badge, Check, DataTable, Field, FilterChips, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time, formatDate } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
-import { getLocale, t } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 
 export type ReportRevision = { id: string; run_id: string; review_status: string; created_at: string; snapshot: ReportSnapshot };
-type Share = { id: string; report_revision_id: string; audience: string; recipient: string | null; permitted_fields: string[]; expires_at: string; revoked_at: string | null; access_count: number };
+/** What the report's next-step row (ReportView `cta`) can ask these actions to do. */
+export type ReportCommands = { share: () => void; downloadPdf: () => void };
+/** `open_count` and `last_opened_at` count page opens only (launch L-17); `access_count` also counts downloads. */
+type Share = { id: string; report_revision_id: string; audience: string; recipient: string | null; permitted_fields: string[]; expires_at: string; revoked_at: string | null; access_count: number; open_count?: number; last_opened_at?: string | null };
+/** Link lifetimes offered when sharing (spec P-21). */
+export const SHARE_EXPIRY_PRESETS = [7, 30, 90] as const;
 type ExportJob = { id: string; status: string; download_path: string | null; reason_code: string | null };
 type RunRow = { id: string; status: string; created_at: string; suite_version_id: string };
 type Comparison = { status: string; improved?: number; regressed?: number; unchanged?: number; unassessed?: number; reasons?: string[] };
@@ -46,6 +51,8 @@ export function ReportActions({
   reportTitle,
   autoExport = false,
   onDeleted,
+  commands,
+  onPreparingChange,
 }: {
   orgId: string;
   reportId: string;
@@ -64,14 +71,19 @@ export function ReportActions({
   /** Start a PDF download on arrival (links such as "Download PDF" in the report list). */
   autoExport?: boolean;
   onDeleted?: () => void;
+  /** Lets the executive summary's next-step row open the share dialog or start the PDF. */
+  commands?: RefObject<ReportCommands | null>;
+  /** Called when a queued PDF starts or stops preparing. */
+  onPreparingChange?: (preparing: boolean) => void;
 }) {
   const [dialog, setDialog] = useState<"" | "share" | "compare" | "revisions" | "takeaways" | "release">("");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [error, setError] = useState("");
 
   const title = reportTitle || revision.snapshot.system?.name || t("report");
-  // Downloads carry the report name so the saved file is recognisable.
-  const named = useCallback((path: string) => `${path}${path.includes("?") ? "&" : "?"}name=${encodeURIComponent(title)}`, [title]);
+  // Downloads are named after the system and the report date: Caudals-<system>-<date>.pdf (spec P-22).
+  const fileTitle = revision.snapshot.system?.name || reportTitle || t("report");
+  const named = useCallback((path: string) => `${path}${path.includes("?") ? "&" : "?"}name=${encodeURIComponent(fileTitle)}`, [fileTitle]);
   const deleting = useRef(false);
   const items = useItemActions(orgId, () => (deleting.current ? onDeleted?.() : onChanged()));
 
@@ -137,8 +149,13 @@ export function ReportActions({
     };
   }, [autoExport, exportPdf]);
 
+  const preparing = !!exportJob && ["queued", "running"].includes(exportJob.status);
+  useImperativeHandle(commands, () => ({ share: () => setDialog("share"), downloadPdf: () => void exportPdf() }), [exportPdf]);
+  useEffect(() => {
+    onPreparingChange?.(preparing);
+  }, [preparing, onPreparingChange]);
+
   if (!canWrite) return null;
-  const preparing = exportJob && ["queued", "running"].includes(exportJob.status);
   return (
     <>
       {error && (
@@ -304,7 +321,7 @@ function ShareDialog({
 }) {
   const [audience, setAudience] = useState<"bearer" | "named_recipient" | "workspace">("bearer");
   const [recipient, setRecipient] = useState("");
-  const [days, setDays] = useState(14);
+  const [days, setDays] = useState<(typeof SHARE_EXPIRY_PRESETS)[number]>(30);
   const [fields, setFields] = useState<Set<string>>(new Set(DEFAULT_FIELDS));
   const [shares, setShares] = useState<Share[]>([]);
   const [link, setLink] = useState("");
@@ -399,7 +416,15 @@ function ShareDialog({
                 <option value="named_recipient">{t("shareNamed")}</option>
                 <option value="workspace">{t("shareWorkspace")}</option>
               </SelectField>
-              <Field id="share-expiry" type="number" min={1} max={90} label={t("shareExpiryDays")} value={days} onChange={(event) => setDays(Math.min(90, Math.max(1, Number(event.target.value) || 1)))} />
+              <div className="p-field">
+                <span id="share-expiry-label">{t("shareExpiresAfter")}</span>
+                <FilterChips
+                  value={String(days) as `${(typeof SHARE_EXPIRY_PRESETS)[number]}`}
+                  onChange={(value) => setDays(Number(value) as (typeof SHARE_EXPIRY_PRESETS)[number])}
+                  label={t("shareExpiresAfter")}
+                  options={SHARE_EXPIRY_PRESETS.map((preset) => ({ value: String(preset) as `${(typeof SHARE_EXPIRY_PRESETS)[number]}`, label: tv("shareExpiryPreset", { days: preset }) }))}
+                />
+              </div>
             </div>
             {audience === "named_recipient" && <Field id="share-recipient" type="email" label={t("shareRecipient")} value={recipient} onChange={(event) => setRecipient(event.target.value)} required />}
             <fieldset className="p-fieldset p-checks">
@@ -426,14 +451,14 @@ function ShareDialog({
         {active.length > 0 && (
           <div>
             <SectionHeading title={t("activeShares")} />
-            <DataTable caption={t("activeShares")} headers={[t("shareAudience"), t("expires"), { label: t("views"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
+            <DataTable caption={t("activeShares")} headers={[t("shareAudience"), t("expires"), t("shareOpens"), { label: t("actions"), align: "end", hidden: true }]}>
               {active.map((share) => (
                 <tr key={share.id}>
                   <RowTitle meta={share.recipient ?? undefined}>{share.audience === "bearer" ? t("shareBearer") : share.audience === "named_recipient" ? t("shareNamed") : t("shareWorkspace")}</RowTitle>
                   <td className="p-cell-meta">
                     <Time value={share.expires_at} withTime={false} />
                   </td>
-                  <td className="p-num">{share.access_count}</td>
+                  <td className="p-cell-meta" data-opens={share.open_count ?? share.access_count}>{openedLabel(share)}</td>
                   <td className="p-table-action">
                     <Action variant="ghost" size="sm" disabled={pending} onClick={() => void revoke(share.id)}>
                       {t("revokeShare")}
@@ -450,6 +475,14 @@ function ShareDialog({
       </SidePanel>
     </>
   );
+}
+
+/** "Opened 3 times, last on 12 Oct 2026" for the owner (spec P-21), from the share's access log. */
+function openedLabel(share: Share) {
+  const count = share.open_count ?? share.access_count;
+  if (!count) return t("shareNotOpened");
+  const date = share.last_opened_at ? formatDate(share.last_opened_at) : "—";
+  return count === 1 ? tv("shareOpenedOnce", { date }) : tv("shareOpenedMany", { count, date });
 }
 
 /* -------------------------------------------------------------- compare --- */

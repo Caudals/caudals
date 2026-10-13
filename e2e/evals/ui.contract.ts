@@ -1438,12 +1438,14 @@ test("report actions publish a revision, share a previewed projection once and r
   await expect(page.getByText(/Revision published/)).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Download" }).click();
+  // The heading's menus; the executive summary repeats Share and Download PDF as next steps (launch L-17).
+  const heading = page.locator(".p-head-actions");
+  await heading.getByRole("button", { name: "Download" }).click();
   await expect(page.getByText(/cannot be recalled/).first()).toBeVisible();
   await page.getByRole("menuitem", { name: "PDF document" }).click();
   await expect(page.getByRole("link", { name: "Download PDF" })).toBeVisible({ timeout: 10_000 });
 
-  await page.getByRole("button", { name: "Share" }).click();
+  await heading.getByRole("button", { name: "Share" }).click();
   // Individual test results are opt-in: interaction excerpts are the most sensitive part.
   await expect(page.getByLabel("Individual test results with interaction excerpts")).not.toBeChecked();
   await page.getByRole("button", { name: "Preview shared view" }).click();

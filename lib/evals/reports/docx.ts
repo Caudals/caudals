@@ -1,15 +1,20 @@
 /**
  * The client report as an editable Word document. Same immutable snapshot and
- * section order as the PDF (./document.ts): summary and headline metrics →
- * takeaways → findings → improvements → test results → methodology. Text only,
- * so the customer can annotate and forward it; the PDF stays the reference copy.
+ * section order as the PDF (./document.ts): a cover with the headline →
+ * executive summary and "Fix these first" (launch L-17) → results at a glance
+ * → takeaways → findings → improvements → test results → methodology. Text
+ * only, so the customer can annotate and forward it; the PDF stays the
+ * reference copy.
  */
 import {
   AlignmentType, BorderStyle, Document, Footer, HeadingLevel, Packer, PageNumber, Paragraph, ShadingType,
   Table, TableCell, TableRow, TextRun, WidthType,
 } from "docx";
 import { reportSnapshotSchema, type ReportSnapshot } from "./contracts";
+import { answerCount, testRefs } from "./fixes";
 import { localizeReportText, reportDate, reportLabel, reportStrings, type ReportLocale } from "./i18n";
+import { buildExecutiveSummary } from "./summary";
+import { summaryCopy } from "./summary-copy";
 
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
 const OUTCOME_ORDER = ["fail", "partial", "unscorable", "pass"] as const;
@@ -50,8 +55,9 @@ function cell(value: string, options: { bold?: boolean; header?: boolean; width?
     children: [new Paragraph({ children: [text(value, { bold: options.bold || options.header, size: 20 })] })],
   });
 }
+const BORDER = { style: BorderStyle.SINGLE, size: 4, color: "D9D9D4" };
 function table(headers: string[], rows: string[][], widths?: number[]) {
-  const border = { style: BorderStyle.SINGLE, size: 4, color: "D9D9D4" };
+  const border = BORDER;
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: { top: border, bottom: border, left: border, right: border, insideHorizontal: border, insideVertical: border },
@@ -62,8 +68,11 @@ function table(headers: string[], rows: string[][], widths?: number[]) {
   });
 }
 
-/** `hidden` names report sections a private share did not allow (./share-sections.ts); they are left out. */
-export async function renderReportDocx(raw: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set()): Promise<Buffer> {
+/**
+ * `hidden` names report sections a private share did not allow (./share-sections.ts); they are left out.
+ * `options.sample` marks the example evaluation (its review is simulated).
+ */
+export async function renderReportDocx(raw: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set(), options: { sample?: boolean } = {}): Promise<Buffer> {
   locale = language;
   const S = reportStrings(language);
   const report = reportSnapshotSchema.parse(raw);
@@ -71,7 +80,7 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
   const m = report.metrics;
   const results = [...report.results].sort((a, b) => OUTCOME_ORDER.indexOf(a.outcome) - OUTCOME_ORDER.indexOf(b.outcome) || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
   const number = new Map(results.map((item, index) => [item.assessment_id, index + 1]));
-  const refs = (ids: string[]) => ids.map((id) => number.get(id)).filter((value): value is number => value != null).sort((a, b) => a - b).map((value) => `T${value}`).join(", ");
+  const refs = (ids: string[]) => testRefs(ids, number);
   const findings = [...report.findings].sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
   const improvements = [...report.improvements].sort((a, b) => a.priority - b.priority);
   const dates = day(report.scope.started_at) === day(report.scope.finished_at) ? day(report.scope.started_at) : `${day(report.scope.started_at)} – ${day(report.scope.finished_at)}`;
@@ -90,11 +99,54 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
   if (subtitle.length) children.push(para(subtitle.join(" · "), { color: MUTED, size: 20, after: 240 }));
   if (m.headline_status === "incomplete" && report.methodology.limitations.length && !show("methodology"))
     for (const limitation of report.methodology.limitations) children.push(new Paragraph({ bullet: { level: 0 }, children: [text(tx(limitation), { color: MUTED })] }));
+
+  // Cover headline, then the executive summary and "Fix these first" on their own page (the same object the web and PDF render).
+  const C = summaryCopy(language);
+  const summary = show("metrics") ? buildExecutiveSummary({ metrics: m, results: show("results") ? report.results : [], scope: show("scope") ? report.scope : undefined }, language, { sample: options.sample }) : null;
+  if (show("metrics")) {
+    children.push(new Paragraph({ spacing: { before: 360, after: 40 }, children: [text(S.strictPassRate, { color: MUTED, size: 20 })] }));
+    children.push(new Paragraph({ spacing: { after: 60 }, children: [text(summary?.percentText ?? pct(m.strict_pass_rate), { bold: true, size: 88 })] }));
+    children.push(para(`${m.n_pass} ${S.of} ${m.n_scorable} ${S.assessedTestsPassed}`, { color: MUTED, size: 20 }));
+  }
+  const failing = report.results.some((item) => item.outcome === "fail" || item.outcome === "partial");
+  if (summary || (show("results") && failing)) {
+    children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, spacing: { after: 160 }, children: [text(summary ? summary.title : C.fixesTitle, { bold: true })] }));
+    if (summary) {
+      for (const sentence of summary.sentences) {
+        children.push(new Paragraph({ spacing: { after: sentence.assessment_ids.length && show("results") ? 20 : 120 }, children: [text(sentence.text, { size: 24 })] }));
+        if (sentence.assessment_ids.length && show("results")) children.push(para(`${S.evidence}: ${refs(sentence.assessment_ids)}`, { color: MUTED, size: 16 }));
+      }
+      children.push(para(summary.sample, { bold: true, size: 20, after: 80 }));
+      for (const status of summary.status) children.push(new Paragraph({ spacing: { after: 60 }, children: [text(`${status.label}. `, { bold: true, size: 18, color: MUTED }), text(status.text, { size: 18, color: MUTED })] }));
+    }
+    if (show("results") && failing) {
+      if (summary) children.push(heading(C.fixesTitle, HeadingLevel.HEADING_2));
+      children.push(para(C.fixesLead, { color: MUTED, size: 18 }));
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER, insideHorizontal: BORDER, insideVertical: BORDER },
+        rows: [
+          new TableRow({ tableHeader: true, children: ["#", S.fix, S.answersWord, C.fixDo].map((value, index) => cell(value, { header: true, width: [6, 44, 16, 34][index] })) }),
+          ...(summary?.fixes ?? []).map((fix) => new TableRow({ children: [
+            cell(String(fix.rank), { width: 6 }),
+            new TableCell({ width: { size: 44, type: WidthType.PERCENTAGE }, margins: { top: 60, bottom: 60, left: 100, right: 100 }, children: [
+              new Paragraph({ children: [text(fix.title, { bold: true, size: 20 })] }),
+              new Paragraph({ children: [text(fix.basis, { color: MUTED, size: 18 })] }),
+              new Paragraph({ children: [text(`${S.evidence}: ${refs(fix.assessment_ids)}`, { color: MUTED, size: 16 })] }),
+            ] }),
+            cell(`${answerCount(fix.assessment_ids.length, language)} · ${plain(fix.severity)}`, { width: 16 }),
+            cell(fix.action, { width: 34 }),
+          ] })),
+        ],
+      }));
+    }
+  }
+
   if (show("metrics"))
     children.push(
       heading(S.resultsAtAGlance),
       table([S.measure, S.value], [
-        [S.strictPassRate, `${pct(m.strict_pass_rate)} (${m.n_pass} ${S.of} ${m.n_scorable} ${S.scoredWord})`],
+        [S.strictPassRate, `${summary?.percentText ?? pct(m.strict_pass_rate)} (${m.n_pass} ${S.of} ${m.n_scorable} ${S.scoredWord})`],
         ...(m.wilson_interval ? [[S.interval95, `${pct(m.wilson_interval.low)} – ${pct(m.wilson_interval.high)}`]] : []),
         [S.outcomes, `${counts.pass} ${S.pass} · ${counts.partial} ${S.partial} · ${counts.fail} ${S.fail} · ${counts.unscorable} ${S.notScoredLower}`],
         [S.testsPlannedExecuted, `${m.n_planned} / ${m.n_executed}`],
@@ -154,6 +206,8 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     ...(show("scope") ? [[S.evidencePolicy, plain(report.scope.evidence_policy)]] : []),
     [S.sampling, tx(method.sampling)],
     [S.reviewCoverage, tx(method.review_coverage)],
+    ...(show("metrics") && m.strict_pass_rate != null ? [[S.exactRate, `${(m.strict_pass_rate * 100).toFixed(1)}% (${m.n_pass} ${S.of} ${m.n_scorable})`]] : []),
+    ...(show("metrics") && m.wilson_interval ? [[S.interval95, `${(m.wilson_interval.low * 100).toFixed(1)}% – ${(m.wilson_interval.high * 100).toFixed(1)}%`]] : []),
     ...(method.exclusions.length ? [[S.excludedFromScoring, method.exclusions.map(tx).join(", ")]] : []),
     ...(method.cost ? [[S.modelCost, `${method.cost.settled} ${method.cost.currency} ${S.settled}`]] : []),
     ...identifiers,
@@ -175,7 +229,12 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
         default: new Footer({
           children: [new Paragraph({
             alignment: AlignmentType.RIGHT,
-            children: [text(`Caudals · ${show("system") ? `${clean(report.system.name)} · ` : ""}${S.revision} ${report.report_revision_id.slice(0, 8)} · ${S.page} `, { color: MUTED, size: 16 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, color: MUTED, size: 16 })],
+            children: [
+              text(`Caudals · ${options.sample ? `${S.sampleLabel} · ` : ""}${show("system") ? `${clean(report.system.name)} · ` : ""}${S.revision} ${report.report_revision_id.slice(0, 8)} · ${S.page} `, { color: MUTED, size: 16 }),
+              new TextRun({ children: [PageNumber.CURRENT], font: FONT, color: MUTED, size: 16 }),
+              text(` ${S.pageOf} `, { color: MUTED, size: 16 }),
+              new TextRun({ children: [PageNumber.TOTAL_PAGES], font: FONT, color: MUTED, size: 16 }),
+            ],
           })],
         }),
       },
