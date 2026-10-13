@@ -2,7 +2,9 @@
  * Cross-format consistency (launch L-17, spec P-20): the executive summary
  * and the headline the web report shows are word for word what the PDF and
  * the Word document print, for full reports and shared copies, in English
- * and Spanish. The web report is rendered with React's server renderer.
+ * and Spanish. The web report is rendered with React's server renderer. The
+ * outcome stacks by topic and severity (#86) carry the same counts, rates and
+ * "not right" counts on the web and in the PDF, and add up to the metrics.
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -38,6 +40,27 @@ function pdfSummary(html: string) {
 async function wordParagraphs(bytes: Buffer) {
   const xml = await (await JSZip.loadAsync(bytes)).file("word/document.xml")!.async("string");
   return [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map((match) => unescape([...match[0].matchAll(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>/g)].map((text) => text[1]).join("")));
+}
+
+/** One row of an outcome stack: its pass/partial/fail counts and the two values printed beside it. */
+type StackRow = { pass: number; warn: number; fail: number; rate: string; wrong: string };
+function stackRow(markup: string, rate: string, wrong: string): StackRow {
+  const counts = { pass: 0, warn: 0, fail: 0 };
+  for (const match of markup.matchAll(/data-tone="(pass|warn|fail)" style="flex-grow:(\d+)"/g)) counts[match[1] as keyof typeof counts] = Number(match[2]);
+  return { ...counts, rate: unescape(rate.trim()), wrong: unescape(wrong.trim()) };
+}
+function webStacks(markup: string) {
+  return [...markup.matchAll(/<ul class="p-stacks"[^>]*>([\s\S]*?)<\/ul>/g)].map((list) =>
+    [...list[1].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((row) => {
+      const value = /<span class="p-stacks-value"[^>]*>([\s\S]*?)<small>([\s\S]*?)<\/small>/.exec(row[1])!;
+      return stackRow(row[1], value[1], value[2]);
+    }),
+  );
+}
+function pdfStacks(html: string) {
+  return [...html.matchAll(/<table class="rates">([\s\S]*?)<\/table>/g)].map((table) =>
+    [...table[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((row) => stackRow(row[1], /<td class="num">([\s\S]*?)<\/td>/.exec(row[1])![1], /<td class="den wrong">([\s\S]*?)<\/td>/.exec(row[1])![1])),
+  );
 }
 
 afterAll(() => setLocale("en"));
@@ -82,6 +105,36 @@ describe("executive summary across web, PDF and Word", () => {
           }
         });
       }
+    }
+  }
+});
+
+describe("outcome stacks by topic and severity across web and PDF", () => {
+  for (const fixture of reportFixtures()) {
+    for (const locale of ["en", "es"] as const) {
+      it(`${fixture.name} (${locale})`, () => {
+        setLocale(locale);
+        const m = fixture.report.metrics;
+        const fromWeb = webStacks(renderToStaticMarkup(createElement(ReportView, { report: fixture.report, sample: fixture.sample })));
+        const fromPdf = pdfStacks(renderReportHtml(fixture.report, locale, new Set(), { sample: fixture.sample }));
+
+        // By topic, then by severity, in both formats, row for row (the web
+        // leaves out a topic stack with a single topic: it repeats the headline).
+        expect(fromPdf).toHaveLength(2);
+        expect(fromWeb).toEqual(fromPdf[0].length > 1 ? fromPdf : fromPdf.slice(1));
+        for (const rows of fromPdf) {
+          expect(rows.length).toBeGreaterThan(0);
+          // Every group adds up to the headline metrics: each scored answer counted once.
+          expect(rows.reduce((sum, row) => sum + row.pass, 0)).toBe(m.n_pass);
+          expect(rows.reduce((sum, row) => sum + row.warn, 0)).toBe(m.n_partial);
+          expect(rows.reduce((sum, row) => sum + row.fail, 0)).toBe(m.n_fail);
+          for (const row of rows) {
+            const total = row.pass + row.warn + row.fail;
+            expect(row.rate).toBe(`${Math.round((row.pass / total) * 100)}%`);
+            expect(row.wrong.startsWith(row.warn + row.fail ? `${row.warn + row.fail}/${total} ` : `${total}/${total}`)).toBe(true);
+          }
+        }
+      });
     }
   }
 });

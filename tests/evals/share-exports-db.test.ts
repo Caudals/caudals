@@ -8,6 +8,7 @@ import { importedJudgeRunFixture } from "./judge-run-fixture";
 import { createMachineExport, createReportForRun, createReportShare, getReportArtifact, publishReport, queuePdfExport, resolveShare, resolveShareWithContext, scoreRun, shareExport } from "../../lib/evals/repositories/managed";
 import { listReportShares } from "../../lib/evals/repositories/operator-actions";
 import { shareReferralCode } from "../../lib/evals/reports/referral";
+import { REPORT_DOCUMENT_SUFFIX } from "../../lib/evals/reports/version";
 import { objectKey } from "../../lib/evals/storage/private";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -93,20 +94,25 @@ const endpoint = process.env.EVALS_TEST_S3_ENDPOINT;
     const again = await createMachineExport(scope, report.revisionId, "docx", "en");
     expect(again.artifactId).toBe(word.artifactId);
     const stored = await getReportArtifact(scope, word.artifactId);
-    expect(stored.export_path).toBe(`reports/${report.revisionId}.en.v2.docx`);
+    expect(stored.export_path).toBe(`reports/${report.revisionId}.en${REPORT_DOCUMENT_SUFFIX}.docx`);
     expect(stored.report_created_at).toBeTruthy();
 
-    // PDF: a file made with the earlier layout is rendered again; a current one is reused.
+    // PDF: a file made with an earlier layout is rendered again; a current one is reused.
     const fake = async (path: string) => {
       const id = randomUUID();
       await owner.query("INSERT INTO evals.artifact(id,org_id,project_id,export_path,visibility,object_key,sha256,byte_size,media_type,state,expires_at) VALUES($1,$2,$3,$4,'customer',$5,$6,1,'application/pdf','ready',now()+interval '1 day')", [id, orgId, projectId, path, objectKey(orgId, id, true), "a".repeat(64)]);
       return id;
     };
-    const first = await queuePdfExport(scope, report.revisionId, "en");
-    await owner.query("UPDATE evals.export_job SET status='completed',artifact_id=$2,updated_at=now() WHERE id=$1", [first.id, await fake(`reports/${report.revisionId}.pdf`)]);
-    const second = await queuePdfExport(scope, report.revisionId, "en");
-    expect(second.id).not.toBe(first.id);
-    await owner.query("UPDATE evals.export_job SET status='completed',artifact_id=$2,updated_at=now() WHERE id=$1", [second.id, await fake(`reports/${report.revisionId}.v2.pdf`)]);
-    expect((await queuePdfExport(scope, report.revisionId, "en")).id).toBe(second.id);
+    let previous = "";
+    for (const earlier of [`reports/${report.revisionId}.pdf`, `reports/${report.revisionId}.v2.pdf`]) {
+      const job = await queuePdfExport(scope, report.revisionId, "en");
+      expect(job.id).not.toBe(previous);
+      await owner.query("UPDATE evals.export_job SET status='completed',artifact_id=$2,updated_at=now() WHERE id=$1", [job.id, await fake(earlier)]);
+      previous = job.id;
+    }
+    const current = await queuePdfExport(scope, report.revisionId, "en");
+    expect(current.id).not.toBe(previous);
+    await owner.query("UPDATE evals.export_job SET status='completed',artifact_id=$2,updated_at=now() WHERE id=$1", [current.id, await fake(`reports/${report.revisionId}${REPORT_DOCUMENT_SUFFIX}.pdf`)]);
+    expect((await queuePdfExport(scope, report.revisionId, "en")).id).toBe(current.id);
   });
 });
