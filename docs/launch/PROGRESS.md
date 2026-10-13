@@ -46,7 +46,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 7 | L-23 | EN/ES parity guard and sweep | L-07, L-17 | — | todo | | |
 | 7 | L-24 | Accessibility and performance budgets | L-04, L-15, L-17 | 097 `perf_indexes` (if needed) | todo | | |
 | 7 | L-34 | Better document intake | L-06, L-14 | 098 `evals_intake_v2` | todo | | |
-| 7 | L-35 | Readout (presentation) mode | L-17 | 099 `evals_readout_decks` | in progress | | |
+| 7 | L-35 | Readout (presentation) mode | L-17 | 099 `evals_readout_decks` | done | `d03871d` | [L-35](L-35.md); `READOUT_MODE_ENABLED=operators`. Present on any report revision (and read-only on the example): cover → verdict → causes (hypotheses) → 5–7 transcripts with T number, result id and excerpt → fixes → next step from the plan; keyboard, presenter window in sync, operator-only notes and picks per revision (RLS), 16:9 EN/ES PDF from the documents worker without notes. Production: internal report deck = summary, owner sees 0 notes, worker PDF 10 pages 16:9 without the note, 0 layout problems. App and workers at `d03871d`. |
 | 7 | L-25 | Sector packs v1 and monthly new questions | L-22 | 100 `evals_sector_packs` | todo | | |
 | 7 | L-26 | Expert review: request to reviewed report | L-17 | 101 `evals_review_orders` | todo | | |
 | 7 | L-27 | Bring your own provider key | L-11, L-15 | 102 `billing_byok` | todo | | |
@@ -116,6 +116,8 @@ Things only the founder can do. Agents add to this list; they never do these the
 - [ ] Bring Blog and Newsletter back into the site navigation (L-30, spec §7.7): the Blog link returns once four new posts are live (on 2026-10-12 the newest post in the archive is from 2026-08-12), and the Newsletter link once *The Data Gap* has restarted (last issue No. 1, 2026-07-31). Publish through Ops (`../leads`), then ask an agent to uncomment the two links in `lib/navigation/public-links.ts` and its public-route test.
 - [ ] Move the growth targets as gates pass (L-21): `scripts/launch/set-app-flag.sh GROWTH_TARGET_STAGE gate_b` (then `launch_4w`, `launch_12w`), then redeploy the workers (`sudo env EVALS_IMAGE_COMMIT=<sha> scripts/deploy-evals-production.sh`) so the Monday digest uses them. Optional: `OPS_DIGEST_LOCALE es`.
 - [ ] Resolve the L-06 drill's help request (workspace "Caudals L-06 drill", already deleted) in Ops → Growth → Help requests; resolving needs an operator login (L-06.md).
+- [ ] Open readout mode to owners and editors once operators have run a few readouts (L-35; they present without notes): `scripts/launch/set-app-flag.sh READOUT_MODE_ENABLED true`.
+
 
 ## 6. Session log
 
@@ -154,3 +156,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-13 | L-13 done (`3094518`, fix `39d909e`, migration 092): invoices and rectifying invoices queued by a trigger on the order (one per paid order, one per refund), manual adapter, retry queue and `invoicing_stalled` alert (host alert script reinstalled; it also lacked L-11's shadow-drift check), ops attach/void and owner list/PDF APIs, `invoice_available` email, monthly accountant export reconciled to Stripe. Verified in Stripe test mode on an internal workspace (purchase, refund, export, attach, download), then cleaned up. `BILLING_INVOICING_PROVIDER=manual`. |
 | 2026-10-13 | Regression fix after PR #86 (outcome stacks, merged from a pre-L-17 base): its `lib/evals/reports/document.ts` replaced L-17's, so the PDF lost the cover-only page, executive summary, "Fix these first" and whole-percent headline (13 report tests failing on `main`; no production PDF rendered in that window). L-17's renderer restored with #86's stacks merged in, layout version 3, sample PDFs re-rendered (EN 33, ES 35 pages), new web = PDF stacks test. App and workers redeployed. |
 | 2026-10-13 | Founder paused the build at 18:02 UTC. Agents for L-15, L-16, L-22, L-26, L-34 and L-35 stopped at safe points with WIP on their branches; resume cron and watchdog disabled. Done since the last log line: L-14, L-20, L-13 and the PR #86 report fix (`4972fa59`). |
+| 2026-10-13 | L-35 done (`d03871d`, migration 099), resumed after the pause: readout mode for operators (`READOUT_MODE_ENABLED=operators`), presenter window, operator-only notes under RLS, 16:9 readout PDF via the documents worker. App and workers deployed at `d03871d`; production check on an internal report (temporary audited operator role, removed). Founder action added: open it to owners and editors. |
