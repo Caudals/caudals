@@ -13,6 +13,7 @@ import {
   legalDocumentVersion,
 } from "@/lib/legal/versions";
 import { demoPublicEnabled } from "@/lib/public/front-door";
+import { METHODOLOGY_PATH, METHODOLOGY_UPDATED } from "@/lib/methodology/content";
 import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 
 export const SITE_NAME = "Caudals";
@@ -104,6 +105,8 @@ const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   ),
   // Temporarily hidden:
   // { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
+  // How tests are written, graded and reviewed (launch L-20).
+  { pathname: METHODOLOGY_PATH, changeFrequency: "monthly", priority: 0.8, lastModified: METHODOLOGY_UPDATED },
   { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
   // Legal pages: lastmod is the document's version date (lib/legal/versions.ts).

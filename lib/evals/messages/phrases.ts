@@ -39,7 +39,7 @@ const ES: Record<string, string> = {
   "Deployed system": "Sistema desplegado", "Controlled model": "Modelo controlado", Published: "Publicado", Superseded: "Sustituido",
   Withdrawn: "Retirado", Preliminary: "Preliminar", Reviewed: "Revisado", Complete: "Completo", Incomplete: "Incompleto", Unreviewed: "Sin revisar",
   Comparable: "Comparable", "Not comparable": "No comparable", Inconclusive: "No concluyente", Improved: "Mejorada", Regressed: "Empeorada",
-  Unchanged: "Sin cambios", Regression: "Regresión", Critical: "Crítica", High: "Alta", Medium: "Media", Low: "Baja",
+  Unchanged: "Sin cambios", Regression: "Regresión", Unknown: "Desconocido", Critical: "Crítica", High: "Alta", Medium: "Media", Low: "Baja",
   Assigned: "Asignado", "In progress": "En curso", Active: "Activo", Quarantined: "En cuarentena", Released: "Publicado",
   Disputed: "Disputado", Approved: "Aprobado", Captured: "Capturado", Persisting: "Guardando", Extracting: "Extrayendo",
   Profiling: "Analizando", "Profile ready": "Perfil listo", Drafting: "Redactando", "Draft ready": "Borrador listo",

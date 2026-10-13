@@ -11,8 +11,9 @@ import type { EvidenceScope } from "../repositories/evidence";
 import { withTenant } from "../repositories/db";
 import { decryptSecret, encryptSecret, loadKeyring, type Keyring } from "../security/envelope";
 import { createWebhookSignature } from "./webhook-protocol";
+import { WEBHOOK_EVENT_KINDS, WEBHOOK_HEADERS } from "./customer-api";
 
-const kinds=["run_completed","run_partial","run_unknown","regression","inconclusive"] as const;
+const kinds=WEBHOOK_EVENT_KINDS;
 export const createWebhookSchema=z.strictObject({label:z.string().trim().min(1).max(120),url:z.url().max(2048),
   events:z.array(z.enum(kinds)).min(1).max(kinds.length)});
 export const updateWebhookSchema=z.strictObject({enabled:z.boolean().optional(),events:z.array(z.enum(kinds)).min(1).max(kinds.length).optional(),rotate:z.boolean().optional()});
@@ -104,8 +105,8 @@ export async function tickWebhookDeliveries(tenant:EvidenceScope,keys:Keyring){
       try{
         secret=decryptSecret(row.envelope,scope(tenant.orgId,row.endpoint_id,row.secret_version_id),keys);
         const body=canonicalJson(row.payload),timestamp=new Date().toISOString();
-        status=await postWebhook(row.url,body,{"x-caudals-delivery-id":row.id,"x-caudals-timestamp":timestamp,
-          "x-caudals-signature":createWebhookSignature(secret,row.id,timestamp,body)});
+        status=await postWebhook(row.url,body,{[WEBHOOK_HEADERS.id]:row.id,[WEBHOOK_HEADERS.timestamp]:timestamp,
+          [WEBHOOK_HEADERS.signature]:createWebhookSignature(secret,row.id,timestamp,body)});
         if(status<200||status>=300)reason=status>=300&&status<400?"redirect_rejected":"http_error";
       }catch(error){reason=error instanceof Error&&error.message.startsWith("destination_")?"destination_denied":"delivery_error";}
       finally{secret?.fill(0);}

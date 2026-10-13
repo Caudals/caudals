@@ -468,7 +468,7 @@ export function NewEvaluationFlow() {
           )}
           {kind === "api" && (
             <>
-              <Field id="evaluation-endpoint" type="url" inputMode="url" label={t("apiEndpoint")} placeholder="https://api.example.com/v1" value={endpoint} onChange={(event) => setEndpoint(event.target.value)} required hint={t("apiEndpointHint")} />
+              <Field id="evaluation-endpoint" type="url" inputMode="url" label={t("apiEndpoint")} placeholder="https://api.example.com/v1/chat/completions" value={endpoint} onChange={(event) => setEndpoint(event.target.value)} required hint={t("apiEndpointHint")} />
               <Field id="evaluation-model" label={t("modelName")} placeholder="gpt-4.1-mini" value={model} onChange={(event) => setModel(event.target.value)} required />
               <Field id="evaluation-api-key" type="password" autoComplete="new-password" label={t("apiKeyOptional")} hint={t("apiKeyHint")} value={apiKey} onChange={(event) => setApiKey(event.target.value)} />
             </>

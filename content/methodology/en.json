@@ -1,0 +1,205 @@
+{
+  "metaTitle": "Methodology: how Caudals tests and grades AI assistants",
+  "metaDescription": "How Caudals writes test questions from your own sources, grades answers by meaning, labels outcomes, reports sample sizes and intervals, reviews results, and what it never does.",
+  "kicker": "Methodology",
+  "title": "How we test an assistant, and how far to *trust* the score",
+  "standfirst": "Every Caudals score comes from questions written from your own material and answers graded against it. This page explains each step, what the numbers mean and where they stop.",
+  "updated": "Last updated {date}",
+  "contents": "On this page",
+  "sections": [
+    {
+      "id": "questions",
+      "title": "Questions from your sources",
+      "body": [
+        "Every test starts from your own material: the pages of your website, your help centre, your terms and the documents you add. We do not start from a generic question bank."
+      ],
+      "items": [
+        "Each question comes with an expected answer and one to four key facts copied word for word from a passage of your material. The passage stays with the test, so anyone can check where the right answer comes from.",
+        "A drafted question whose key facts are not in its passage is rejected before you see it.",
+        "Questions are written the way your customers ask, in the language of the source, and each one stands on its own. Menu labels, slogans, cookie banners and table headers are never used as questions or answers.",
+        "You review the questions before anything runs: edit a question or its expected answer, add your own, remove what does not apply. A question you add without a source passage is graded against the answer and key facts you give it, and the test set is then marked exploratory.",
+        "Once you approve a test set, that version is frozen. Every run of it asks exactly the same questions, so results can be compared over time."
+      ],
+      "after": [
+        "The free test works the same way on a smaller scale: it reads up to six public pages of your site and writes eight questions, each kept only when its quotation is found in the page it cites."
+      ]
+    },
+    {
+      "id": "grading",
+      "title": "Grading by meaning",
+      "body": [
+        "An answer is graded on what it says, not on how it is worded. A language model acting as grader compares each answer with the expected answer, its key facts and up to five cited passages. The answer is treated as data to assess, never as instructions to the grader. By default the questions are written and the answers graded by a model on Caudals' own GPU server."
+      ],
+      "items": [
+        "Paraphrases, another language, extra courtesy and different formatting are correct when they convey the expected facts.",
+        "Details that the evidence neither confirms nor contradicts are recorded as unverified, not counted as errors. An answer is wrong when it contradicts your material or leaves out key facts.",
+        "When your material says a question cannot or should not be answered, declining or referring the customer is the correct answer, and inventing one is incorrect.",
+        "Simple checks run first, without a model: an empty reply is a No answer, and a reply that only repeats the question is set aside as Not captured.",
+        "Exact values that a test defines, such as amounts or structured data, are checked by fixed rules beside the grader.",
+        "When web research is switched on for grading, the grader may check extra details against your own website first. A web page never overrides the expected answer, and the pages it consulted are recorded with the verdict.",
+        "Every verdict comes with a short explanation in the language of the test and the key facts found present, missing or contradicted."
+      ],
+      "after": [
+        "For answers that fail, we also name a likely cause: invented answer, outdated document, wrong source, knowledge gap or out of scope. It is a hypothesis. We see the answers and your material, not the inner workings of your system."
+      ]
+    },
+    {
+      "id": "labels",
+      "title": "Outcome labels",
+      "body": [
+        "Each answer gets one label. Four labels count in the score. The other three set a test aside, so that a problem with the test or with the capture never lowers your assistant's score."
+      ],
+      "labels": {
+        "columns": [
+          "Label",
+          "In the score",
+          "Meaning"
+        ],
+        "yes": "Yes",
+        "no": "No, set aside",
+        "rows": [
+          {
+            "verdict": "correct",
+            "label": "Correct",
+            "scored": true,
+            "meaning": "Conveys every key fact and contradicts nothing."
+          },
+          {
+            "verdict": "partial",
+            "label": "Partly correct",
+            "scored": true,
+            "meaning": "Some key facts are present and none is contradicted. It counts as half in the quality score."
+          },
+          {
+            "verdict": "incorrect",
+            "label": "Incorrect",
+            "scored": true,
+            "meaning": "Wrong or contradicting information, or key facts left out."
+          },
+          {
+            "verdict": "no_answer",
+            "label": "No answer",
+            "scored": true,
+            "meaning": "The assistant deflected, asked to rephrase, offered a menu without answering, went off topic or replied with nothing."
+          },
+          {
+            "verdict": "unscored",
+            "label": "Test needs review",
+            "scored": false,
+            "meaning": "The question is unclear, or its expected answer looks wrong or incomplete. It stays out of the score until someone reviews it."
+          },
+          {
+            "verdict": "unscored",
+            "label": "Not captured",
+            "scored": false,
+            "meaning": "The captured reply repeats the question or is clearly not the assistant's own."
+          },
+          {
+            "verdict": "unscored",
+            "label": "Not run",
+            "scored": false,
+            "meaning": "A timeout, a connection problem or an error in the system stopped the question."
+          }
+        ]
+      }
+    },
+    {
+      "id": "samples",
+      "title": "Sample sizes and intervals",
+      "body": [
+        "The headline is a count, “N of M answers correct”, where M is the number of scored tests. The pass rate is that count as a percentage. A quality score also gives half a point to each partly correct answer.",
+        "A score from a few dozen questions is an estimate, so every report gives a 95% interval for the pass rate (the Wilson score interval). The fewer the questions, the wider the interval:"
+      ],
+      "table": {
+        "columns": [
+          "Questions scored",
+          "Correct",
+          "Pass rate",
+          "95% interval"
+        ],
+        "rows": [
+          [
+            "8 (the free test)",
+            "6",
+            "75%",
+            "41%–93%"
+          ],
+          [
+            "50",
+            "40",
+            "80%",
+            "67%–89%"
+          ],
+          [
+            "150",
+            "120",
+            "80%",
+            "73%–86%"
+          ],
+          [
+            "300",
+            "240",
+            "80%",
+            "75%–84%"
+          ]
+        ]
+      },
+      "after": [
+        "Read a small sample as a signal, not a verdict. The free test's eight questions show whether an assistant gets ordinary questions wrong, not how often it does. A free workspace runs up to 50 questions per test set, and a pilot 150 to 300 with answers signed off by domain experts.",
+        "Coverage is reported beside the score: how many tests were planned, run, scored and set aside. When fewer than 90% of the tests could be scored, or a critical test could not be assessed, the report is marked Incomplete and says why.",
+        "Comparisons between runs pair each question with itself on the same frozen test set. A question regresses when its label is worse than before (correct to partly correct or incorrect, partly correct to incorrect). When too few questions can be paired, the comparison is reported as inconclusive rather than as a change."
+      ]
+    },
+    {
+      "id": "review",
+      "title": "Review levels",
+      "body": [
+        "Every report shows its review level."
+      ],
+      "items": [
+        "**Preliminary.** Graded automatically. A result is flagged for review when the test may be wrong, the grader is not confident, the capture looks wrong, or a critical test did not pass.",
+        "**Reviewed.** A person has checked the flagged results. A reviewer's decision is recorded as a new assessment beside the automated one, never written over it.",
+        "**Expert-reviewed.** In a pilot, domain experts from Caudals' network sign off the expected answers before the run and review the failures after it. Nothing is labelled expert-reviewed without a recorded reviewer."
+      ],
+      "after": [
+        "If you think a grade is wrong, tell us. Disputed results go to review, and a corrected report is published as a new version with the original kept."
+      ]
+    },
+    {
+      "id": "traceability",
+      "title": "Every result can be traced",
+      "body": [
+        "Each result leads back to its evidence: the question and its version, the passage it cites, who wrote and reviewed it, the run, the captured answer and the grade. The test set, the models and the grader version are fixed when a run starts and listed in the report's methodology section, so a run can be repeated and compared on equal terms."
+      ]
+    },
+    {
+      "id": "limits",
+      "title": "Limits",
+      "items": [
+        "An evaluation measures the questions in its test set. It cannot show how your assistant answers everything else.",
+        "Results describe your system on the day it ran. Assistants, models and documents change, which is why evaluations are run again.",
+        "Expected answers are only as current as your sources. When a document is out of date, its test can be too, and the test is set aside for review rather than counted against the assistant.",
+        "The grader is a model and can be wrong. We compare its grades with human decisions and flag uncertain grades for review instead of hiding them.",
+        "Likely causes are hypotheses. We see answers, not your system's retrieval or prompts.",
+        "We evaluate text: answers from a website chat, an API, or answers and transcripts you upload. Audio, images and video are not tested.",
+        "A change in score between two runs shows what changed, not why. On its own it does not prove that a particular fix caused it."
+      ]
+    },
+    {
+      "id": "never",
+      "title": "What we never do",
+      "items": [
+        "We never run adversarial tests (prompt injection, jailbreaks, attempts to extract a system prompt) against a system without its owner's written authorisation. The free test and our standard evaluations ask only the ordinary questions a customer would ask.",
+        "We do not certify AI systems, issue badges or seals, or make anyone compliant with the EU AI Act. We produce evidence that you can use in your own assessment.",
+        "We never edit a recorded answer or overwrite a human decision. Corrections are published as new versions, and the original stays.",
+        "We never publish a named result without the owner's consent.",
+        "We do not quote accuracy figures we have not measured."
+      ]
+    }
+  ],
+  "ctaTitle": "See it on your own assistant",
+  "ctaBody": "The free test writes eight questions from your own website and grades your assistant's answers as described on this page. No account, about three minutes.",
+  "ctaDemo": "Test your assistant free",
+  "ctaContact": "Request a diagnostic",
+  "ctaCall": "Book a 30-minute call"
+}

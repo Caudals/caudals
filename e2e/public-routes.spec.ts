@@ -457,6 +457,38 @@ test.describe("public site refresh (launch L-30)", () => {
   }
 });
 
+test.describe("methodology (launch L-20)", () => {
+  for (const [locale, path, title, never] of [
+    ["en", "/en/methodology", /How we test an assistant/, "What we never do"],
+    ["es", "/es/metodologia", /Cómo probamos un asistente/, "Lo que nunca hacemos"],
+  ] as const) {
+    test(`the ${locale} page is indexable, canonical and linked from the footer`, async ({ page }) => {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(200);
+      await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: new RegExp(never) })).toBeVisible();
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", new RegExp(`${path}$`));
+      await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute("href", /\/en\/methodology$/);
+      await expect(page.locator('link[rel="alternate"][hreflang="es"]')).toHaveAttribute("href", /\/es\/metodologia$/);
+      await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute("content", /noindex/);
+      await expect(page.locator("footer").locator(`a[href="${path}"]`)).toHaveCount(1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+  }
+
+  test("the other language's slug redirects to the canonical one", async ({ page }) => {
+    await page.goto("/es/methodology");
+    await expect(page).toHaveURL(/\/es\/metodologia$/);
+  });
+
+  test("the sitemap and llms.txt list it", async ({ request }) => {
+    const sitemap = await (await request.get("/page-sitemap.xml")).text();
+    expect(sitemap).toContain("/en/methodology</loc>");
+    expect(sitemap).toContain("/es/metodologia</loc>");
+    expect(await (await request.get("/llms.txt")).text()).toContain("/es/metodologia");
+  });
+});
+
 test.describe("removed routes", () => {
   for (const path of removedRoutes) {
     test(`${path} returns 404`, async ({ page }) => {

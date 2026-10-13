@@ -12,6 +12,7 @@ import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SectionHeading, 
 import { ActionMenu, CopyField, Modal, notify } from "./overlays";
 import type { WorkspaceSummary } from "./workspace-data";
 import { openLimitDialog, usePlanSummary } from "./limit-dialog";
+import { HelpLink } from "./help";
 import { t } from "@/lib/evals/messages/en";
 
 type Schedule = {
@@ -130,6 +131,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
           <h2>{t("scheduledRuns")}</h2>
           <p>{t("scheduledRunsHelp")}</p>
         </div>
+        <HelpLink topic="monitoring" />
         {canManage && (
           <Action variant="secondary" onClick={() => setOpen(true)} disabled={!canCreate}>
             <Plus aria-hidden="true" />

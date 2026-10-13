@@ -1,6 +1,7 @@
 import { api, EvalError, jsonBody, privateHeaders } from "@/lib/evals/domain/http";
 import { inputError } from "@/lib/evals/domain/errors";
 import { estimateForMember, estimateForToken } from "@/lib/billing/api";
+import { customerApiErrorHeaders } from "@/lib/evals/monitoring/tokens";
 import { ZodError } from "zod";
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     const known = error instanceof EvalError, validation = error instanceof ZodError || error instanceof SyntaxError;
     return Response.json(
       { error: { code: known ? error.code : validation ? "INPUT_INVALID" : "SERVICE_UNAVAILABLE", message: known ? error.message : validation ? "Check the supplied fields." : "The service is temporarily unavailable." } },
-      { status: known ? error.status : validation ? 400 : 503, headers: privateHeaders },
+      { status: known ? error.status : validation ? 400 : 503, headers: { ...privateHeaders, ...customerApiErrorHeaders(error) } },
     );
   }
 }

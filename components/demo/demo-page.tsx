@@ -598,6 +598,7 @@ function Score({ run }: { run: DemoView }) {
       <p className="dm-meta">
         <span>{t("report.meta", { host: run.docs.host, date, count: run.cases.length, pages: run.pages.length })}</span>
         <button type="button" className="dm-link" onClick={copy} aria-live="polite">{copied ? t("report.copied") : t("report.copyLink")}</button>
+        <Link href="/methodology" className="dm-link">{t("report.methodology")}</Link>
       </p>
     </section>
   );

@@ -45,6 +45,7 @@ describe("seo helpers", () => {
         "/sectors/telecom",
         "/sectors/legal-and-advisory",
         "/sectors/travel",
+        "/methodology",
         "/call",
         "/contact",
         "/legal/terms",

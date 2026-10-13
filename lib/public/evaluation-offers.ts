@@ -23,44 +23,45 @@ export const EVALUATION_STEP_IDS = [
 ] as const satisfies readonly EvaluationStepId[];
 
 export type EvaluationOfferId =
-  | "realityCheck"
+  | "freeTest"
+  | "freeAccount"
+  | "payAsYouGo"
   | "pilotEvaluation"
-  | "monthlySubscription";
+  | "monthlySubscription"
+  | "realityCheck";
+
+/** Where an offer starts: a public page, an app page, or the `/contact` form with `?offer=`. */
+export type EvaluationOfferStart =
+  | { kind: "public"; path: string }
+  | { kind: "app"; path: string }
+  | { kind: "contact"; slug: string };
 
 export type EvaluationOffer = {
   id: EvaluationOfferId;
-  /** Value of the `offer` query parameter on `/contact`. */
-  slug: string;
-  /** "free" publishes a price in structured data; "quoted" publishes none. */
-  pricing: "free" | "quoted";
+  start: EvaluationOfferStart;
+  /**
+   * "free" publishes a zero price in structured data; "in_app" (credits, priced
+   * only inside the app, D-06) and "quoted" publish none.
+   */
+  pricing: "free" | "in_app" | "quoted";
   /** How many `includeN` bullets this offer defines in the message files. */
   includeCount: number;
   /** Whether this offer is the one to lead with when offers are listed. */
   featured: boolean;
 };
 
+/**
+ * In the order the site leads with them (launch L-04, L-05, L-30): the free
+ * test, the free account, credits in the app, then quoted work. The manual
+ * diagnostic stays, last, for teams who prefer that Caudals runs it.
+ */
 export const EVALUATION_OFFERS = [
-  {
-    id: "realityCheck",
-    slug: "reality-check",
-    pricing: "free",
-    includeCount: 3,
-    featured: false,
-  },
-  {
-    id: "pilotEvaluation",
-    slug: "pilot-evaluation",
-    pricing: "quoted",
-    includeCount: 5,
-    featured: true,
-  },
-  {
-    id: "monthlySubscription",
-    slug: "monthly-subscription",
-    pricing: "quoted",
-    includeCount: 5,
-    featured: false,
-  },
+  { id: "freeTest", start: { kind: "public", path: "/demo" }, pricing: "free", includeCount: 0, featured: true },
+  { id: "freeAccount", start: { kind: "app", path: "/workspace/start" }, pricing: "free", includeCount: 0, featured: false },
+  { id: "payAsYouGo", start: { kind: "app", path: "/workspace/sign-in" }, pricing: "in_app", includeCount: 0, featured: false },
+  { id: "pilotEvaluation", start: { kind: "contact", slug: "pilot-evaluation" }, pricing: "quoted", includeCount: 5, featured: false },
+  { id: "monthlySubscription", start: { kind: "contact", slug: "monthly-subscription" }, pricing: "quoted", includeCount: 5, featured: false },
+  { id: "realityCheck", start: { kind: "contact", slug: "reality-check" }, pricing: "free", includeCount: 3, featured: false },
 ] as const satisfies readonly EvaluationOffer[];
 
 /**
@@ -86,7 +87,11 @@ export function offerIncludeKeys<Id extends EvaluationOfferId>(offer: {
   ) as OfferIncludeKey<Id>[];
 }
 
-/** The model and its offers as markdown, for `/llms.txt` and agent pages. */
+/**
+ * The model and its offers as markdown, for `/llms.txt` and agent pages. No
+ * prices beyond "free" (D-06): credits are priced in the app, managed work by
+ * quote.
+ */
 export function renderEvaluationOverviewMarkdown(t: Translator) {
   const steps = EVALUATION_STEP_IDS.map(
     (id, index) =>

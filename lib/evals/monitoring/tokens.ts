@@ -6,8 +6,10 @@ import { sha256 } from "../contracts/hashing";
 import { EvalError } from "../domain/errors";
 import type { EvidenceScope } from "../repositories/evidence";
 import { withTenant } from "../repositories/db";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { CUSTOMER_API_LIMITS, CUSTOMER_TOKEN_SCOPES } from "./customer-api";
 
-export const customerTokenScope=z.enum(["runs:read","reports:read","schedules:read"]);
+export const customerTokenScope=z.enum(CUSTOMER_TOKEN_SCOPES);
 export type CustomerTokenScope=z.infer<typeof customerTokenScope>;
 export const createCustomerTokenSchema=z.strictObject({name:z.string().trim().min(1).max(120),
   scopes:z.array(customerTokenScope).min(1).max(3),expiresAt:z.iso.datetime({offset:true})});
@@ -18,7 +20,7 @@ export function isCustomerTokenUsable(row:{scopes:string[];expires_at:string|Dat
 }
 export function createCustomerToken(tenant:EvidenceScope,raw:unknown){
   const input=createCustomerTokenSchema.parse(raw),expiry=Date.parse(input.expiresAt),now=Date.now();
-  if(expiry<now+5*60_000||expiry>now+366*86400_000)throw new EvalError("INPUT_INVALID",422,"Choose an expiry from five minutes to one year.");
+  if(expiry<now+CUSTOMER_API_LIMITS.tokenMinMinutes*60_000||expiry>now+CUSTOMER_API_LIMITS.tokenMaxDays*86400_000)throw new EvalError("INPUT_INVALID",422,"Choose an expiry from five minutes to one year.");
   const token=`evct_${randomBytes(32).toString("base64url")}`;
   return withTenant(tenant,async db=>{
     const row=(await db.query(`INSERT INTO evals.customer_api_token(org_id,name,token_hash,scopes,expires_at)
@@ -35,13 +37,25 @@ export function revokeCustomerToken(tenant:EvidenceScope,id:string){return withT
   const row=(await db.query("UPDATE evals.customer_api_token SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1 AND id=$2 RETURNING id,revoked_at",
     [tenant.orgId,id])).rows[0];if(!row)throw new EvalError("SCOPE_DENIED",404);return row;
 });}
-export function authenticateCustomerToken(orgId:string,authorization:string|null,required:CustomerTokenScope){
+/** Too many requests for one token (launch L-20): answered 429 with Retry-After. */
+export class CustomerApiRateLimited extends EvalError {
+  constructor(public retryAfterSeconds:number){super("RATE_LIMITED",429,`Too many requests for this token. Try again in ${retryAfterSeconds} seconds.`);}
+}
+/** Extra response headers for a token endpoint's error. */
+export function customerApiErrorHeaders(error:unknown):Record<string,string>{
+  return error instanceof CustomerApiRateLimited?{"Retry-After":String(error.retryAfterSeconds)}:{};
+}
+export async function authenticateCustomerToken(orgId:string,authorization:string|null,required:CustomerTokenScope){
   const token=parseCustomerBearer(authorization);if(!token)throw new EvalError("SCOPE_DENIED",401,"A customer API token is required.");
-  return withTenant({orgId,actorId:"customer-api-token"},async db=>{
+  const result=await withTenant({orgId,actorId:"customer-api-token"},async db=>{
     const row=(await db.query("SELECT id,scopes,expires_at,revoked_at FROM evals.customer_api_token WHERE org_id=$1 AND token_hash=$2 FOR UPDATE",
       [orgId,sha256(token)])).rows[0];
     if(!row||!isCustomerTokenUsable(row,required))throw new EvalError("SCOPE_DENIED",403,"Token scope or validity is insufficient.");
     await db.query("UPDATE evals.customer_api_token SET last_used_at=now() WHERE org_id=$1 AND id=$2",[orgId,row.id]);
     return {orgId,tokenId:row.id as string};
   });
+  // One budget per token across every token endpoint, counted after the token is known to be valid.
+  const limit=await consumeRateLimit({key:`customer-api:${result.tokenId}`,limit:CUSTOMER_API_LIMITS.requestsPerWindow,windowMs:CUSTOMER_API_LIMITS.windowSeconds*1000});
+  if(!limit.allowed)throw new CustomerApiRateLimited(limit.retryAfterSeconds);
+  return result;
 }

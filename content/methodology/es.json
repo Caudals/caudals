@@ -1,0 +1,141 @@
+{
+  "metaTitle": "Metodología: cómo prueba y califica Caudals los asistentes de IA",
+  "metaDescription": "Cómo escribe Caudals las preguntas a partir de tus propias fuentes, cómo califica las respuestas por su significado, qué significa cada etiqueta, tamaños de muestra e intervalos, niveles de revisión y lo que nunca hace.",
+  "kicker": "Metodología",
+  "title": "Cómo probamos un asistente y cuánto puedes *fiarte* de la puntuación",
+  "standfirst": "Cada puntuación de Caudals sale de preguntas escritas a partir de tu propio material y de respuestas calificadas frente a él. Esta página explica cada paso, qué significan las cifras y dónde terminan.",
+  "updated": "Última actualización: {date}",
+  "contents": "En esta página",
+  "sections": [
+    {
+      "id": "questions",
+      "title": "Preguntas a partir de tus fuentes",
+      "body": [
+        "Cada prueba parte de tu propio material: las páginas de tu web, tu centro de ayuda, tus condiciones y los documentos que añadas. No partimos de un banco de preguntas genérico."
+      ],
+      "items": [
+        "Cada pregunta lleva una respuesta esperada y entre uno y cuatro datos clave copiados literalmente de un fragmento de tu material. El fragmento se guarda con la prueba, así que cualquiera puede comprobar de dónde sale la respuesta correcta.",
+        "Una pregunta redactada cuyos datos clave no están en su fragmento se descarta antes de que la veas.",
+        "Las preguntas se escriben como las hacen tus clientes, en el idioma de la fuente, y cada una se entiende por sí sola. Las etiquetas de menú, los eslóganes, los avisos de cookies y las cabeceras de tablas nunca se usan como preguntas ni como respuestas.",
+        "Revisas las preguntas antes de ejecutar nada: puedes editar una pregunta o su respuesta esperada, añadir las tuyas y quitar las que no apliquen. Una pregunta que añades sin un fragmento de origen se califica con la respuesta y los datos clave que le das, y el conjunto de pruebas pasa a marcarse como exploratorio.",
+        "Cuando apruebas un conjunto de pruebas, esa versión queda congelada. Cada ejecución hace exactamente las mismas preguntas, así que los resultados se pueden comparar a lo largo del tiempo."
+      ],
+      "after": [
+        "La prueba gratuita funciona igual a menor escala: lee hasta seis páginas públicas de tu web y escribe ocho preguntas, y solo conserva cada una si su cita aparece en la página que menciona."
+      ]
+    },
+    {
+      "id": "grading",
+      "title": "Calificación por significado",
+      "body": [
+        "Una respuesta se califica por lo que dice, no por cómo está redactada. Un modelo de lenguaje que actúa como evaluador compara cada respuesta con la respuesta esperada, sus datos clave y hasta cinco fragmentos citados. La respuesta se trata como un dato que hay que evaluar, nunca como instrucciones para el evaluador. Por defecto, las preguntas las escribe y las respuestas las califica un modelo en el servidor de GPU propio de Caudals."
+      ],
+      "items": [
+        "Las paráfrasis, otro idioma, una cortesía añadida o un formato distinto son correctos cuando transmiten los datos esperados.",
+        "Los detalles que la evidencia ni confirma ni contradice se registran como no verificados y no cuentan como errores. Una respuesta es incorrecta cuando contradice tu material u omite datos clave.",
+        "Cuando tu material dice que una pregunta no se puede o no se debe responder, declinar o derivar al cliente es la respuesta correcta, e inventarse una es incorrecto.",
+        "Antes actúan comprobaciones sencillas, sin modelo: una respuesta vacía es «No responde», y una respuesta que solo repite la pregunta se aparta como «No capturada».",
+        "Los valores exactos que define una prueba, como importes o datos estructurados, se comprueban con reglas fijas además del evaluador.",
+        "Cuando la búsqueda web está activada para calificar, el evaluador puede comprobar detalles adicionales empezando por tu propia web. Una página web nunca sustituye a la respuesta esperada, y las páginas consultadas se guardan con el veredicto.",
+        "Cada veredicto incluye una explicación breve en el idioma de la prueba y los datos clave que encontró presentes, ausentes o contradichos."
+      ],
+      "after": [
+        "Para las respuestas que fallan también indicamos una causa probable: respuesta inventada, documento desactualizado, fuente equivocada, laguna de conocimiento o fuera de alcance. Es una hipótesis. Vemos las respuestas y tu material, no el funcionamiento interno de tu sistema."
+      ]
+    },
+    {
+      "id": "labels",
+      "title": "Etiquetas de resultado",
+      "body": [
+        "Cada respuesta recibe una etiqueta. Cuatro cuentan en la puntuación. Las otras tres apartan la prueba, para que un problema con la prueba o con la captura nunca baje la puntuación de tu asistente."
+      ],
+      "labels": {
+        "columns": ["Etiqueta", "En la puntuación", "Significado"],
+        "yes": "Sí",
+        "no": "No, se aparta",
+        "rows": [
+          { "verdict": "correct", "label": "Correcta", "scored": true, "meaning": "Transmite todos los datos clave y no contradice nada." },
+          { "verdict": "partial", "label": "Parcialmente correcta", "scored": true, "meaning": "Incluye algunos datos clave y no contradice ninguno. Cuenta la mitad en la puntuación de calidad." },
+          { "verdict": "incorrect", "label": "Incorrecta", "scored": true, "meaning": "Información errónea o contradictoria, u omite datos clave." },
+          { "verdict": "no_answer", "label": "No responde", "scored": true, "meaning": "El asistente se desvió, pidió reformular, ofreció un menú sin responder, cambió de tema o no contestó nada." },
+          { "verdict": "unscored", "label": "Prueba por revisar", "scored": false, "meaning": "La pregunta no es clara, o su respuesta esperada parece errónea o incompleta. Queda fuera de la puntuación hasta que alguien la revise." },
+          { "verdict": "unscored", "label": "No capturada", "scored": false, "meaning": "La respuesta capturada repite la pregunta o claramente no es del asistente." },
+          { "verdict": "unscored", "label": "No ejecutada", "scored": false, "meaning": "Un tiempo de espera agotado, un problema de conexión o un error del sistema detuvo la pregunta." }
+        ]
+      }
+    },
+    {
+      "id": "samples",
+      "title": "Tamaños de muestra e intervalos",
+      "body": [
+        "El titular es un recuento, «N de M respuestas correctas», donde M es el número de pruebas puntuadas. La tasa de acierto es ese recuento en porcentaje. La puntuación de calidad suma además medio punto por cada respuesta parcialmente correcta.",
+        "Una puntuación hecha con unas decenas de preguntas es una estimación, así que cada informe da un intervalo del 95 % para la tasa de acierto (el intervalo de Wilson). Cuantas menos preguntas, más ancho es el intervalo:"
+      ],
+      "table": {
+        "columns": ["Preguntas puntuadas", "Correctas", "Tasa de acierto", "Intervalo del 95 %"],
+        "rows": [
+          ["8 (la prueba gratuita)", "6", "75 %", "41 %–93 %"],
+          ["50", "40", "80 %", "67 %–89 %"],
+          ["150", "120", "80 %", "73 %–86 %"],
+          ["300", "240", "80 %", "75 %–84 %"]
+        ]
+      },
+      "after": [
+        "Lee una muestra pequeña como una señal, no como un veredicto. Las ocho preguntas de la prueba gratuita muestran si un asistente falla preguntas corrientes, no con qué frecuencia lo hace. Un espacio gratuito ejecuta hasta 50 preguntas por conjunto de pruebas, y un piloto entre 150 y 300, con respuestas validadas por expertos de dominio.",
+        "Junto a la puntuación se indica la cobertura: cuántas pruebas se planificaron, se ejecutaron, se puntuaron y se apartaron. Cuando menos del 90 % de las pruebas se pudo puntuar, o no se pudo evaluar una prueba crítica, el informe se marca como «Incompleto» y explica por qué.",
+        "Las comparaciones entre ejecuciones emparejan cada pregunta consigo misma en el mismo conjunto de pruebas congelado. Una pregunta empeora cuando su etiqueta es peor que antes (de correcta a parcialmente correcta o incorrecta, de parcialmente correcta a incorrecta). Cuando se pueden emparejar demasiado pocas preguntas, la comparación se da como no concluyente en lugar de como un cambio."
+      ]
+    },
+    {
+      "id": "review",
+      "title": "Niveles de revisión",
+      "body": [
+        "Cada informe indica su nivel de revisión."
+      ],
+      "items": [
+        "**Preliminar.** Calificado automáticamente. Un resultado se marca para revisión cuando la prueba puede estar mal, el evaluador no está seguro, la captura parece errónea o una prueba crítica no ha pasado.",
+        "**Revisado.** Una persona ha comprobado los resultados marcados. La decisión del revisor se guarda como una evaluación nueva junto a la automática, nunca encima de ella.",
+        "**Revisado por expertos.** En un piloto, expertos de dominio de la red de Caudals validan las respuestas esperadas antes de la ejecución y revisan los fallos después. Nada se etiqueta como revisado por expertos sin un revisor registrado."
+      ],
+      "after": [
+        "Si crees que una calificación es errónea, dínoslo. Los resultados discutidos pasan a revisión y se publica un informe corregido como versión nueva, conservando el original."
+      ]
+    },
+    {
+      "id": "traceability",
+      "title": "Cada resultado se puede rastrear",
+      "body": [
+        "Cada resultado lleva a su evidencia: la pregunta y su versión, el fragmento que cita, quién la escribió y quién la revisó, la ejecución, la respuesta capturada y la calificación. El conjunto de pruebas, los modelos y la versión del evaluador se fijan al empezar una ejecución y aparecen en la sección de metodología del informe, así que una ejecución se puede repetir y comparar en igualdad de condiciones."
+      ]
+    },
+    {
+      "id": "limits",
+      "title": "Límites",
+      "items": [
+        "Una evaluación mide las preguntas de su conjunto de pruebas. No puede mostrar cómo responde tu asistente a todo lo demás.",
+        "Los resultados describen tu sistema el día en que se ejecutó. Los asistentes, los modelos y los documentos cambian, y por eso las evaluaciones se repiten.",
+        "Las respuestas esperadas están tan al día como tus fuentes. Cuando un documento está desactualizado, su prueba también puede estarlo, y se aparta para revisión en lugar de contar en contra del asistente.",
+        "El evaluador es un modelo y puede equivocarse. Comparamos sus calificaciones con decisiones humanas y marcamos para revisión las calificaciones dudosas en lugar de ocultarlas.",
+        "Las causas probables son hipótesis. Vemos respuestas, no la recuperación ni las instrucciones internas de tu sistema.",
+        "Evaluamos texto: respuestas de un chat web, de una API, o respuestas y transcripciones que subes. No probamos audio, imágenes ni vídeo.",
+        "Un cambio de puntuación entre dos ejecuciones muestra qué cambió, no por qué. Por sí solo no demuestra que lo causara una corrección concreta."
+      ]
+    },
+    {
+      "id": "never",
+      "title": "Lo que nunca hacemos",
+      "items": [
+        "Nunca hacemos pruebas adversarias (inyección de instrucciones, jailbreaks, intentos de extraer las instrucciones del sistema) contra un sistema sin la autorización por escrito de su propietario. La prueba gratuita y nuestras evaluaciones estándar solo hacen las preguntas corrientes que haría un cliente.",
+        "No certificamos sistemas de IA, no emitimos insignias ni sellos y no hacemos que nadie cumpla el Reglamento Europeo de IA. Aportamos evidencias que puedes usar en tu propia evaluación.",
+        "Nunca modificamos una respuesta registrada ni sobrescribimos una decisión humana. Las correcciones se publican como versiones nuevas y el original se conserva.",
+        "Nunca publicamos un resultado con nombre sin el consentimiento de su propietario.",
+        "No damos cifras de precisión que no hayamos medido."
+      ]
+    }
+  ],
+  "ctaTitle": "Compruébalo con tu propio asistente",
+  "ctaBody": "La prueba gratuita escribe ocho preguntas a partir de tu propia web y califica las respuestas de tu asistente como se explica en esta página. Sin cuenta, unos tres minutos.",
+  "ctaDemo": "Prueba gratis tu asistente",
+  "ctaContact": "Solicitar un diagnóstico",
+  "ctaCall": "Reservar una llamada de 30 minutos"
+}

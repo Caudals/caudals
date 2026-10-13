@@ -1,0 +1,361 @@
+{
+  "locale": "en",
+  "articles": [
+    {
+      "slug": "connect-website-chat",
+      "title": "Connect a website chat",
+      "summary": "Point Caudals at the page where your chat opens, then check the connection in a live browser if the automatic check needs help.",
+      "keywords": [
+        "website",
+        "chat",
+        "chatbot",
+        "widget",
+        "connect",
+        "connection",
+        "live browser",
+        "login",
+        "sign in",
+        "captcha",
+        "repair"
+      ],
+      "related": [
+        "connect-api",
+        "prepare-and-run",
+        "data-and-privacy"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Caudals can ask your questions through the same chat window your customers use, on your public website or behind a login.\n\n## Add the chat {#add}\n\n1. Go to **Evaluations** and choose **New evaluation**.\n2. Under **How should Caudals reach it?**, choose **Website chatbot**.\n3. Enter the **Website URL** of a page where the chat opens. Use an `https://` address.\n4. Choose **Create evaluation**.\n\nCaudals then checks the connection on its own: it opens the page in a fresh browser, finds the chat box, sends a test message and reads the reply. While it works, the system shows **Checking connection**.\n\n## When the check needs you {#live-browser}\n\nSome chats need a click to open, a sign-in or a CAPTCHA. The system then shows **Needs assistance**, and a workspace owner can fix it:\n\n1. Open the evaluation's **Connect** step (or the system under **Systems**) and choose **Open live browser**.\n2. You are in control of that browser. Sign in, complete any single sign-on, two-factor step or CAPTCHA, and open the chat if it needs a click. Caudals never gets around a CAPTCHA by itself.\n3. Choose **Connect system**. Caudals finds the chat box, sends a test message, reads the reply, reloads the page and repeats the test in fresh sessions.\n4. If one element is not found, use **Fix** next to it in **What Caudals uses** (message box, send button, reply and so on), then **Test again**.\n\nWhen the test passes you see **Connected**. A login you used is saved encrypted and stays until you revoke it. Caudals never receives your password.\n\nThe live browser closes after 20 minutes without activity or two hours in total. Your saved connection is kept, and you can open it again at any time.\n\n## During a run {#during-run}\n\nCaudals asks one question at a time, about six a minute, and waits for the complete reply, so that it never floods your chat.\n\nIf your site changes, the login expires or the site hits a usage limit, the run pauses instead of recording wrong answers. Repair the connection with **Repair connection**, then resume the run, finish it with the answers captured so far, or start a new one. See [Prepare and run your tests](help:prepare-and-run#run).\n\n## Good to know {#notes}\n\n- Only owners can open the live browser. Editors can run evaluations once the chat is connected.\n- Caudals sends only the ordinary questions in your test set. It never runs adversarial tests without your written authorisation.\n- Screenshots taken when a check fails are kept for seven days."
+    },
+    {
+      "slug": "connect-api",
+      "title": "Connect an API",
+      "summary": "Test an assistant through an OpenAI-compatible HTTPS endpoint, with an optional key that Caudals stores encrypted and never shows again.",
+      "keywords": [
+        "api",
+        "endpoint",
+        "openai",
+        "compatible",
+        "chat completions",
+        "https",
+        "api key",
+        "token",
+        "bearer",
+        "header",
+        "credentials",
+        "private network",
+        "runner"
+      ],
+      "related": [
+        "connect-website-chat",
+        "data-and-privacy",
+        "prepare-and-run"
+      ],
+      "owner": "engineering",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "If your assistant has an API that accepts chat requests in the OpenAI format, Caudals can send it each question directly.\n\n## Add the API {#add}\n\n1. Go to **Evaluations** and choose **New evaluation**.\n2. Under **How should Caudals reach it?**, choose **API**.\n3. Fill in the three fields below, then choose **Create evaluation**.\n\n- **HTTPS API endpoint**: the full address that receives chat requests. For most providers it ends in `/chat/completions`, for example `https://api.example.com/v1/chat/completions`.\n- **Model or deployment name**: the value Caudals sends as `model`.\n- **API key (optional)**: sent as a bearer token.\n\nThe address must be public and use HTTPS. Caudals checks that before saving it.\n\n## What Caudals sends {#requests}\n\nFor each question Caudals sends one `POST` request with a JSON body containing `model`, `messages` (your question as the user message) and `\"stream\": false`, and reads the reply from `choices[0].message.content`.\n\n- One request at a time, about six a minute.\n- Each request waits up to two minutes for an answer.\n- Calls to your API are billed by your own provider, not by Caudals.\n\n## Keys and other headers {#credentials}\n\nTo use a header other than `Authorization`, or to change a key, open the system under **Systems** and go to **Credentials**. Give the credential a label, the header name and the key or token.\n\nValues are write-only. Caudals encrypts them, never shows them again and uses them only when calling this system. Saving or rotating a key creates a new version of the system, so earlier results stay tied to the version they used.\n\n## If your system is not on the internet {#private}\n\nFor a system inside your own network, Caudals has a private runner: a command-line tool you run inside your network that fetches the questions and sends back the answers, with outbound connections only. It is enabled per workspace by Caudals and is not part of the free plan. [Ask us](help:getting-help) if you need it.\n\nOther API formats are not available yet. If your assistant cannot answer in the OpenAI format, you can still evaluate it by [uploading its answers](help:uploads#answers), where that option is enabled."
+    },
+    {
+      "slug": "uploads",
+      "title": "Upload documents and answers",
+      "summary": "Add the reference material your tests are written from, and, where it is enabled, upload your system's answers instead of connecting it.",
+      "keywords": [
+        "upload",
+        "file",
+        "document",
+        "pdf",
+        "word",
+        "excel",
+        "csv",
+        "reference material",
+        "sources",
+        "website",
+        "pages",
+        "answers",
+        "spreadsheet",
+        "scanned"
+      ],
+      "related": [
+        "prepare-and-run",
+        "connect-api",
+        "data-and-privacy"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Your tests are written from your own material. You can add files, public web pages, or both.\n\n## Reference documents {#documents}\n\nIn the evaluation's **Prepare tests** step, under **Reference material**:\n\n- Upload PDF, Word, TXT, Markdown, CSV or Excel files: up to 20 files, 25 MB each and 100 MB in total per evaluation. PDFs can have up to 500 pages.\n- Choose **Add a public website** to read up to 25 public pages on that host. Caudals does not sign in, submit forms or follow links to other hosts.\n- Choose **Find sources on the web** to get up to ten suggested public pages about your product, such as help pages, FAQs, terms and pricing. Pages on your own site come first. Pick the ones to add.\n\nYou can open each source to check the text Caudals extracted.\n\n## Scanned documents {#scanned}\n\nCaudals reads the text in a file; it does not read images of text. If a PDF is a scan, you will see \"A document could not be read\". Upload a copy with selectable text, or the Word original.\n\n## Upload your system's answers {#answers}\n\nWhen Caudals cannot reach your system, you can ask it the questions yourself and upload the answers. This option, **Upload answers**, appears when you create an evaluation if it is enabled for your workspace; it is not part of the free plan.\n\n1. Prepare and approve the test set as usual.\n2. Start the run. The evaluation shows **Waiting for your answers**.\n3. Choose **Download question sheet**. Ask your system each question and paste its answer in the `system_answer` column. Keep the other columns as they are.\n4. Upload the sheet as CSV, JSONL or Excel (up to 25 MB).\n\nPartial uploads are kept, so you can send the answers in several batches. When every question has an answer, Caudals grades them and your preliminary report is ready."
+    },
+    {
+      "slug": "prepare-and-run",
+      "title": "Prepare and run your tests",
+      "summary": "Generate questions from your material, review and approve them, then run the evaluation and follow its progress.",
+      "keywords": [
+        "prepare",
+        "test set",
+        "tests",
+        "questions",
+        "generate",
+        "review",
+        "edit",
+        "approve",
+        "freeze",
+        "version",
+        "run",
+        "pause",
+        "resume",
+        "stop",
+        "restart",
+        "queue"
+      ],
+      "related": [
+        "uploads",
+        "reading-results",
+        "schedules-and-alerts"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Every evaluation moves through four steps: **Connect**, **Prepare tests**, **Run** and **Results**. Owners and editors can prepare and run; viewers can follow along and read the results.\n\n## Generate the test set {#generate}\n\n1. Add your [reference material](help:uploads#documents).\n2. Under **Test set**, choose the **Number of tests**: 10 (Quick check), 25 (Standard, the default), 50 (Thorough) or 100 (Professional). On the free plan a test set holds up to 50 tests.\n3. Choose the **Difficulty**: Foundational, Balanced or Expert.\n4. Choose **Generate test set**.\n\nCaudals reads your material, may ask **A few questions before we write the tests** (all optional), writes the questions and checks them. Fewer tests are written when your material supports fewer distinct facts. You can close the page; preparation continues in the background.\n\nEach test has a question, the expected answer and the excerpt of your material it comes from. To add one of your own, use **Write a test yourself**.\n\n## Review and approve {#review}\n\nIn **Review the test set**, read each question with its expected answer and source excerpt, and remove the ones that do not apply.\n\nTo change a question, use **Review and edit questions**. You can edit the question, the reference answer, the key facts a correct answer must include, other acceptable answers and what the assistant should do (answer, decline or refer to a person, ask for missing information, or say it is not documented). You can also add questions with a severity from low to critical.\n\nWhen you are happy, choose **Approve test set**. Approved tests become a frozen, versioned test set: that version never changes, so later runs stay comparable. To change it later, make an editable copy and approve a new version.\n\n## Run the evaluation {#run}\n\nChoose **Run evaluation**. Each question is sent to your system once, the answers are graded, and the report is written:\n\n- **Asking your assistant**, then **Grading answers**, then **Writing the report**, each with its progress.\n- If another run is using the workspace's run slot, the evaluation is **queued** and starts by itself.\n- You can close the page. You get a notification when the results are ready, and an email if you switched it on in **Settings → Notifications**.\n\nFrom the evaluation's three-dot menu you can **Pause evaluation**, **Resume evaluation**, **Stop evaluation** or **Restart evaluation**. A paused run can also be finished with the answers it already has; the report then covers only those answers.\n\nOn the free plan you can run three evaluations a month, one at a time."
+    },
+    {
+      "slug": "reading-results",
+      "title": "Read your results",
+      "summary": "What the score, the labels, the interval and the review badges mean, and how to read a finding and a single result.",
+      "keywords": [
+        "results",
+        "score",
+        "pass rate",
+        "quality score",
+        "interval",
+        "labels",
+        "correct",
+        "incorrect",
+        "partly correct",
+        "no answer",
+        "not scored",
+        "preliminary",
+        "reviewed",
+        "incomplete",
+        "findings",
+        "likely cause",
+        "regrade"
+      ],
+      "related": [
+        "reports-and-sharing",
+        "prepare-and-run",
+        "getting-help"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "When a run finishes, the evaluation shows a summary, and the full report opens with **See every answer**.\n\n## The score {#score}\n\n- **N of M answers correct**: M counts the scored answers only.\n- **Strict pass rate**: the same count as a percentage.\n- **Quality score**: also gives half a point to each partly correct answer.\n- **95% interval**: the range the pass rate would probably fall in with more questions of the same kind. The fewer the questions, the wider it is.\n\n## The labels {#labels}\n\n- **Correct**: conveys every key fact and contradicts nothing.\n- **Partly correct**: some key facts, none contradicted.\n- **Incorrect**: wrong or contradicting information, or key facts left out.\n- **No answer**: the assistant deflected, asked to rephrase or replied off topic.\n\n**Not scored** results never lower the score: **Test needs review** (the question or its expected answer may be wrong), **Not captured** (the reply could not be read reliably) and **Not run** (a timeout or error).\n\nAnswers are graded on meaning, not wording. Extra details your material does not mention are not penalised; only contradictions and missing key facts are.\n\n## Badges {#badges}\n\n- **Preliminary**: graded automatically. **Reviewed**: a person at Caudals has checked the results.\n- **Incomplete**: fewer than 90% of the tests could be scored, or a critical test could not be assessed. Read the limitations before using the score.\n- **Partial**: the run finished before every question was answered.\n\n## The report {#report}\n\nThe report has up to five tabs: **Overview**, **Findings**, **Test results**, **Improvements** and **Methodology**.\n\nEach finding groups failed answers by what went wrong, with what was observed, a recommended action and its evidence. **Likely causes** (invented answer, outdated document, wrong source, knowledge gap, out of scope) are hypotheses: Caudals sees the answers and your material, not your system's inner workings.\n\nOpen any result to see the question, your system's answer, the expected answer, each key fact marked included, missing or contradicted, and the excerpt from your documentation. Use the arrow keys to move between results and Esc to go back.\n\n## Grading again {#regrade}\n\nIf your material or the grader changed, owners and editors can choose **Re-grade answers**. Caudals grades the same answers again without contacting your system, keeps every decision a person made, and publishes a new version of the report.\n\nFor the full method, see the [methodology](https://caudals.com/en/methodology)."
+    },
+    {
+      "slug": "reports-and-sharing",
+      "title": "Reports, exports and sharing",
+      "summary": "Find your reports, download them as PDF, Word or CSV, and share a private link that expires and can be revoked.",
+      "keywords": [
+        "report",
+        "reports",
+        "export",
+        "download",
+        "pdf",
+        "word",
+        "docx",
+        "csv",
+        "share",
+        "link",
+        "expiry",
+        "revoke",
+        "access",
+        "publish",
+        "revision"
+      ],
+      "related": [
+        "reading-results",
+        "data-and-privacy",
+        "team-and-roles"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Every finished run publishes a report. **Reports** lists them with their pass rate, status and publication date.\n\n## Download {#export}\n\nFrom a report, download it as a **PDF document**, a **Word document (.docx)**, the **CSV results** (one row per test, with the expected answer and the verdict) or **CEF JSONL** for your own tools. Everyone in the workspace can download the PDF from the **Reports** list.\n\n## Versions {#versions}\n\nA report can have several revisions, for example after a re-grade or a review. The **Revisions** panel lists them, and owners and editors can **Publish** the one to show.\n\n## Share a report {#share}\n\nOwners can share a report with people outside the workspace:\n\n1. Open the report and choose **Share**.\n2. Choose who can open it: **Private link** (anyone holding it), **Named recipient** (they must sign in) or **Workspace members**.\n3. Set **Expires after** in days (14 by default, 90 at most).\n4. Choose the **Sections included**. Individual test results are left out unless you include them.\n5. Use **Preview shared view** to check it, then **Create access**.\n\nThe link is shown once, so copy it before you close the dialog. **Access grants** lists every share with its number of views.\n\n## Revoke a share {#revoke}\n\nChoose **Revoke** next to the share. New views and downloads are refused at once. Copies that were already downloaded cannot be recalled."
+    },
+    {
+      "slug": "schedules-and-alerts",
+      "title": "Schedules and regression alerts",
+      "summary": "Re-run an approved test set daily, weekly or monthly, and get an alert when answers get worse than in the previous run.",
+      "keywords": [
+        "schedule",
+        "scheduled runs",
+        "monitoring",
+        "recurring",
+        "monthly",
+        "weekly",
+        "daily",
+        "regression",
+        "alert",
+        "compare",
+        "webhook",
+        "notification"
+      ],
+      "related": [
+        "prepare-and-run",
+        "reading-results",
+        "getting-help"
+      ],
+      "owner": "engineering",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "A schedule runs the same frozen test set again at a fixed time, so you can see whether a change to your assistant, its model or its documents made answers worse.\n\n## Create a schedule {#create}\n\nSchedules are in **Settings → Monitoring**, under **Scheduled runs**. Owners can create them for evaluations with an approved test set. Scheduling is enabled per workspace and is not part of the free plan.\n\n1. Choose **New schedule**.\n2. Pick the evaluation and the system to test.\n3. Set the cadence (**Daily**, **Weekly** or **Monthly**), the day, the local time and the time zone.\n4. Optionally set a **Maximum run spend** and a **Maximum source age (days)**. When your sources are older than that, the scheduled run is skipped instead of testing against stale material.\n\nEach schedule can be paused and resumed. When a newer approved test set exists, **Use the approved test set** switches the schedule to it.\n\n## How outcomes are judged {#outcomes}\n\nEach scheduled run is compared, question by question, with the previous completed run of the same schedule:\n\n- **Pass**: no question got worse.\n- **Regression**: at least one question got a worse label than before, for example correct before and incorrect now.\n- **Inconclusive**: the runs cannot be compared fairly, for example on the first run, when fewer than 90% of the tests were scored, or when as many questions improved as got worse.\n- **Unknown**: the run failed or was cancelled.\n\n## Where alerts appear {#alerts}\n\nOutcomes are listed under **Monitoring outcomes** and appear in the notification centre. To send them to your own systems, add a signed webhook in **Settings → Developers**; see the API reference there."
+    },
+    {
+      "slug": "credits-and-billing",
+      "title": "Plans, limits and billing",
+      "summary": "What the free plan includes, what the figures in Settings mean, and where credits and paid plans stand today.",
+      "keywords": [
+        "billing",
+        "credits",
+        "plan",
+        "free plan",
+        "limits",
+        "pricing",
+        "price",
+        "payment",
+        "invoice",
+        "spend",
+        "top up",
+        "pilot",
+        "subscription",
+        "upgrade"
+      ],
+      "related": [
+        "getting-help",
+        "prepare-and-run",
+        "team-and-roles"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2026-12-12",
+      "body": "A workspace is either on the free plan or on a plan agreed with Caudals for a pilot or a subscription.\n\n## The free plan {#free}\n\nA free workspace includes:\n\n- one AI system, connected as a website chat or an API;\n- up to 50 tests per test set;\n- three runs a calendar month, one at a time;\n- downloads of every report as PDF, Word and CSV;\n- Caudals' own models, running on Caudals' servers.\n\nScheduled runs, uploaded answers and the private runner are not part of the free plan. When you reach a limit, the app tells you which one, for example \"The free plan includes three runs a month. Talk to us about a pilot for more.\"\n\n## What Settings shows {#settings}\n\n**Settings → General** shows the limits that apply to your workspace:\n\n- **Spend this month**: the processing cost Caudals records for your workspace against its monthly limit. It is a safeguard, not a bill.\n- **Active run allowance**: how many evaluations can run at the same time.\n- **Allowed connections**: the ways Caudals may reach your systems.\n- **Exports and scheduling**: whether these are switched on.\n\nThese are set by your plan or your agreement with Caudals; a workspace member cannot change them.\n\n## Credits {#credits}\n\nCaudals is introducing prepaid credits for pay-as-you-go use beyond the free plan. Buying credits, a balance and usage screens are not available in the app yet, and nothing in your workspace is charged in credits today. This article will explain them when they are. Until then, our [Terms of Service](https://caudals.com/en/legal/terms) describe how credits will work.\n\n## Pilots and subscriptions {#managed}\n\nPilots, monthly subscriptions and custom datasets are quoted on the scope of your system, with a fixed price agreed before we start, and invoiced as agreed. To discuss one, [book a call or write to us](help:getting-help)."
+    },
+    {
+      "slug": "data-and-privacy",
+      "title": "How we handle your data",
+      "summary": "Where your data is stored, which models read it, how credentials are protected, how long things are kept and how to delete a workspace.",
+      "keywords": [
+        "data",
+        "privacy",
+        "gdpr",
+        "security",
+        "hosting",
+        "germany",
+        "encryption",
+        "credentials",
+        "retention",
+        "delete",
+        "deletion",
+        "dpa",
+        "sub-processors",
+        "model",
+        "adversarial"
+      ],
+      "related": [
+        "team-and-roles",
+        "reports-and-sharing",
+        "connect-api"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "## Where it is stored {#hosting}\n\nThe application, database, file storage and backups run on servers Caudals operates at Hetzner, in Germany. The database and file storage are not reachable from the public internet.\n\n## Which models read it {#models}\n\nBy default, test questions are written and answers graded by an AI model that runs on Caudals' own GPU server. Your content goes to a commercial AI provider only if your workspace chooses one. Free workspaces use only Caudals' own models.\n\n## Credentials and logins {#credentials}\n\nAPI keys and tokens are write-only: Caudals encrypts them, uses them only to call your system and never shows them again. A login you save in the live browser is stored encrypted and stays until you revoke it; Caudals never receives your password.\n\n## What Caudals asks your system {#questions}\n\nCaudals asks only the ordinary questions in your test set. It never runs adversarial tests, such as prompt injection or jailbreak attempts, without your written authorisation.\n\n## How long data is kept {#retention}\n\n- Workspace content (sources, test sets, runs and reports) is kept while the workspace exists.\n- Screenshots from failed website checks are deleted after seven days.\n- Free test results on caudals.com are deleted after seven days.\n- Backups expire after about a week.\n\n## Shared reports {#sharing}\n\nYou decide what leaves the workspace. Shared links expire, and an owner can revoke them at any time; see [Reports, exports and sharing](help:reports-and-sharing#revoke). A copy someone already downloaded cannot be recalled.\n\n## Delete a workspace {#delete}\n\nOwners can delete the workspace in **Settings → Danger zone** with **Delete workspace data**. You give a reason and type the workspace name to confirm. Deletion revokes every share and credential at once, stops running evaluations, withdraws reports and deletes stored files. It cannot be undone, and access stops immediately for every member. A minimal deletion record remains, and encrypted backups expire on their normal schedule.\n\n## Legal documents {#legal}\n\nThe [data processing agreement](https://caudals.com/en/legal/dpa) applies to every workspace without a signature; a signed copy is available on request. See also the [sub-processors](https://caudals.com/en/legal/subprocessors) and [security](https://caudals.com/en/legal/security) pages. For privacy requests, write to privacy@caudals.com."
+    },
+    {
+      "slug": "team-and-roles",
+      "title": "Team members and roles",
+      "summary": "Invite colleagues as viewers, editors or owners, and see what each role can do.",
+      "keywords": [
+        "team",
+        "members",
+        "invite",
+        "invitation",
+        "colleague",
+        "role",
+        "roles",
+        "owner",
+        "editor",
+        "viewer",
+        "permissions",
+        "access"
+      ],
+      "related": [
+        "data-and-privacy",
+        "reports-and-sharing",
+        "getting-help"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "## Roles {#roles}\n\n- **Viewer**: reads evaluations, results and reports, and downloads reports as PDF.\n- **Editor**: everything a viewer can do, plus preparing and approving test sets, running, pausing and restarting evaluations, re-grading and publishing report versions.\n- **Owner**: everything an editor can do, plus inviting people, sharing reports outside the workspace, connecting website chats in the live browser, managing schedules, API tokens and webhooks, renaming the workspace and deleting it.\n\n## Invite a colleague {#invite}\n\nOwners can invite people from **Settings → Members**:\n\n1. Choose **Create invitation**.\n2. Enter their email address and choose a **Workspace role** (Viewer by default).\n3. Copy the private invitation link. It is shown once and expires after 24 hours. Caudals also emails the invitation, and the dialog says when it has.\n\nThe invitation can only be accepted by the email address it was sent to. You can cancel a pending invitation with **Revoke invitation**.\n\n## Colleagues who sign up on their own {#same-company}\n\nEach company email domain gets one self-serve workspace. If a colleague tries to create another, they are asked to request an invitation from your workspace's owner instead.\n\n## Changing roles {#changes}\n\nChanging a member's role is done by Caudals: write to hello@caudals.com from an owner's address. A workspace always keeps at least one owner. Removing a member is not available in the app yet; write to us if someone should lose access."
+    },
+    {
+      "slug": "free-test",
+      "title": "The free test",
+      "summary": "Test any assistant from caudals.com in a few minutes, without an account, and turn the result into a free workspace.",
+      "keywords": [
+        "free test",
+        "demo",
+        "trial",
+        "try",
+        "eight questions",
+        "no account",
+        "curl",
+        "endpoint",
+        "website",
+        "sign up",
+        "account",
+        "report",
+        "colleague"
+      ],
+      "related": [
+        "connect-website-chat",
+        "prepare-and-run",
+        "data-and-privacy"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "The free test on [caudals.com](https://caudals.com/en/demo) gives a quick, real signal about an assistant before you create an account.\n\n## What it does {#how}\n\n1. You enter the page where your chat opens, an OpenAI-compatible API endpoint, or a curl command (a POST with a JSON body, with `{{question}}` where the message goes). For an API or a curl command you also say where the right answers are, usually your website.\n2. Caudals reads up to six public pages of your site and writes eight questions, each with its expected answer and a quotation from the page it comes from.\n3. It asks your assistant each question and grades every answer against its source.\n\nIt usually takes a few minutes, and the page shows an estimate. You can leave your email to receive the report when it is ready.\n\n## The report {#report}\n\nYou get the number of correct answers, where the wrong ones went wrong, and every question with your assistant's answer, the expected answer and the source. Eight questions are a signal, not a full measurement: see the [methodology](https://caudals.com/en/methodology#samples).\n\nThe report has a private link. You can copy it, or send it to a colleague by email. Anyone with the link can open the report until it is deleted.\n\n## Privacy and limits {#privacy}\n\n- No account is needed, and the report is deleted seven days after the test.\n- An API key or curl headers are used for this test only and never stored.\n- Each visitor gets one free test a day.\n- The test asks only ordinary customer questions.\n\n## From the test to a workspace {#workspace}\n\nFrom the report, choose **Create free account** and enter your work email (and, if you like, your company). Your new free workspace starts with the same system and your website as reference material, ready for a [full test set](help:prepare-and-run) of up to 50 questions. The eight questions of the free test stay in the free test.\n\nYou can also create a free workspace directly at app.caudals.com with a work email, or book a readout with us from the report."
+    },
+    {
+      "slug": "getting-help",
+      "title": "Getting help",
+      "summary": "Search these articles, follow the help links next to each step, or write to us or book a call.",
+      "keywords": [
+        "help",
+        "support",
+        "contact",
+        "email",
+        "call",
+        "meeting",
+        "assistance",
+        "question",
+        "problem",
+        "stuck",
+        "notifications",
+        "search"
+      ],
+      "related": [
+        "reading-results",
+        "connect-website-chat",
+        "credits-and-billing"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "## Help in the app {#in-app}\n\n- Open **Help** from the account menu, or press ⌘K (Ctrl+K on Windows) and choose **Help**. Search the articles by keyword.\n- The **?** next to a step opens the article about that step.\n- Every article also has its own page, which you can share with a colleague in your workspace.\n\n## Talk to us {#contact}\n\n- Write to hello@caudals.com, or choose **Contact Caudals** in the account menu.\n- For a problem with one evaluation, choose **Request operator assistance** in that evaluation's three-dot menu. It opens an email with the evaluation's name, so we know where to look.\n- Book a 30-minute call from the help panel.\n\nTell us what you expected and what happened. Never send passwords, API keys or tokens by email: credentials belong in the app, where they are stored encrypted.\n\n## Keep track of your work {#notifications}\n\nThe bell in the top bar lists what finished, failed or needs you (**Notifications**) and what is running now (**Activity**). Choose which notifications you also receive by email in **Settings → Notifications**.\n\n## How we grade {#method}\n\nThe [methodology](https://caudals.com/en/methodology) explains how questions are written, how answers are graded, what each label means and what the numbers can and cannot tell you."
+    }
+  ]
+}

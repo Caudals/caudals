@@ -188,6 +188,9 @@ The content measure is wide on purpose: these are evidence tables with four to s
 | `DataTable` / `RowTitle` | `.p-table` | Header may be `{ label, align: "end" }` |
 | `EmptyState` | `.p-empty` | Icon in a rounded mark, title, copy, one CTA |
 | `SessionRecovery` | — | Sign-in + recovery pair |
+| `CodeBlock` (overlays) | `.p-code-block` | Labelled multi-line code with a copy button; lines scroll sideways instead of wrapping |
+| `HelpLink` (help) | `.p-help-link` | The contextual "?" beside a step: a 26px round ghost icon (`CircleHelp`, stroke 1.5) with an `aria-label` naming the topic; opens the article in the help panel |
+| `HelpBody` (help) | `.p-article` | Help article prose: body size, 1.65 line height, `subtitle` section headings, underlined links, inline `.p-code`. The only long-form reading text in the platform |
 
 ### Buttons
 
@@ -335,6 +338,8 @@ Two selector techniques appear throughout and are deliberate:
 
 - Legal pages (`components/legal/legal-page.tsx`) are reading documents: a quiet list of the legal documents beside one column held to about 70 characters a line (17px Geist, 1.7 line height, secondary ink), a sentence-case "Legal" label, the title in Geist 400, the standfirst, then "Last updated" and the version in muted text. Sections are numbered, anchored and separated by space, not rules; long documents add a two-column contents list under a hairline. Tables (sub-processors) are hairline rows on wide screens and one block per row on a phone. Secondary actions such as the DPA template downloads are ghost pills.
 
+- The methodology page (`/methodology`, `components/methodology/methodology-page.tsx`) follows the legal reading layout without the document list: one column of about 70 characters, a sentence-case "Methodology" label, a Geist 400 title with one Newsreader italic word, the standfirst and "Last updated", a two-column contents list under a hairline, numbered anchored sections. The outcome labels are a hairline table with the demo's ink verdict marks beside each word (one block per label on a phone); the sample-size table keeps tabular figures and stays a table at 390 px. It closes with a white sheet: the near-black free-test pill and a ghost pill to book a call.
+
 - The sample report (`/sample-report`, `components/sample-report/sample-report.css`, scoped `.sr` with the `.lp` values) is a reading page in a 920px column: an ink-bordered "Example" label with the synthetic-data line at the top and the bottom, the kicker, a Geist 400 title with one Newsreader italic word, the standfirst and a pill to the PDF; then hairline sections for the score (one oversized Geist numeral, a Newsreader sentence), the three-run trend (ink bars on a hairline track), the comparison, the executive summary, numbered findings and improvements, every result as a `<details>` row (verdict mark and word, the answer on a white sheet, the document excerpt in Newsreader), the method, and a dark closing card with inverted pills. Outcome bars are ink, grey and hatched ink, always with a legend that carries the words and counts.
 
 Do not import `platform.css` here, and do not carry Newsreader into the platform.
@@ -345,6 +350,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-13 | Help centre, API reference and methodology (L-20): `HelpLink`, `HelpBody` prose (`.p-article`), the help list (`.p-help-item`), `CodeBlock` and the API reference blocks (`.p-api-*`); the Paper methodology page in §13. |
 | 2026-10-13 | Public site refresh (L-30): step 1 and FAQ name the free test, the closing card's pilot line, sector heroes' pilot link, the footer's Trust column, the five-field contact form, the call agenda and confirmation, the 404's test pill; the Settings DPA row (platform kit). |
 | 2026-10-12 | Report v2 and share page (L-17): `.p-summary` with next steps, `.p-fixes`, `.p-share-intro` and `.p-share-cta`; whole-percent headline. |
 | 2026-10-12 | Example evaluation and public sample report (L-33): `.p-report-intro`, wrapping compact lists (`data-wrap`), a 10rem minimum for page-heading titles, and the Paper sample report page. |

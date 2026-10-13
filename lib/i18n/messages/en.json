@@ -400,13 +400,34 @@
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Free to start. Never billed by the hour.",
-    "subtitle": "The Initial Diagnostic is free. Pilots and subscriptions are quoted on the scope of your system, with a fixed price agreed before we start.",
+    "subtitle": "The free test and the free account cost nothing. Beyond the free plan you pay as you go with credits bought in the app. Pilots and subscriptions are quoted on the scope of your system, with a fixed price agreed before we start.",
     "offers": {
+      "freeTest": {
+        "name": "Free test",
+        "price": "Free",
+        "duration": "About 3 minutes",
+        "summary": "Eight questions written from your own website, put to your assistant and checked against the page each answer comes from. No account needed.",
+        "cta": "Test your assistant free"
+      },
+      "freeAccount": {
+        "name": "Free account",
+        "price": "Free",
+        "duration": "With a work email",
+        "summary": "A workspace to test one assistant against all your pages and documents, with a full test set, reports you can share and monthly re-runs.",
+        "cta": "Create a free account"
+      },
+      "payAsYouGo": {
+        "name": "Pay as you go",
+        "price": "Credits in the app",
+        "duration": "When you need more",
+        "summary": "Beyond the free plan, you pay as you go with credits in the app, only for completed work. Never billed by the hour.",
+        "cta": "Sign in"
+      },
       "realityCheck": {
         "name": "Initial Diagnostic",
         "price": "Free",
         "duration": "48 hours",
-        "summary": "Forty questions put to your public assistant, with answers taken from your own public documentation.",
+        "summary": "For teams who prefer that we run it: forty questions put to your public assistant, with answers taken from your own public documentation, delivered as a report and a readout. Request it through the contact form.",
         "cta": "Initial Diagnostic",
         "include1": "Your score and the failure categories",
         "include2": "Seven annotated transcripts, each next to the source it contradicts",
@@ -477,6 +498,7 @@
     "explore": "Explore",
     "bookMeeting": "Book a meeting",
     "freeTest": "Free test",
+    "methodology": "Methodology",
     "rights": "© {year} Caudals. All rights reserved.",
     "x": "X",
     "github": "GitHub",
@@ -801,6 +823,7 @@
       "meta": "{host} · {date} · {count} questions from {pages} pages",
       "whereTitle": "Where it went wrong",
       "copyLink": "Copy private link",
+      "methodology": "How we grade",
       "copied": "Link copied",
       "expected": "Expected",
       "answer": "Your assistant",

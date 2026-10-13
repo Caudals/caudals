@@ -16,6 +16,7 @@ import { evalRequest } from "./api";
 import { Action, Badge, Field, Progress, SectionHeading, SelectField, Status, TextArea } from "./primitives";
 import { notify } from "./overlays";
 import { WebDiscovery } from "./web-discovery";
+import { HelpLink } from "./help";
 import { DeleteDialog, itemRequest } from "./item-actions";
 import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion } from "./preparation-parts";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
@@ -557,7 +558,7 @@ export function PrepareEvaluation({
       {error && <Status error>{error}</Status>}
 
       <section className="p-section p-section-first">
-        <SectionHeading title={t("referenceMaterial")}>{t("referenceMaterialHelp")}</SectionHeading>
+        <SectionHeading title={t("referenceMaterial")} actions={<HelpLink topic="sources" />}>{t("referenceMaterialHelp")}</SectionHeading>
         {sources.length + pendingSources.length > 0 && (
           <ul className="p-files">
             {sources.map((item) => (
@@ -653,7 +654,7 @@ export function PrepareEvaluation({
       </section>
 
       <section className="p-section">
-        <SectionHeading title={t("testSet")}>{t("testSetHelp")}</SectionHeading>
+        <SectionHeading title={t("testSet")} actions={<HelpLink topic="prepare" />}>{t("testSetHelp")}</SectionHeading>
         {openQuestions.length > 0 ? (
           <ContextQuestionsForm key={openQuestions.map((item) => item.id).join()} questions={openQuestions} pending={pending === "context"} error={contextError} onSubmit={(answers) => void submitContext(answers)} />
         ) : generating ? (

@@ -20,6 +20,7 @@ import {
   type LegalDocumentId,
 } from "@/lib/legal/versions";
 import { buildMarketingUrl, getIndexableMarketingRoutes } from "@/lib/seo";
+import { METHODOLOGY_PATH } from "@/lib/methodology/content";
 
 /**
  * Markdown representations of the static marketing pages, for agents that ask
@@ -60,6 +61,7 @@ export function isStaticMarkdownPage(pathname: string) {
   return (
     Object.hasOwn(STATIC_PAGES, pathname) ||
     LEGAL_DOCUMENTS.has(pathname) ||
+    pathname === METHODOLOGY_PATH ||
     pathname === SECTORS_HUB_PATH ||
     SECTOR_PAGES.has(pathname)
   );
@@ -162,6 +164,9 @@ export async function renderStaticPageMarkdown(
     title = t("sectors.hubMetaTitle");
     description = t("sectors.hubSubtitle");
     body = renderSectorsHubBody(locale);
+  } else if (pathname === METHODOLOGY_PATH) {
+    const { renderMethodologyMarkdown } = await import("@/lib/methodology/content");
+    ({ title, description, body } = renderMethodologyMarkdown(locale));
   } else if (legalId) {
     const { renderLegalMarkdown } = await import("@/lib/legal/markdown");
     const { getLegalEntity } = await import("@/lib/legal/entity");

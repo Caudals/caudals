@@ -53,6 +53,7 @@ import { tr } from "@/lib/evals/messages/phrases";
 import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, causeBreakdown, causeLabel, failureBreakdown, labelOf } from "./result-labels";
 import { getLocale } from "@/lib/evals/messages/en";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
+import { methodologyUrl } from "@/lib/evals/public-links";
 /** Sentences Caudals generated from templates, shown in the interface language. */
 const gen = (text: string) => localizeReportText(text, getLocale());
 
@@ -1049,6 +1050,9 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
           ) : (
             <p className="p-cell-meta">{t("noLimitationsRecorded")}</p>
           )}
+          <p className="p-cell-meta p-help-method">
+            <a href={methodologyUrl(getLocale())} target="_blank" rel="noopener noreferrer">{t("helpMethodology")}</a>
+          </p>
           {report.report_revision_id && (
             <p className="p-cell-meta p-revision-id">
               {t("reportRevision")} <code className="p-code">{report.report_revision_id}</code>
@@ -1340,6 +1344,9 @@ export function SharedReport({ marketingOrigin = "https://caudals.com" }: { mark
       <section className="p-share-intro" aria-labelledby="share-intro-title" data-share-intro>
         <h2 id="share-intro-title">{t("shareIntroTitle")}</h2>
         <p>{t("shareIntroBody")}</p>
+        <p className="p-cell-meta p-help-method">
+          <a href={methodologyUrl(getLocale())} target="_blank" rel="noopener noreferrer" data-methodology-link>{t("helpMethodology")}</a>
+        </p>
         {/* A prospect snapshot is Caudals' own test of a public assistant, not shared by its owner (launch L-21). */}
         {share?.label !== "external_snapshot" && <p className="p-cell-meta">{t("shareIntroPrivate")}</p>}
       </section>

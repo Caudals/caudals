@@ -1904,6 +1904,257 @@
   overflow: auto;
 }
 
+/* --- Help centre (launch L-20) ------------------------------------------------
+   The "?" beside a step, the searchable article list and article prose. The
+   prose rules (`.p-article`) are the only long-form reading text in the
+   platform: body size, generous line height, links underlined. */
+
+.p-code-block {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+  border: 1px solid var(--p-border-hairline);
+  border-radius: var(--p-radius-md);
+  overflow: hidden;
+}
+.p-code-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 14px;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+  border-bottom: 1px solid var(--p-border-hairline);
+}
+.p-code-block .p-pre {
+  margin: 0;
+  border-radius: 0;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  max-height: 420px;
+}
+.p-api-ref {
+  display: grid;
+  gap: 28px;
+  max-width: 880px;
+}
+.p-api-ref > section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.p-api-ref h3 {
+  font-size: var(--p-text-body);
+  font-weight: 600;
+}
+.p-api-ref h4 {
+  margin-top: 6px;
+  font-size: var(--p-text-label);
+  font-weight: 600;
+}
+.p-api-ref p {
+  font-size: var(--p-text-body);
+  line-height: 1.6;
+  color: var(--p-text-secondary);
+}
+.p-api-ids {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.p-api-endpoint {
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: 1px solid var(--p-border-hairline);
+  min-width: 0;
+}
+.p-api-endpoint h4 {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.p-api-method {
+  padding: 2px 6px;
+  border-radius: var(--p-radius-xs);
+  background: var(--p-surface-3);
+  font-size: var(--p-text-micro);
+  font-weight: 600;
+}
+.p-api-path {
+  font-size: var(--p-text-label);
+  overflow-wrap: anywhere;
+}
+.p-api-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--p-text-label);
+}
+.p-api-facts > div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 8px;
+}
+.p-api-facts dt {
+  color: var(--p-text-tertiary);
+}
+.p-api-ref td .p-code {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.p-api-codes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.p-help-link {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--p-radius-pill);
+  color: var(--p-text-tertiary);
+  transition: color var(--p-dur-instant) var(--p-ease-crisp), background-color var(--p-dur-instant) var(--p-ease-crisp);
+}
+.p-help-link:hover {
+  color: var(--p-text);
+  background: var(--p-surface-2);
+}
+.p-help-link svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.5;
+}
+.p-panel-block-head .p-help-link,
+.p-results-head .p-help-link {
+  margin-left: auto;
+}
+.p-help-search {
+  display: grid;
+  gap: 12px;
+}
+.p-help-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-help-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--p-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--p-dur-instant) var(--p-ease-crisp);
+}
+.p-help-item:hover {
+  background: var(--p-surface-2);
+}
+.p-help-item-title {
+  font-size: var(--p-text-body);
+  font-weight: 500;
+  color: var(--p-text);
+}
+.p-help-item-summary {
+  font-size: var(--p-text-label);
+  line-height: 1.5;
+  color: var(--p-text-secondary);
+}
+.p-help-article {
+  display: grid;
+  gap: 14px;
+}
+.p-help-article-head h3 {
+  font-size: var(--p-text-title);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.p-help-page {
+  display: grid;
+  gap: 28px;
+  max-width: 760px;
+}
+.p-help-method a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--p-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.p-help-method svg {
+  width: 14px;
+  height: 14px;
+}
+.p-article {
+  display: grid;
+  gap: 12px;
+  font-size: var(--p-text-body);
+  line-height: 1.65;
+  color: var(--p-text);
+  overflow-wrap: anywhere;
+}
+.p-article h2 {
+  margin-top: 14px;
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+  scroll-margin-top: 16px;
+}
+.p-article h3 {
+  margin-top: 6px;
+  font-size: var(--p-text-body);
+  font-weight: 600;
+  scroll-margin-top: 16px;
+}
+.p-article :where(ul, ol) {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+.p-article ul {
+  list-style: disc;
+}
+.p-article ol {
+  list-style: decimal;
+}
+.p-article li::marker {
+  color: var(--p-text-tertiary);
+}
+.p-article a {
+  color: var(--p-text);
+  text-decoration: underline;
+  text-decoration-color: var(--p-border-strong);
+  text-underline-offset: 3px;
+}
+.p-article a:hover {
+  text-decoration-color: var(--p-text);
+}
+.p-article strong {
+  font-weight: 600;
+}
+.p-article .p-code {
+  display: inline;
+  padding: 1px 5px;
+}
+
 /* -----------------------------------------------------------------------------
    7. Overlays
    Popovers scale from their trigger; modals stay centred because they are not

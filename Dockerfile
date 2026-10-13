@@ -27,11 +27,13 @@ ENV NODE_ENV=production
 
 COPY . .
 
-# Trust-page and example-evaluation checks are a release gate even while the
-# general CI workflow is disabled. Never publish placeholder company data,
-# mismatched documents, or example fixtures that fail the report schema, cite
-# missing results or no longer match their PDFs.
-RUN npx vitest run lib/legal lib/evals/example
+# Trust-page, example-evaluation, help-centre and methodology checks are a
+# release gate even while the general CI workflow is disabled. Never publish
+# placeholder company data, mismatched documents, example fixtures that fail
+# the report schema, cite missing results or no longer match their PDFs, help
+# articles without both languages, owners and review dates (launch L-20), or a
+# methodology whose intervals differ from the scorer.
+RUN npx vitest run lib/legal lib/evals/example lib/evals/help/content lib/methodology
 
 RUN npm run build
 

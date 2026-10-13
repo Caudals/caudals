@@ -193,6 +193,8 @@ For a change limited to `AGENTS.md` and documentation, deploy the reviewed files
 
 The example evaluation (launch L-33) is built from `lib/evals/example/source`: after changing it run `npx tsx scripts/evals/build-example-fixtures.ts`, then `scripts/launch/heavy.sh npx tsx scripts/evals/render-example-pdfs.ts` (Playwright Chromium and poppler's `pdftotext`; it refuses to write a PDF with an overflowing table or a page without the Example label) and commit the fixtures, PDFs and `content/sample-report/manifest.json`. `npx vitest run lib/evals/example tests/evals/example-*.test.ts` checks them; the image build runs `lib/evals/example` too.
 
+Help articles (launch L-20) live in `content/help/{en,es}/<slug>.md`. After editing one, update `reviewed` and `review_by` in both languages (same dates, same owner), run `npx tsx scripts/evals/build-help.ts` and commit the Markdown with `lib/evals/help/generated/*.json`. `npx vitest run lib/evals/help` runs the content lint (also part of the image build), the search tests and the overdue-review check. The methodology copy is in `content/methodology/{en,es}.json`; `npx vitest run lib/methodology` checks its parity, claims and that the interval table matches the scorer.
+
 Host jobs on `atlantic` (daily encrypted backup and ten-minute operational alerts) are installed with `sudo scripts/install-evals-host-jobs.sh`; procedures for every alert are in `docs/evals/runbooks.md`.
 
 ## Evaluation Stage C local checks

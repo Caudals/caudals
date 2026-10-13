@@ -14,7 +14,7 @@
  * one of those screens. Visual contract: packages/brand/platform.css.
  */
 
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -53,6 +53,7 @@ import { ActionLink, Status, humanize } from "./primitives";
 import { Toaster } from "./overlays";
 import { CommandPalette, type PaletteLink } from "./command-palette";
 import { HelpPanel } from "./help-panel";
+import { OpenHelpProvider, type HelpTarget } from "./help";
 import { NotificationCenter } from "./notification-center";
 import { ExampleAvailability } from "./example-evaluation-links";
 import { OnboardingAvailability } from "./onboarding-checklist";
@@ -119,6 +120,7 @@ const SECTION: Record<string, string> = {
   reports: t("reports"),
   "test-sets": t("testSets"),
   settings: t("settings"),
+  help: t("help"),
   invitations: t("invitations"),
   clients: t("clients"),
   growth: t("growth"),
@@ -472,6 +474,12 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
   const [help, setHelp] = useState(false);
+  const [helpTarget, setHelpTarget] = useState<HelpTarget | null>(null);
+  /* The menu and ⌘K open the article list; a step's "?" opens its article. */
+  const openHelp = useCallback((target?: HelpTarget) => {
+    setHelpTarget(target ?? null);
+    setHelp(true);
+  }, []);
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
@@ -552,7 +560,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   );
   if (identity.workspaces.length) paletteLinks.push({ href: withOrg("/workspace/settings"), label: t("settings"), icon: <Settings />, group: t("goTo") });
 
-  const sidebarProps = { identity, groups, signingOut, signOutError, onSignOut: signOut, onHelp: () => setHelp(true) };
+  const sidebarProps = { identity, groups, signingOut, signOutError, onSignOut: signOut, onHelp: () => openHelp() };
 
   return (
     <div className="p-root">
@@ -596,7 +604,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
                       <Brand />
                     </div>
                   </DialogPrimitive.Title>
-                  <SidebarBody {...sidebarProps} collapsed={false} onNavigate={() => setDrawer(false)} onHelp={() => { setDrawer(false); setHelp(true); }} />
+                  <SidebarBody {...sidebarProps} collapsed={false} onNavigate={() => setDrawer(false)} onHelp={() => { setDrawer(false); openHelp(); }} />
                 </DialogPrimitive.Content>
               </DialogPrimitive.Portal>
             </DialogPrimitive.Root>
@@ -615,13 +623,15 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
 
           <main id="p-main" className="p-canvas" tabIndex={-1}>
             <div className="p-page">
-              <SessionExpiry>{children}</SessionExpiry>
+              <SessionExpiry>
+                <OpenHelpProvider open={openHelp}>{children}</OpenHelpProvider>
+              </SessionExpiry>
             </div>
           </main>
         </div>
       </div>
-      <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} onHelp={() => setHelp(true)} />
-      <HelpPanel open={help} onOpenChange={setHelp} />
+      <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} onHelp={() => openHelp()} />
+      <HelpPanel open={help} onOpenChange={setHelp} target={helpTarget} />
       <LimitDialogHost />
       <Toaster />
     </div>

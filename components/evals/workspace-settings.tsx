@@ -12,6 +12,7 @@ import { EntitlementForm, type WorkspaceEntitlement } from "./entitlement-form";
 import { usePlatformAction } from "./platform-action";
 import { InvitationManager } from "./invitation-manager";
 import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
+import { ApiReference } from "./api-reference";
 import { WorkspaceDeletion } from "./workspace-deletion";
 import { EngineSettings } from "./engine-settings";
 import { LocaleSwitch } from "./locale";
@@ -23,7 +24,8 @@ import { getLocale, t } from "@/lib/evals/messages/en";
 
 type Tab = "general" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
 
-export function WorkspaceSettings({ marketingOrigin }: { marketingOrigin?: string } = {}) {
+/** `estimatesApi`: the estimate endpoint accepts API tokens (BILLING_ESTIMATES_ENABLED=true, read on the server). */
+export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { marketingOrigin?: string; estimatesApi?: boolean } = {}) {
   const { orgId, workspace, role, canManage, platformAdmin } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const params = useSearchParams();
@@ -73,7 +75,10 @@ export function WorkspaceSettings({ marketingOrigin }: { marketingOrigin?: strin
       ) : tab === "monitoring" ? (
         <MonitoringSchedules orgId={orgId} canManage={canManage} summary={summary} />
       ) : tab === "developers" ? (
-        <DeveloperAccess orgId={orgId} canManage={canManage} />
+        <>
+          <DeveloperAccess orgId={orgId} canManage={canManage} />
+          <ApiReference orgId={orgId} estimates={estimatesApi} />
+        </>
       ) : (
         <div className="p-settings">
           <WorkspaceDeletion key={orgId} orgId={orgId} workspaceName={workspace.name} />

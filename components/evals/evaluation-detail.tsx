@@ -37,8 +37,10 @@ import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { WebAppConnector } from "./web-app-connector";
 import { FirstEvaluationPanel, OnboardingWelcome, useFirstEvaluation, useWorkspaceOnboarding } from "./onboarding-checklist";
+import { HelpLink } from "./help";
 import { evaluationStage, stepStates } from "./evaluation-stage";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import type { HelpContextKey } from "@/lib/evals/help/articles";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
 
 type RunView = {
@@ -345,7 +347,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
       {items.dialog}
       {controls.dialog}
       {controls.alert}
-      {connectOpen && <Panel title={t("connectEvaluation")}>
+      {connectOpen && <Panel title={t("connectEvaluation")} help={connectHelp(system?.document.kind)}>
         <p>{t("connectEvaluationHelp")}</p>
         {system && <div className="p-row"><strong>{system.title}</strong><Badge>{connectionLabel(system.document.kind)}</Badge><ActionLink variant="secondary" href={withOrg(`/workspace/systems/${system.id}`)}>{t("manageConnection")}</ActionLink></div>}
         {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} />}
@@ -389,7 +391,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
           <p>{t("closePageHelp")}</p>
         </Panel>
       ) : !run ? (
-        <Panel title={t("readyToRunTitle")}>
+        <Panel title={t("readyToRunTitle")} help="run">
           <p>
             {caseCount != null ? `${caseCount} ${caseCount === 1 ? t("testApproved") : t("testsApproved")}. ` : ""}
             {executionMode === "imported_responses" ? t("readyToRunManualHelp") : t("readyToRunHelp")}
@@ -428,7 +430,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
           )}
         </Panel>
       ) : runStatus === "paused" ? (
-        <Panel title={t("runPausedTitle")}>
+        <Panel title={t("runPausedTitle")} help="run">
           <p>
             {t("runPausedProgress").replace("{done}", String(counts.answered)).replace("{total}", String(counts.total))}{" "}
             {run.run.reason_code === "website_usage_limit"
@@ -463,12 +465,12 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
           )}
         </Panel>
       ) : runStatus === "queued" ? (
-        <Panel title={t("evaluationQueued")} live>
+        <Panel title={t("evaluationQueued")} live help="run">
           <p>{t("evaluationQueuedHelp")}</p>
           <p className="p-cell-meta">{t("closePageHelp")}</p>
         </Panel>
       ) : running ? (
-        <Panel title={humanize(run.run.phase)} live>
+        <Panel title={humanize(run.run.phase)} live help="run">
           <div className="p-run-progress">
             <RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running />
             <p className="p-cell-meta">
@@ -518,12 +520,21 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
   );
 }
 
-function Panel({ title, live = false, children }: { title: string; live?: boolean; children: React.ReactNode }) {
+/** The help article for the Connect step depends on how the system is reached. */
+function connectHelp(kind: string | undefined): HelpContextKey {
+  if (kind === "website") return "connectWebsite";
+  if (kind === "imported_responses") return "connectUpload";
+  if (kind === "private_runner") return "connectPrivate";
+  return "connectApi";
+}
+
+function Panel({ title, live = false, help, children }: { title: string; live?: boolean; help?: HelpContextKey; children: React.ReactNode }) {
   return (
     <section className="p-panel-block" aria-live="polite">
       <div className="p-panel-block-head">
         {live && <span className="p-spinner" aria-hidden="true" />}
         <h2>{title}</h2>
+        {help && <HelpLink topic={help} />}
       </div>
       <div className="p-panel-block-body">{children}</div>
     </section>
@@ -614,6 +625,7 @@ function ResultsSummary({
               <ArrowRight aria-hidden="true" />
             </ActionLink>
           )}
+          <HelpLink topic="results" />
         </div>
       </div>
       <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} labels={{ pass: t("labelCorrect"), partial: t("labelPartiallyCorrect"), fail: t("labelIncorrect"), unscorable: t("filterNotScored") }} />

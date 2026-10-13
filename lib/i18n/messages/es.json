@@ -400,13 +400,34 @@
   "pricing": {
     "eyebrow": "Precios y planes",
     "title": "Comienza gratis. Precios cerrados, nunca por horas.",
-    "subtitle": "El diagnóstico inicial es gratuito. Los pilotos y las suscripciones se presupuestan según el alcance de tu sistema, con un precio fijo acordado antes de empezar.",
+    "subtitle": "La prueba gratuita y la cuenta gratuita no cuestan nada. Más allá del plan gratuito pagas por uso con créditos que compras en la aplicación. Los pilotos y las suscripciones se presupuestan según el alcance de tu sistema, con un precio fijo acordado antes de empezar.",
     "offers": {
+      "freeTest": {
+        "name": "Prueba gratuita",
+        "price": "Gratis",
+        "duration": "Unos 3 minutos",
+        "summary": "Ocho preguntas escritas a partir de tu propia web, hechas a tu asistente y comprobadas con la página de la que sale cada respuesta. Sin cuenta.",
+        "cta": "Prueba gratis tu asistente"
+      },
+      "freeAccount": {
+        "name": "Cuenta gratuita",
+        "price": "Gratis",
+        "duration": "Con un email de trabajo",
+        "summary": "Un espacio para probar un asistente con todas tus páginas y documentos, con un conjunto de pruebas completo, informes que puedes compartir y nuevas ejecuciones cada mes.",
+        "cta": "Crear cuenta gratis"
+      },
+      "payAsYouGo": {
+        "name": "Pago por uso",
+        "price": "Créditos en la aplicación",
+        "duration": "Cuando necesites más",
+        "summary": "Más allá del plan gratuito, pagas por uso con créditos en la aplicación, solo por el trabajo completado. Nunca facturamos por horas.",
+        "cta": "Iniciar sesión"
+      },
       "realityCheck": {
         "name": "Diagnóstico inicial",
         "price": "Gratis",
         "duration": "48 horas",
-        "summary": "Cuarenta preguntas hechas a tu asistente público, con respuestas extraídas de tu propia documentación pública.",
+        "summary": "Para equipos que prefieren que lo hagamos nosotros: cuarenta preguntas hechas a tu asistente público, con respuestas extraídas de tu propia documentación pública, entregadas en un informe y una sesión. Se solicita desde el formulario de contacto.",
         "cta": "Diagnóstico inicial",
         "include1": "Tu puntuación y las categorías de fallos",
         "include2": "Siete transcripciones anotadas, cada una junto a la fuente que contradice",
@@ -477,6 +498,7 @@
     "explore": "Explorar",
     "bookMeeting": "Reserva una reunión",
     "freeTest": "Prueba gratuita",
+    "methodology": "Metodología",
     "rights": "© {year} Caudals. Todos los derechos reservados.",
     "x": "X",
     "github": "GitHub",
@@ -801,6 +823,7 @@
       "meta": "{host} · {date} · {count} preguntas de {pages} páginas",
       "whereTitle": "Dónde falla",
       "copyLink": "Copiar enlace privado",
+      "methodology": "Cómo calificamos",
       "copied": "Enlace copiado",
       "expected": "Lo esperado",
       "answer": "Tu asistente",

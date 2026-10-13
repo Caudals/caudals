@@ -276,6 +276,34 @@ export function CopyField({ label, value, hint }: { label: string; value: string
   );
 }
 
+/** A multi-line code sample with its label and a copy button (API reference, launch L-20). */
+export function CodeBlock({ label, code }: { label: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* Clipboard can be blocked; the code is still selectable. */
+    }
+  }
+  return (
+    <figure className="p-code-block">
+      <figcaption className="p-code-block-head">
+        <span>{label}</span>
+        <button type="button" className="p-btn" data-variant="ghost" data-size="sm" onClick={() => void copy()} aria-label={`${copied ? t("copied") : t("copy")}: ${label}`}>
+          {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+          {copied ? t("copied") : t("copy")}
+        </button>
+      </figcaption>
+      <pre className="p-pre">
+        <code>{code}</code>
+      </pre>
+    </figure>
+  );
+}
+
 /* ---------------------------------------------------------------- toasts -- */
 
 /** Transient confirmation of a completed action. Errors stay inline instead. */

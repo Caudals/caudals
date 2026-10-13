@@ -8,6 +8,7 @@ import {
   EVALUATION_OFFERS,
   type EvaluationOffer,
 } from "@/lib/public/evaluation-offers";
+import { appOrigin } from "@/lib/evals/app-origin";
 import {
   buildMarketingUrl,
   buildPublicMetadata,
@@ -23,7 +24,15 @@ export function generateStaticParams() {
 
 type HomePageProps = { params: Promise<{ locale: string }> };
 
-// Quoted offers publish no price; only the free Initial Diagnostic carries one.
+/** Where an offer starts: the free test, the app (account, credits) or the contact form. */
+function offerStartUrl(offer: EvaluationOffer, locale: Locale) {
+  const { start } = offer;
+  if (start.kind === "public") return buildMarketingUrl(localizePathname(start.path, locale));
+  if (start.kind === "app") return `${appOrigin()}${start.path}`;
+  return `${buildMarketingUrl(localizePathname("/contact", locale))}?offer=${start.slug}`;
+}
+
+// Free offers publish a zero price; credits (priced in the app, D-06) and quoted work publish none.
 function offerPriceSpecification(offer: EvaluationOffer) {
   return offer.pricing === "free"
     ? { "@type": "PriceSpecification", price: 0, priceCurrency: "EUR" }
@@ -127,7 +136,7 @@ function buildHomeStructuredData(locale: Locale) {
             "@type": "Offer",
             name: t(`pricing.offers.${offer.id}.name`),
             description: t(`pricing.offers.${offer.id}.summary`),
-            url: `${buildMarketingUrl(localizePathname("/contact", locale))}?offer=${offer.slug}`,
+            url: offerStartUrl(offer, locale),
             priceSpecification: offerPriceSpecification(offer),
           })),
         },

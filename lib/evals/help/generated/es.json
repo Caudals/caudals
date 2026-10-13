@@ -1,0 +1,361 @@
+{
+  "locale": "es",
+  "articles": [
+    {
+      "slug": "connect-website-chat",
+      "title": "Conectar un chat web",
+      "summary": "Indica a Caudals la página donde se abre tu chat y, si la comprobación automática necesita ayuda, revisa la conexión en un navegador en vivo.",
+      "keywords": [
+        "web",
+        "chat",
+        "chatbot",
+        "widget",
+        "conectar",
+        "conexión",
+        "navegador en vivo",
+        "inicio de sesión",
+        "login",
+        "captcha",
+        "reparar"
+      ],
+      "related": [
+        "connect-api",
+        "prepare-and-run",
+        "data-and-privacy"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Caudals puede hacer tus preguntas a través de la misma ventana de chat que usan tus clientes, en tu web pública o detrás de un inicio de sesión.\n\n## Añadir el chat {#add}\n\n1. Ve a **Evaluaciones** y elige **Nueva evaluación**.\n2. En **¿Cómo accede Caudals al sistema?**, elige **Chatbot web**.\n3. Escribe la **URL del sitio web** de una página donde se abra el chat. Usa una dirección `https://`.\n4. Elige **Crear evaluación**.\n\nDespués, Caudals comprueba la conexión por su cuenta: abre la página en un navegador nuevo, busca la caja del chat, envía un mensaje de prueba y lee la respuesta. Mientras tanto, el sistema muestra **Comprobando la conexión**.\n\n## Cuando la comprobación te necesita {#live-browser}\n\nAlgunos chats necesitan un clic para abrirse, un inicio de sesión o un CAPTCHA. Entonces el sistema muestra **Necesita ayuda**, y un propietario del espacio puede resolverlo:\n\n1. Abre el paso de conexión de la evaluación (o el sistema en **Sistemas**) y elige **Abrir navegador en vivo**.\n2. Tú controlas ese navegador. Inicia sesión, completa el inicio de sesión único, la verificación en dos pasos o el CAPTCHA, y abre el chat si necesita un clic. Caudals nunca se salta un CAPTCHA por su cuenta.\n3. Elige **Conectar sistema**. Caudals busca la caja del chat, envía un mensaje de prueba, lee la respuesta, recarga la página y repite la prueba en sesiones nuevas.\n4. Si no encuentra algún elemento, usa **Corregir** junto a él en **Qué usa Caudals** (la caja de mensajes, el botón de enviar, la respuesta…) y después **Probar de nuevo**.\n\nCuando la prueba sale bien verás **Conectada**. Si iniciaste sesión, la sesión se guarda cifrada y sigue hasta que la revoques. Caudals nunca recibe tu contraseña.\n\nEl navegador en vivo se cierra tras 20 minutos sin actividad o dos horas en total. Tu conexión guardada se mantiene y puedes volver a abrirlo cuando quieras.\n\n## Durante una ejecución {#during-run}\n\nCaudals hace una pregunta cada vez, unas seis por minuto, y espera la respuesta completa, para no saturar tu chat.\n\nSi tu web cambia, la sesión caduca o la web alcanza un límite de uso, la ejecución se pausa en lugar de registrar respuestas erróneas. Repara la conexión con **Reparar conexión** y después reanuda la ejecución, termínala con las respuestas capturadas hasta ese momento o empieza una nueva. Consulta [Preparar y ejecutar tus pruebas](help:prepare-and-run#run).\n\n## Conviene saber {#notes}\n\n- Solo los propietarios pueden abrir el navegador en vivo. Los editores pueden ejecutar evaluaciones cuando el chat ya está conectado.\n- Caudals solo envía las preguntas corrientes de tu conjunto de pruebas. Nunca hace pruebas adversarias sin tu autorización por escrito.\n- Las capturas de pantalla tomadas cuando falla una comprobación se conservan siete días."
+    },
+    {
+      "slug": "connect-api",
+      "title": "Conectar una API",
+      "summary": "Prueba un asistente a través de un endpoint HTTPS compatible con OpenAI, con una clave opcional que Caudals guarda cifrada y no vuelve a mostrar.",
+      "keywords": [
+        "api",
+        "endpoint",
+        "openai",
+        "compatible",
+        "chat completions",
+        "https",
+        "clave de api",
+        "token",
+        "bearer",
+        "cabecera",
+        "credenciales",
+        "red privada",
+        "ejecutor"
+      ],
+      "related": [
+        "connect-website-chat",
+        "data-and-privacy",
+        "prepare-and-run"
+      ],
+      "owner": "engineering",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Si tu asistente tiene una API que acepta peticiones de chat en el formato de OpenAI, Caudals puede enviarle cada pregunta directamente.\n\n## Añadir la API {#add}\n\n1. Ve a **Evaluaciones** y elige **Nueva evaluación**.\n2. En **¿Cómo accede Caudals al sistema?**, elige **API**.\n3. Rellena los tres campos de abajo y elige **Crear evaluación**.\n\n- **Endpoint HTTPS de la API**: la dirección completa que recibe las peticiones de chat. En la mayoría de proveedores termina en `/chat/completions`, por ejemplo `https://api.example.com/v1/chat/completions`.\n- **Nombre del modelo o despliegue**: el valor que Caudals envía como `model`.\n- **Clave de API (opcional)**: se envía como token bearer.\n\nLa dirección tiene que ser pública y usar HTTPS. Caudals lo comprueba antes de guardarla.\n\n## Qué envía Caudals {#requests}\n\nPara cada pregunta, Caudals envía una petición `POST` con un cuerpo JSON que contiene `model`, `messages` (tu pregunta como mensaje del usuario) y `\"stream\": false`, y lee la respuesta en `choices[0].message.content`.\n\n- Una petición cada vez, unas seis por minuto.\n- Cada petición espera hasta dos minutos una respuesta.\n- Las llamadas a tu API las factura tu propio proveedor, no Caudals.\n\n## Claves y otras cabeceras {#credentials}\n\nPara usar una cabecera distinta de `Authorization`, o para cambiar una clave, abre el sistema en **Sistemas** y ve a **Credenciales**. Indica una etiqueta, el nombre de la cabecera y la clave o el token.\n\nLos valores son de solo escritura. Caudals los cifra, no vuelve a mostrarlos y solo los usa al llamar a este sistema. Guardar o rotar una clave crea una versión nueva del sistema, así que los resultados anteriores siguen ligados a la versión que usaron.\n\n## Si tu sistema no está en internet {#private}\n\nPara un sistema dentro de tu propia red, Caudals tiene un ejecutor privado: una herramienta de línea de comandos que ejecutas dentro de tu red, que descarga las preguntas y devuelve las respuestas, solo con conexiones salientes. Caudals lo habilita por espacio y no forma parte del plan gratuito. [Pídenoslo](help:getting-help) si lo necesitas.\n\nOtros formatos de API aún no están disponibles. Si tu asistente no responde en el formato de OpenAI, puedes evaluarlo [subiendo sus respuestas](help:uploads#answers), donde esa opción esté habilitada."
+    },
+    {
+      "slug": "uploads",
+      "title": "Subir documentos y respuestas",
+      "summary": "Añade el material de referencia con el que se escriben tus pruebas y, donde esté habilitado, sube las respuestas de tu sistema en lugar de conectarlo.",
+      "keywords": [
+        "subir",
+        "archivo",
+        "documento",
+        "pdf",
+        "word",
+        "excel",
+        "csv",
+        "material de referencia",
+        "fuentes",
+        "web",
+        "páginas",
+        "respuestas",
+        "hoja de cálculo",
+        "escaneado"
+      ],
+      "related": [
+        "prepare-and-run",
+        "connect-api",
+        "data-and-privacy"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Tus pruebas se escriben a partir de tu propio material. Puedes añadir archivos, páginas web públicas o ambas cosas.\n\n## Documentos de referencia {#documents}\n\nEn el paso de preparación de la evaluación, en **Material de referencia**:\n\n- Sube archivos PDF, Word, TXT, Markdown, CSV o Excel: hasta 20 archivos, de 25 MB cada uno y 100 MB en total por evaluación. Los PDF pueden tener hasta 500 páginas.\n- Elige **Añadir un sitio web público** para leer hasta 25 páginas públicas de ese dominio. Caudals no inicia sesión, no envía formularios ni sigue enlaces a otros dominios.\n- Elige **Buscar fuentes en internet** para recibir hasta diez páginas públicas sugeridas sobre tu producto, como páginas de ayuda, preguntas frecuentes, condiciones y precios. Primero aparecen las de tu propia web. Elige cuáles añadir.\n\nPuedes abrir cada fuente para comprobar el texto que ha extraído Caudals.\n\n## Documentos escaneados {#scanned}\n\nCaudals lee el texto de un archivo; no lee imágenes de texto. Si un PDF es un escaneo, verás que no se ha podido leer un documento. Sube una copia con texto seleccionable o el Word original.\n\n## Subir las respuestas de tu sistema {#answers}\n\nCuando Caudals no puede acceder a tu sistema, puedes hacerle tú las preguntas y subir las respuestas. Esta opción, **Subir respuestas**, aparece al crear una evaluación si está habilitada en tu espacio; no forma parte del plan gratuito.\n\n1. Prepara y aprueba el conjunto de pruebas como siempre.\n2. Inicia la ejecución. La evaluación muestra **Esperando tus respuestas**.\n3. Elige **Descargar hoja de preguntas**. Haz cada pregunta a tu sistema y pega su respuesta en la columna `system_answer`. Deja el resto de columnas como están.\n4. Sube la hoja en CSV, JSONL o Excel (hasta 25 MB).\n\nLas subidas parciales se guardan, así que puedes enviar las respuestas en varias tandas. Cuando todas las preguntas tienen respuesta, Caudals las califica y tu informe preliminar está listo."
+    },
+    {
+      "slug": "prepare-and-run",
+      "title": "Preparar y ejecutar tus pruebas",
+      "summary": "Genera preguntas a partir de tu material, revísalas y apruébalas, y después ejecuta la evaluación y sigue su avance.",
+      "keywords": [
+        "preparar",
+        "conjunto de pruebas",
+        "pruebas",
+        "preguntas",
+        "generar",
+        "revisar",
+        "editar",
+        "aprobar",
+        "congelar",
+        "versión",
+        "ejecutar",
+        "pausar",
+        "reanudar",
+        "detener",
+        "reiniciar",
+        "cola"
+      ],
+      "related": [
+        "uploads",
+        "reading-results",
+        "schedules-and-alerts"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Cada evaluación pasa por cuatro pasos: conectar, preparar las pruebas, ejecutar y ver los resultados. Los propietarios y editores pueden preparar y ejecutar; los lectores pueden seguir el avance y leer los resultados.\n\n## Generar el conjunto de pruebas {#generate}\n\n1. Añade tu [material de referencia](help:uploads#documents).\n2. En el conjunto de pruebas, elige el **Número de pruebas**: 10 (Revisión rápida), 25 (Estándar, la opción por defecto), 50 (Exhaustiva) o 100 (Profesional). En el plan gratuito, un conjunto de pruebas tiene como máximo 50.\n3. Elige la **Dificultad**: Básica, Equilibrada o Experta.\n4. Elige **Generar conjunto de pruebas**.\n\nCaudals lee tu material, puede hacerte **Unas preguntas antes de escribir las pruebas** (todas opcionales), escribe las preguntas y las comprueba. Si tu material permite menos datos distintos, se escriben menos pruebas. Puedes cerrar la página; la preparación continúa en segundo plano.\n\nCada prueba tiene una pregunta, la respuesta esperada y el fragmento de tu material del que sale. Para añadir una tuya, usa **Escribir una prueba tú mismo**.\n\n## Revisar y aprobar {#review}\n\nEn **Revisa el conjunto de pruebas**, lee cada pregunta con su respuesta esperada y su fragmento de origen, y elimina las que no apliquen.\n\nPara cambiar una pregunta, usa **Revisar y editar preguntas**. Puedes editar la pregunta, la respuesta de referencia, los datos clave que debe incluir una respuesta correcta, otras respuestas aceptables y lo que debe hacer el asistente (responder, declinar o derivar a una persona, pedir la información que falta o decir que no está documentado). También puedes añadir preguntas con una gravedad de baja a crítica.\n\nCuando estés conforme, elige **Aprobar conjunto de pruebas**. Las pruebas aprobadas forman un conjunto congelado y versionado: esa versión no cambia nunca, así que las ejecuciones posteriores siguen siendo comparables. Para cambiarlo más adelante, crea una copia editable y aprueba una versión nueva.\n\n## Ejecutar la evaluación {#run}\n\nElige **Ejecutar evaluación**. Cada pregunta se envía una vez a tu sistema, se califican las respuestas y se redacta el informe:\n\n- **Preguntando a tu asistente**, después **Calificando respuestas** y después **Redactando el informe**, cada fase con su avance.\n- Si otra ejecución está usando el hueco de ejecución del espacio, la evaluación queda **en cola** y empieza sola.\n- Puedes cerrar la página. Recibirás una notificación cuando los resultados estén listos, y un correo si lo activaste en **Ajustes → Notificaciones**.\n\nDesde el menú de tres puntos de la evaluación puedes **Pausar evaluación**, **Reanudar evaluación**, **Detener evaluación** o **Reiniciar evaluación**. Una ejecución en pausa también se puede terminar con las respuestas que ya tiene; el informe cubre entonces solo esas respuestas.\n\nEn el plan gratuito puedes hacer tres ejecuciones al mes, de una en una."
+    },
+    {
+      "slug": "reading-results",
+      "title": "Leer tus resultados",
+      "summary": "Qué significan la puntuación, las etiquetas, el intervalo y las marcas de revisión, y cómo leer un hallazgo y un resultado concreto.",
+      "keywords": [
+        "resultados",
+        "puntuación",
+        "tasa de acierto",
+        "puntuación de calidad",
+        "intervalo",
+        "etiquetas",
+        "correcta",
+        "incorrecta",
+        "parcialmente correcta",
+        "sin respuesta",
+        "sin puntuar",
+        "preliminar",
+        "revisado",
+        "incompleto",
+        "hallazgos",
+        "causa probable",
+        "recalificar"
+      ],
+      "related": [
+        "reports-and-sharing",
+        "prepare-and-run",
+        "getting-help"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Cuando termina una ejecución, la evaluación muestra un resumen, y el informe completo se abre con **Ver todas las respuestas**.\n\n## La puntuación {#score}\n\n- **N de M respuestas correctas**: M cuenta solo las respuestas puntuadas.\n- **Tasa de acierto estricta**: el mismo recuento en porcentaje.\n- **Puntuación de calidad**: suma además medio punto por cada respuesta parcialmente correcta.\n- **Intervalo del 95 %**: el margen en el que probablemente estaría la tasa de acierto con más preguntas del mismo tipo. Cuantas menos preguntas, más ancho es.\n\n## Las etiquetas {#labels}\n\n- **Correcta**: transmite todos los datos clave y no contradice nada.\n- **Parcialmente correcta**: algunos datos clave y ninguno contradicho.\n- **Incorrecta**: información errónea o contradictoria, u omite datos clave.\n- **Sin respuesta**: el asistente se desvió, pidió reformular o respondió otra cosa.\n\nLos resultados **Sin puntuar** nunca bajan la puntuación: **Prueba en revisión** (la pregunta o su respuesta esperada pueden estar mal), **No capturada** (no se pudo leer la respuesta con fiabilidad) y **No ejecutada** (un tiempo de espera agotado o un error).\n\nLas respuestas se califican por su significado, no por su redacción. Los detalles que tu material no menciona no penalizan; solo penalizan las contradicciones y los datos clave que faltan.\n\n## Marcas {#badges}\n\n- **Preliminar**: calificado automáticamente. **Revisado**: una persona de Caudals ha comprobado los resultados.\n- **Incompleto**: se pudo puntuar menos del 90 % de las pruebas, o no se pudo evaluar una prueba crítica. Lee las limitaciones antes de usar la puntuación.\n- **Parcial**: la ejecución terminó antes de responder todas las preguntas.\n\n## El informe {#report}\n\nEl informe tiene hasta cinco pestañas: **Resumen**, **Hallazgos**, **Resultados de las pruebas**, **Mejoras** y **Metodología**.\n\nCada hallazgo agrupa respuestas fallidas según lo que salió mal, con lo observado, una acción recomendada y su evidencia. Las **Causas probables** (respuesta inventada, documento desactualizado, fuente equivocada, laguna de conocimiento, fuera de alcance) son hipótesis: Caudals ve las respuestas y tu material, no el funcionamiento interno de tu sistema.\n\nAbre cualquier resultado para ver la pregunta, la respuesta de tu sistema, la respuesta esperada, cada dato clave marcado como incluido, ausente o contradicho, y el fragmento de tu documentación. Usa las flechas del teclado para pasar de un resultado a otro y Esc para volver.\n\n## Volver a calificar {#regrade}\n\nSi cambió tu material o el evaluador, los propietarios y editores pueden elegir **Volver a calificar**. Caudals califica de nuevo las mismas respuestas sin contactar con tu sistema, mantiene todas las decisiones que tomó una persona y publica una versión nueva del informe.\n\nPara el método completo, consulta la [metodología](https://caudals.com/es/metodologia)."
+    },
+    {
+      "slug": "reports-and-sharing",
+      "title": "Informes, exportaciones y enlaces compartidos",
+      "summary": "Encuentra tus informes, descárgalos en PDF, Word o CSV y comparte un enlace privado que caduca y se puede revocar.",
+      "keywords": [
+        "informe",
+        "informes",
+        "exportar",
+        "descargar",
+        "pdf",
+        "word",
+        "docx",
+        "csv",
+        "compartir",
+        "enlace",
+        "caducidad",
+        "revocar",
+        "acceso",
+        "publicar",
+        "revisión"
+      ],
+      "related": [
+        "reading-results",
+        "data-and-privacy",
+        "team-and-roles"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Cada ejecución terminada publica un informe. **Informes** los lista con su tasa de acierto, su estado y su fecha de publicación.\n\n## Descargar {#export}\n\nDesde un informe, descárgalo como **Documento PDF**, **Documento Word (.docx)**, los resultados en CSV (una fila por prueba, con la respuesta esperada y el veredicto) o **CEF JSONL** para tus propias herramientas. Cualquier persona del espacio puede descargar el PDF desde la lista de **Informes**.\n\n## Versiones {#versions}\n\nUn informe puede tener varias revisiones, por ejemplo después de volver a calificar o de una revisión. El panel **Revisiones** las lista, y los propietarios y editores pueden publicar la que se debe mostrar.\n\n## Compartir un informe {#share}\n\nLos propietarios pueden compartir un informe con personas de fuera del espacio:\n\n1. Abre el informe y elige **Compartir**.\n2. Elige quién puede abrirlo: **Enlace privado (cualquiera que lo tenga)**, **Destinatario concreto (debe iniciar sesión)** o **Miembros del espacio**.\n3. Indica **Caduca tras** un número de días (14 por defecto, 90 como máximo).\n4. Elige las **Secciones incluidas**. Los resultados de cada prueba quedan fuera salvo que los incluyas.\n5. Usa **Ver vista compartida** para comprobarlo y después **Crear acceso**.\n\nEl enlace se muestra una sola vez, así que cópialo antes de cerrar el diálogo. **Accesos concedidos** lista cada acceso con su número de visitas.\n\n## Revocar un acceso {#revoke}\n\nElige **Revocar** junto al acceso. Las nuevas visitas y descargas se rechazan al momento. Las copias ya descargadas no se pueden recuperar."
+    },
+    {
+      "slug": "schedules-and-alerts",
+      "title": "Programaciones y alertas de regresión",
+      "summary": "Repite un conjunto de pruebas aprobado cada día, semana o mes, y recibe una alerta cuando las respuestas empeoran respecto a la ejecución anterior.",
+      "keywords": [
+        "programación",
+        "ejecuciones programadas",
+        "monitorización",
+        "periódica",
+        "mensual",
+        "semanal",
+        "diaria",
+        "regresión",
+        "alerta",
+        "comparar",
+        "webhook",
+        "notificación"
+      ],
+      "related": [
+        "prepare-and-run",
+        "reading-results",
+        "getting-help"
+      ],
+      "owner": "engineering",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "Una programación vuelve a ejecutar el mismo conjunto de pruebas congelado a una hora fija, para que veas si un cambio en tu asistente, su modelo o sus documentos ha empeorado las respuestas.\n\n## Crear una programación {#create}\n\nLas programaciones están en **Ajustes → Monitorización**, en **Ejecuciones programadas**. Los propietarios pueden crearlas para evaluaciones con un conjunto de pruebas aprobado. La programación se habilita por espacio y no forma parte del plan gratuito.\n\n1. Elige **Nueva programación**.\n2. Elige la evaluación y el sistema que se va a probar.\n3. Indica la frecuencia (**Diaria**, **Semanal** o **Mensual**), el día, la hora local y la zona horaria.\n4. Si quieres, indica un **Gasto máximo por ejecución** y una **Antigüedad máxima de las fuentes (días)**. Cuando tus fuentes son más antiguas, la ejecución programada se omite en lugar de probar con material desactualizado.\n\nCada programación se puede pausar y reanudar. Cuando existe un conjunto aprobado más reciente, **Usar el conjunto aprobado** cambia la programación a ese conjunto.\n\n## Cómo se juzga cada resultado {#outcomes}\n\nCada ejecución programada se compara, pregunta por pregunta, con la ejecución completada anterior de la misma programación:\n\n- **Superada**: ninguna pregunta ha empeorado.\n- **Regresión**: al menos una pregunta tiene una etiqueta peor que antes, por ejemplo correcta antes e incorrecta ahora.\n- **No concluyente**: las ejecuciones no se pueden comparar con justicia, por ejemplo en la primera ejecución, cuando se puntuó menos del 90 % de las pruebas o cuando mejoraron tantas preguntas como empeoraron.\n- **Desconocido**: la ejecución falló o se canceló.\n\n## Dónde aparecen las alertas {#alerts}\n\nLos resultados aparecen en **Resultados de la monitorización** y en el centro de notificaciones. Para enviarlos a tus propios sistemas, añade un webhook firmado en **Ajustes → Desarrolladores**; allí tienes la referencia de la API."
+    },
+    {
+      "slug": "credits-and-billing",
+      "title": "Planes, límites y facturación",
+      "summary": "Qué incluye el plan gratuito, qué significan las cifras de Ajustes y en qué punto están hoy los créditos y los planes de pago.",
+      "keywords": [
+        "facturación",
+        "créditos",
+        "plan",
+        "plan gratuito",
+        "límites",
+        "precios",
+        "precio",
+        "pago",
+        "factura",
+        "gasto",
+        "recargar",
+        "piloto",
+        "suscripción",
+        "mejorar plan"
+      ],
+      "related": [
+        "getting-help",
+        "prepare-and-run",
+        "team-and-roles"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2026-12-12",
+      "body": "Un espacio está en el plan gratuito o en un plan acordado con Caudals para un piloto o una suscripción.\n\n## El plan gratuito {#free}\n\nUn espacio gratuito incluye:\n\n- un sistema de IA, conectado como chat web o como API;\n- hasta 50 pruebas por conjunto de pruebas;\n- tres ejecuciones por mes natural, de una en una;\n- descarga de cada informe en PDF, Word y CSV;\n- los modelos propios de Caudals, en los servidores de Caudals.\n\nLas ejecuciones programadas, la subida de respuestas y el ejecutor privado no forman parte del plan gratuito. Cuando llegas a un límite, la aplicación te dice cuál, por ejemplo: «El plan gratis incluye tres ejecuciones al mes. Habla con nosotros de un piloto para hacer más.»\n\n## Qué muestra Ajustes {#settings}\n\n**Ajustes → General** muestra los límites que se aplican a tu espacio:\n\n- **Gasto este mes**: el coste de proceso que Caudals registra para tu espacio frente a su límite mensual. Es una salvaguarda, no una factura.\n- **Ejecuciones activas permitidas**: cuántas evaluaciones pueden ejecutarse a la vez.\n- **Conexiones permitidas**: las formas en que Caudals puede acceder a tus sistemas.\n- **Exportaciones y programación**: si están activadas.\n\nLos fija tu plan o tu acuerdo con Caudals; un miembro del espacio no puede cambiarlos.\n\n## Créditos {#credits}\n\nCaudals está incorporando créditos de prepago para el uso por consumo más allá del plan gratuito. La compra de créditos, el saldo y las pantallas de uso aún no están disponibles en la aplicación, y hoy no se cobra nada en créditos en tu espacio. Este artículo los explicará cuando lo estén. Hasta entonces, nuestros [Términos del servicio](https://caudals.com/es/legal/terminos) describen cómo funcionarán.\n\n## Pilotos y suscripciones {#managed}\n\nLos pilotos, las suscripciones mensuales y los conjuntos de datos a medida se presupuestan según el alcance de tu sistema, con un precio cerrado acordado antes de empezar, y se facturan según lo acordado. Para hablar de uno, [reserva una llamada o escríbenos](help:getting-help)."
+    },
+    {
+      "slug": "data-and-privacy",
+      "title": "Cómo tratamos tus datos",
+      "summary": "Dónde se guardan tus datos, qué modelos los leen, cómo se protegen las credenciales, cuánto tiempo se conserva cada cosa y cómo eliminar un espacio.",
+      "keywords": [
+        "datos",
+        "privacidad",
+        "rgpd",
+        "seguridad",
+        "alojamiento",
+        "alemania",
+        "cifrado",
+        "credenciales",
+        "conservación",
+        "eliminar",
+        "borrado",
+        "encargo de tratamiento",
+        "subencargados",
+        "modelo",
+        "adversarias"
+      ],
+      "related": [
+        "team-and-roles",
+        "reports-and-sharing",
+        "connect-api"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "## Dónde se guardan {#hosting}\n\nLa aplicación, la base de datos, el almacenamiento de archivos y las copias de seguridad funcionan en servidores que Caudals opera en Hetzner, en Alemania. La base de datos y el almacenamiento de archivos no son accesibles desde internet.\n\n## Qué modelos los leen {#models}\n\nPor defecto, las preguntas las escribe y las respuestas las califica un modelo de IA que funciona en el servidor de GPU propio de Caudals. Tu contenido solo va a un proveedor comercial de IA si tu espacio elige uno. Los espacios gratuitos solo usan los modelos propios de Caudals.\n\n## Credenciales e inicios de sesión {#credentials}\n\nLas claves de API y los tokens son de solo escritura: Caudals los cifra, solo los usa para llamar a tu sistema y no vuelve a mostrarlos. Una sesión que guardas en el navegador en vivo se almacena cifrada y sigue hasta que la revoques; Caudals nunca recibe tu contraseña.\n\n## Qué pregunta Caudals a tu sistema {#questions}\n\nCaudals solo hace las preguntas corrientes de tu conjunto de pruebas. Nunca hace pruebas adversarias, como inyección de instrucciones o intentos de jailbreak, sin tu autorización por escrito.\n\n## Cuánto tiempo se conservan {#retention}\n\n- El contenido del espacio (fuentes, conjuntos de pruebas, ejecuciones e informes) se conserva mientras exista el espacio.\n- Las capturas de pantalla de comprobaciones web fallidas se borran a los siete días.\n- Los resultados de la prueba gratuita de caudals.com se borran a los siete días.\n- Las copias de seguridad caducan en aproximadamente una semana.\n\n## Informes compartidos {#sharing}\n\nTú decides qué sale del espacio. Los enlaces compartidos caducan, y un propietario puede revocarlos en cualquier momento; consulta [Informes, exportaciones y enlaces compartidos](help:reports-and-sharing#revoke). Una copia que alguien ya descargó no se puede recuperar.\n\n## Eliminar un espacio {#delete}\n\nLos propietarios pueden eliminar el espacio en **Ajustes → Zona de peligro** con **Eliminar los datos del espacio**. Indicas un motivo y escribes el nombre del espacio para confirmar. La eliminación revoca al momento cada acceso compartido y cada credencial, detiene las evaluaciones en curso, retira los informes y borra los archivos guardados. No se puede deshacer, y el acceso termina en ese instante para todos los miembros. Queda un registro mínimo de la eliminación, y las copias de seguridad cifradas caducan según su calendario habitual.\n\n## Documentos legales {#legal}\n\nEl [contrato de encargo del tratamiento](https://caudals.com/es/legal/encargo-de-tratamiento) se aplica a todos los espacios sin necesidad de firma; si necesitas una copia firmada, pídenosla. Consulta también las páginas de [subencargados](https://caudals.com/es/legal/subencargados) y [seguridad](https://caudals.com/es/legal/seguridad). Para solicitudes de privacidad, escribe a privacy@caudals.com."
+    },
+    {
+      "slug": "team-and-roles",
+      "title": "Miembros del equipo y roles",
+      "summary": "Invita a tus compañeros como lectores, editores o propietarios, y consulta qué puede hacer cada rol.",
+      "keywords": [
+        "equipo",
+        "miembros",
+        "invitar",
+        "invitación",
+        "compañero",
+        "rol",
+        "roles",
+        "propietario",
+        "editor",
+        "lector",
+        "permisos",
+        "acceso"
+      ],
+      "related": [
+        "data-and-privacy",
+        "reports-and-sharing",
+        "getting-help"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "## Roles {#roles}\n\n- **Lector**: consulta evaluaciones, resultados e informes, y descarga los informes en PDF.\n- **Editor**: todo lo que hace un lector, y además prepara y aprueba conjuntos de pruebas, ejecuta, pausa y reinicia evaluaciones, vuelve a calificar y publica versiones de los informes.\n- **Propietario**: todo lo que hace un editor, y además invita a personas, comparte informes fuera del espacio, conecta chats web en el navegador en vivo, gestiona programaciones, tokens de API y webhooks, cambia el nombre del espacio y lo elimina.\n\n## Invitar a un compañero {#invite}\n\nLos propietarios invitan a personas desde **Ajustes → Miembros**:\n\n1. Elige **Crear invitación**.\n2. Escribe su dirección de correo y elige un **Rol en el espacio** (Lector por defecto).\n3. Copia el enlace privado de invitación. Se muestra una sola vez y caduca a las 24 horas. Caudals también envía la invitación por correo, y el diálogo te dice cuándo lo ha hecho.\n\nSolo la dirección de correo a la que se envió puede aceptar la invitación. Puedes cancelar una invitación pendiente con **Revocar invitación**.\n\n## Compañeros que se registran por su cuenta {#same-company}\n\nCada dominio de correo de empresa tiene un solo espacio de autoservicio. Si un compañero intenta crear otro, se le pide que solicite una invitación al propietario de vuestro espacio.\n\n## Cambiar roles {#changes}\n\nEl cambio de rol de un miembro lo hace Caudals: escribe a hello@caudals.com desde la dirección de un propietario. Un espacio siempre conserva al menos un propietario. Quitar a un miembro aún no está disponible en la aplicación; escríbenos si alguien debe perder el acceso."
+    },
+    {
+      "slug": "free-test",
+      "title": "La prueba gratuita",
+      "summary": "Prueba cualquier asistente desde caudals.com en unos minutos, sin cuenta, y convierte el resultado en un espacio gratuito.",
+      "keywords": [
+        "prueba gratuita",
+        "demo",
+        "probar",
+        "gratis",
+        "ocho preguntas",
+        "sin cuenta",
+        "curl",
+        "endpoint",
+        "web",
+        "registrarse",
+        "cuenta",
+        "informe",
+        "compañero"
+      ],
+      "related": [
+        "connect-website-chat",
+        "prepare-and-run",
+        "data-and-privacy"
+      ],
+      "owner": "founder",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "La prueba gratuita de [caudals.com](https://caudals.com/es/demo) da una señal rápida y real sobre un asistente antes de crear una cuenta.\n\n## Qué hace {#how}\n\n1. Indicas la página donde se abre tu chat, un endpoint de API compatible con OpenAI o un comando curl (un POST con cuerpo JSON y `{{question}}` donde va el mensaje). Para una API o un comando curl también dices dónde están las respuestas correctas, normalmente tu web.\n2. Caudals lee hasta seis páginas públicas de tu web y escribe ocho preguntas, cada una con su respuesta esperada y una cita de la página de la que sale.\n3. Hace cada pregunta a tu asistente y califica cada respuesta frente a su fuente.\n\nSuele tardar unos minutos, y la página muestra una estimación. Puedes dejar tu correo para recibir el informe cuando esté listo.\n\n## El informe {#report}\n\nObtienes el número de respuestas correctas, dónde fallaron las erróneas y cada pregunta con la respuesta de tu asistente, la respuesta esperada y la fuente. Ocho preguntas son una señal, no una medición completa: consulta la [metodología](https://caudals.com/es/metodologia#samples).\n\nEl informe tiene un enlace privado. Puedes copiarlo o enviárselo a un compañero por correo. Cualquiera que tenga el enlace puede abrir el informe hasta que se borre.\n\n## Privacidad y límites {#privacy}\n\n- No necesitas cuenta, y el informe se borra siete días después de la prueba.\n- Una clave de API o las cabeceras de curl solo se usan para esta prueba y nunca se guardan.\n- Cada visitante tiene una prueba gratuita al día.\n- La prueba solo hace preguntas corrientes de cliente.\n\n## De la prueba a un espacio {#workspace}\n\nDesde el informe, elige **Crear cuenta gratis** y escribe tu email de trabajo (y, si quieres, tu empresa). Tu nuevo espacio gratuito empieza con el mismo sistema y tu web como material de referencia, listo para un [conjunto de pruebas completo](help:prepare-and-run) de hasta 50 preguntas. Las ocho preguntas de la prueba gratuita se quedan en ella.\n\nTambién puedes crear un espacio gratuito directamente en app.caudals.com con un email de trabajo, o reservar con nosotros una presentación de resultados desde el informe."
+    },
+    {
+      "slug": "getting-help",
+      "title": "Obtener ayuda",
+      "summary": "Busca en estos artículos, sigue los enlaces de ayuda junto a cada paso, o escríbenos o reserva una llamada.",
+      "keywords": [
+        "ayuda",
+        "soporte",
+        "contacto",
+        "correo",
+        "llamada",
+        "reunión",
+        "asistencia",
+        "pregunta",
+        "problema",
+        "atascado",
+        "notificaciones",
+        "buscar"
+      ],
+      "related": [
+        "reading-results",
+        "connect-website-chat",
+        "credits-and-billing"
+      ],
+      "owner": "operations",
+      "reviewed": "2026-10-12",
+      "reviewBy": "2027-01-12",
+      "body": "## Ayuda en la aplicación {#in-app}\n\n- Abre **Ayuda** desde el menú de tu cuenta, o pulsa ⌘K (Ctrl+K en Windows) y elige **Ayuda**. Busca en los artículos por palabra clave.\n- El **?** junto a un paso abre el artículo sobre ese paso.\n- Cada artículo tiene también su propia página, que puedes compartir con un compañero de tu espacio.\n\n## Habla con nosotros {#contact}\n\n- Escribe a hello@caudals.com, o elige **Contactar con Caudals** en el menú de tu cuenta.\n- Para un problema con una evaluación, elige **Pedir ayuda al operador** en el menú de tres puntos de esa evaluación. Abre un correo con el nombre de la evaluación, para que sepamos dónde mirar.\n- Reserva una llamada de 30 minutos desde el panel de ayuda.\n\nCuéntanos qué esperabas y qué ha pasado. No envíes nunca contraseñas, claves de API ni tokens por correo: las credenciales van en la aplicación, donde se guardan cifradas.\n\n## Sigue tu trabajo {#notifications}\n\nLa campana de la barra superior lista lo que ha terminado, ha fallado o te necesita (**Notificaciones**) y lo que se está ejecutando (**Actividad**). Elige qué notificaciones recibes también por correo en **Ajustes → Notificaciones**.\n\n## Cómo calificamos {#method}\n\nLa [metodología](https://caudals.com/es/metodologia) explica cómo se escriben las preguntas, cómo se califican las respuestas, qué significa cada etiqueta y qué pueden y qué no pueden decirte las cifras."
+    }
+  ]
+}

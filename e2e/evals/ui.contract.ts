@@ -800,13 +800,15 @@ test("a failed answer shows its likely cause as a hypothesis, in the overview an
   await expect(page.getByText(/Likely cause:/)).toHaveCount(0);
 });
 
-test("help opens from the account menu and the command palette and explains every result label", async ({ page }) => {
+test("help opens from the account menu and the command palette and finds the article on result labels", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/workspace/evaluations");
   await page.getByRole("button", { name: /Test operator/ }).click();
   await page.getByRole("menuitem", { name: "Help" }).click();
   const help = page.getByRole("dialog", { name: "Help" });
-  await expect(help.getByRole("heading", { name: "How an evaluation works" })).toBeVisible();
+  await help.getByRole("searchbox", { name: "Search help" }).fill("partly correct");
+  await help.locator(".p-help-item").first().click();
+  await expect(help.getByRole("heading", { name: "Read your results", level: 3 })).toBeVisible();
   for (const label of ["Correct", "Partly correct", "Incorrect", "No answer"]) await expect(help.getByText(label, { exact: true })).toBeVisible();
   await expect(help.getByRole("link", { name: "Book a 30-minute call" })).toHaveAttribute("href", "https://caudals.com/en/call");
   await page.keyboard.press("Escape");

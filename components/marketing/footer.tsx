@@ -116,6 +116,11 @@ export function MarketingFooter() {
                 </li>
               ))}
               <li>
+                <Link href="/methodology" className="transition-colors hover:text-[#141413]">
+                  {t("methodology")}
+                </Link>
+              </li>
+              <li>
                 <Link href="/call" className="transition-colors hover:text-[#141413]">
                   {t("bookMeeting")}
                 </Link>

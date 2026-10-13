@@ -218,6 +218,8 @@ for (const width of WIDTHS) {
     const intro = page.locator("[data-share-intro]");
     await expect(intro.getByRole("heading", { name: "What this report is" })).toBeVisible();
     await expect(intro).toContainText("checked against the sentence in those documents");
+    // The public methodology (launch L-20).
+    await expect(intro.getByRole("link", { name: "How Caudals grades answers" })).toHaveAttribute("href", "https://caudals.com/en/methodology");
     await expect(page.locator("[data-summary-text]")).toHaveText(SUMMARY);
     // Recipients get no workspace actions.
     await expect(page.getByRole("group", { name: "Next steps" })).toHaveCount(0);

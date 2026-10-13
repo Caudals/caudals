@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authenticateCustomerToken } from "@/lib/evals/monitoring/tokens";
+import { authenticateCustomerToken, customerApiErrorHeaders } from "@/lib/evals/monitoring/tokens";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { EvalError } from "@/lib/evals/domain/errors";
 export const runtime="nodejs";
@@ -23,5 +23,5 @@ export async function GET(request:Request){
     });
     return Response.json({data:result},{headers});
   }catch(error){const known=error instanceof EvalError;
-    return Response.json({error:{code:known?error.code:"INPUT_INVALID"}},{status:known?error.status:400,headers});}
+    return Response.json({error:{code:known?error.code:"INPUT_INVALID"}},{status:known?error.status:400,headers:{...headers,...customerApiErrorHeaders(error)}});}
 }

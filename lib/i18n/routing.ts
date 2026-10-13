@@ -122,6 +122,7 @@ const PAGE_PATHS: readonly (readonly [string, Record<Locale, string>])[] = [
   ["/legal/subprocessors", { en: "/legal/subprocessors", es: "/legal/subencargados" }],
   ["/legal/security", { en: "/legal/security", es: "/legal/seguridad" }],
   ["/sample-report", { en: "/sample-report", es: "/informe-de-ejemplo" }],
+  ["/methodology", { en: "/methodology", es: "/metodologia" }],
 ];
 
 const TRANSLATED_PATHS: ReadonlyMap<string, Record<Locale, string>> = new Map([

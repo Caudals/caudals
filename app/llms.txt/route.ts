@@ -5,6 +5,7 @@ import { getTranslator } from "@/lib/i18n/server";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
+import { METHODOLOGY_PATH } from "@/lib/methodology/content";
 import { demoPublicEnabled } from "@/lib/public/front-door";
 import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 import { getSectorCopy } from "@/lib/sectors/content";
@@ -65,6 +66,10 @@ Caudals es una empresa de datos para IA con sede en Valladolid (España). Evalú
 Caudals mide y aporta evidencias: no certifica sistemas de IA ni realiza evaluaciones de conformidad con el Reglamento Europeo de IA.
 
 ${renderEvaluationOverviewMarkdown(t)}
+
+## Metodología
+
+- [Metodología](${url(METHODOLOGY_PATH)}): cómo escribimos las preguntas a partir de las fuentes del cliente, cómo calificamos las respuestas por su significado, qué significa cada etiqueta, tamaños de muestra e intervalos del 95 %, niveles de revisión, límites y lo que nunca hacemos (pruebas adversarias sin autorización por escrito, certificaciones). También en inglés: ${buildMarketingUrl(localizePathname(METHODOLOGY_PATH, "en"))}.
 
 ## Sectores
 
