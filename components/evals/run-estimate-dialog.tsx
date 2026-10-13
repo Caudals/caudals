@@ -38,6 +38,7 @@ export type RunEstimate = {
   balance: { billingMode: string; requiresCredits: boolean; availableCredits: string; coversP90: boolean; addCredits: string | null } | null;
   models: Partial<Record<Role, { modelId: string; free: boolean; priced: boolean; rate: string | null; credits: { input: string; output: string } | null; webResearch: boolean }>>;
   gate?: { enforced: boolean; autoRechargeCovers: boolean; autoRechargePackCredits: number | null; canStart: boolean };
+  lines?: Array<{ kind: "meter" | "tokens"; key: string }>;
 };
 
 const ROLE_KEY: Record<Role, MessageKey> = { context_analyzer: "roleContextAnalyzer", generator: "roleGenerator", judge: "roleJudge", report_writer: "roleReportWriter" };
@@ -129,7 +130,9 @@ export function RunEstimateDialog({ open, onClose, evaluationId, targetRevisionI
   const owner = summary?.level === "owner" && summary.payments?.access !== "closed";
   const returnTo = `/workspace/evaluations/${evaluationId}?orgId=${orgId}`;
 
-  const models = estimate ? ROLES.filter(role => estimate.models[role]) : [];
+  // The models this run calls (a run without a new test set does not draft tests or read material).
+  const used = new Set((estimate?.lines ?? []).filter(line => line.kind === "tokens").map(line => line.key));
+  const models = estimate ? ROLES.filter(role => estimate.models[role] && (used.size === 0 || used.has(role))) : [];
   const facts = estimate ? [
     { term: t("estimateQuestions"), value: estimate.questions.executions !== estimate.questions.count
       ? tv("estimateQuestionsRepeated", { n: formatCount(estimate.questions.count), runs: formatCount(estimate.questions.executions) })

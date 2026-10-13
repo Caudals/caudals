@@ -166,6 +166,7 @@ export function DayBars({
   tableLabel,
   dayLabel,
   valueLabel,
+  dayHeader = tableLabel,
 }: {
   days: ReadonlyArray<{ day: string; value: number }>;
   label: string;
@@ -173,6 +174,8 @@ export function DayBars({
   tableLabel: string;
   dayLabel: (day: string) => string;
   valueLabel: string;
+  /** The table's first column header (defaults to the summary text). */
+  dayHeader?: string;
 }) {
   const max = Math.max(0, ...days.map((item) => item.value));
   const peak = max > 0 ? days.findIndex((item) => item.value === max) : -1;
@@ -197,7 +200,7 @@ export function DayBars({
       <details className="p-daybars-table">
         <summary>{tableLabel}</summary>
         <table className="p-table">
-          <thead><tr><th scope="col">{tableLabel}</th><th scope="col" className="p-table-action">{valueLabel}</th></tr></thead>
+          <thead><tr><th scope="col">{dayHeader}</th><th scope="col" className="p-table-action">{valueLabel}</th></tr></thead>
           <tbody>
             {days.filter((item) => item.value > 0).map((item) => (
               <tr key={item.day}><th scope="row">{dayLabel(item.day)}</th><td className="p-table-action">{format(item.value)}</td></tr>

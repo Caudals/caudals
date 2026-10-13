@@ -43,6 +43,11 @@ export type BillingView = "overview" | "top-up" | "usage" | "invoices" | "detail
 const VIEWS: readonly BillingView[] = ["overview", "top-up", "usage", "invoices", "details", "limits"];
 
 const PLAN_KEY: Record<string, MessageKey> = { free: "limitPlan_free", payg: "limitPlan_payg", managed: "limitPlan_managed", partner: "limitPlan_partner" };
+/** "1 credit", "1,820 credits" (cut to two decimals like every balance). */
+export function creditsText(value: string | bigint) {
+  return tv(ucr(value) === BigInt(1_000_000) ? "billingCreditOne" : "billingPillCredits", { credits: formatCredits(value) });
+}
+
 export function planName(plan: string | null | undefined) {
   return plan && PLAN_KEY[plan] ? t(PLAN_KEY[plan]) : t("limitPlan_managed");
 }
@@ -306,7 +311,7 @@ function UsagePanel({ summary }: { summary: BillingSummary }) {
             <Stat label={t("billingReturned")} value={formatCredits(data.totals.returnedUcr)} meta={t("billingRefundedMeta")} />
           </StatGrid>
           <Section title={t("billingByDay")}>
-            <DayBars days={allDays(from, to, data.days)} label={t("billingByDay")} tableLabel={t("billingDay")} valueLabel={t("billingCredits")}
+            <DayBars days={allDays(from, to, data.days)} label={t("billingByDay")} tableLabel={t("billingDayTable")} dayHeader={t("billingDay")} valueLabel={t("billingCredits")}
               format={value => formatCredits(BigInt(Math.round(value * 1_000_000)))} dayLabel={dayFormat} />
           </Section>
           <Section title={t("billingByRun")} description={t("billingByRunHelp")}>
@@ -549,7 +554,7 @@ export function BillingPill({ collapsed = false, onNavigate }: { collapsed?: boo
   const params = useSearchParams();
   if (!summary) return null;
   const contract = summary.billingMode === "contract";
-  const label = contract ? planName(summary.plan) : `${planName(summary.plan)} · ${tv("billingPillCredits", { credits: formatCredits(summary.balance.availableUcr) })}`;
+  const label = contract ? planName(summary.plan) : `${planName(summary.plan)} · ${creditsText(summary.balance.availableUcr)}`;
   const current = pathname.startsWith("/workspace/settings") && params.get("tab") === "billing";
   return (
     <Link href={billingHref(withOrg)} className="p-nav-item p-billing-pill" data-tone={summary.frozen || summary.lowBalance.below ? "warn" : undefined}
@@ -604,7 +609,7 @@ export function LowBalanceBanner() {
           <Action size="sm" variant="ghost" onClick={dismiss}>{t("dismiss")}</Action>
         </span>
       }>
-        {tv(owner ? "billingLowBanner" : "billingLowBannerEditor", { credits: formatCredits(summary.balance.availableUcr) })}
+        {tv(owner ? "billingLowBanner" : "billingLowBannerEditor", { credits: creditsText(summary.balance.availableUcr) })}
       </Status>
     </div>
   );
