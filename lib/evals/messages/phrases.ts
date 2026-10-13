@@ -16,6 +16,8 @@ const ES: Record<string, string> = {
   "Generate the test set": "Generar el conjunto de pruebas",
   // The four steps of an evaluation's progress bar.
   Connect: "Conectar", "Prepare tests": "Preparar pruebas", Run: "Ejecutar", Results: "Resultados",
+  // Stacked outcome bars: "2/6 not right".
+  "not right": "con fallos",
   // Screen-reader state of a progress step.
   done: "completado", "in progress": "en curso", "needs attention": "requiere atención",
   // The operator console's "next step" column.

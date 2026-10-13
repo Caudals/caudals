@@ -96,6 +96,45 @@ export function BarList({
   );
 }
 
+/**
+ * One stacked bar per group (a severity, a topic): how many answers passed,
+ * were partly right or failed, side by side. A pass rate alone hides that
+ * "70 % at critical" can be three failures that each matter; the stack shows
+ * them, and the row states the failing count in words.
+ */
+export function StackedBars({
+  rows,
+  label,
+}: {
+  rows: ReadonlyArray<{ label: string; counts: OutcomeCounts }>;
+  label: string;
+}) {
+  const max = Math.max(1, ...rows.map((row) => row.counts.pass + row.counts.partial + row.counts.fail));
+  return (
+    <ul className="p-stacks" aria-label={label}>
+      {rows.map((row) => {
+        const total = row.counts.pass + row.counts.partial + row.counts.fail;
+        const wrong = row.counts.fail + row.counts.partial;
+        const description = OUTCOMES.filter((item) => item.key !== "unscorable").map((item) => `${row.counts[item.key]} ${item.label.toLowerCase()}`).join(", ");
+        return (
+          <li key={row.label}>
+            <span className="p-stacks-label">{row.label}</span>
+            <span className="p-stacks-track" role="img" aria-label={`${row.label}: ${description}.`} style={{ width: `${Math.round((total / max) * 100)}%` }}>
+              {OUTCOMES.filter((item) => item.key !== "unscorable" && row.counts[item.key] > 0).map((item) => (
+                <span key={item.key} data-tone={item.tone} style={{ flexGrow: row.counts[item.key] }} />
+              ))}
+            </span>
+            <span className="p-stacks-value" data-tone={wrong > 0 ? (row.counts.fail > 0 ? "fail" : "warn") : "pass"}>
+              {total ? `${Math.round((row.counts.pass / total) * 100)}%` : "—"}
+              <small>{wrong > 0 ? `${wrong}/${total} ${tr("not right")}` : `${total}/${total}`}</small>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** A single proportion as a thin meter with its value beside it. */
 export function Meter({ value, label, tone = "neutral" }: { value: number | null; label: string; tone?: "pass" | "warn" | "fail" | "neutral" }) {
   const pct = value == null ? 0 : Math.max(0, Math.min(1, value));
