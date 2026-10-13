@@ -18,7 +18,7 @@ import { useClientSummaries } from "./operator-overview";
 import { evalRequest } from "./api";
 
 type Workspace = { id: string; name: string };
-type KindFilter = "all" | "client" | "free" | "snapshot";
+type KindFilter = "all" | "client" | "payg" | "partner" | "free" | "snapshot";
 const credits = (value: number | null | undefined) => (value === null || value === undefined ? "—" : value.toLocaleString("en-GB", { maximumFractionDigits: 2 }));
 
 export function ClientManagement() {
@@ -71,8 +71,14 @@ export function ClientManagement() {
   }
 
   const needle = query.trim().toLowerCase();
-  const kindOf = (id: string) => details.get(id)?.kind ?? "client";
-  const counts = { all: clients?.length ?? 0, client: 0, free: 0, snapshot: 0 } as Record<KindFilter, number>;
+  // Plans v2 (L-14): pay as you go and partner workspaces get their own filter instead of counting as managed (L-16).
+  const kindOf = (id: string): Exclude<KindFilter, "all"> => {
+    const row = details.get(id);
+    if (row?.kind === "client" && row.plan === "payg") return "payg";
+    if (row?.kind === "client" && row.plan === "partner") return "partner";
+    return (row?.kind as Exclude<KindFilter, "all" | "payg" | "partner"> | undefined) ?? "client";
+  };
+  const counts = { all: clients?.length ?? 0, client: 0, payg: 0, partner: 0, free: 0, snapshot: 0 } as Record<KindFilter, number>;
   for (const client of clients ?? []) counts[kindOf(client.id)]++;
   const visible = (clients ?? [])
     .filter((client) => kind === "all" || kindOf(client.id) === kind)
@@ -128,6 +134,8 @@ export function ClientManagement() {
             <FilterChips value={kind} onChange={setKind} label={t("filterClients")} options={[
               { value: "all", label: t("all"), count: counts.all },
               { value: "client", label: t("clientPlanManaged"), count: counts.client },
+              { value: "payg", label: t("clientPlanPayg"), count: counts.payg },
+              ...(counts.partner ? [{ value: "partner" as const, label: t("clientPlanPartner"), count: counts.partner }] : []),
               { value: "free", label: t("clientPlanFree"), count: counts.free },
               { value: "snapshot", label: t("clientKindSnapshot"), count: counts.snapshot },
             ]} />

@@ -71,7 +71,8 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("price book on the production schema",
     ]);
     expect((revisions[1].effective_at as Date).toISOString()).toBe("2027-01-01T00:00:00.000Z");
     expect((await inEffect()).id).toBe(REV1);
-    expect((await inEffect("'2027-01-01T00:00:01Z'")).id).toBe(REV2);
+    // Revision 2 raises prices: without its 30-day notice it is held back on its date (L-16, migration 094).
+    expect((await inEffect("'2027-01-01T00:00:01Z'")).id).toBe(REV1);
     expect((await inEffect("'2026-10-10T00:00:00Z'")).id).toBeNull();
     const rates = (await owner.query("SELECT * FROM billing.model_rate WHERE revision_id=$1", [REV1])).rows;
     expect(rates).toHaveLength(REVISION_1_MODELS.length);

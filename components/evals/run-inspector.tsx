@@ -13,7 +13,7 @@ import { Action, DataTable, DefinitionList, FilterChips, PageHeading, RowTitle, 
 import { OutcomeBar } from "./charts";
 import { RunJudgments } from "./run-judgments";
 import { usePageCrumb } from "./workspace-context";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 
 type RunData = {
   run: { status: string; phase: string; created_at?: string; execution_mode?: string; reason_code?: string | null };
@@ -127,6 +127,8 @@ export function RunInspector({ runId }: { runId: string }) {
             </DataTable>
           </section>
 
+          <RunCredits orgId={orgId} runId={runId} />
+
           <RunJudgments orgId={orgId} runId={runId} />
 
           <div className="p-split p-section">
@@ -161,5 +163,52 @@ export function RunInspector({ runId }: { runId: string }) {
         </>
       )}
     </>
+  );
+}
+
+type RunCreditData = {
+  priceBookRevisionId: string | null;
+  attempts: Array<{ attemptId: string; role: string; status: string; reservedEur: string | null; settledEur: string | null; reservation: string | null; held: string | null; charged: string | null; holdState: string | null; shadow: boolean }>;
+  meters: Array<{ meter: string; count: number; credits: string; shadow: boolean }>;
+  totals: { engineCredits: string; meterCredits: string; refundedCredits: string; chargedEur: string; settledEur: string };
+};
+
+/** Credits charged next to our cost for each engine attempt (launch L-16, spec §5.3); shadow amounts while the shadow week runs. */
+function RunCredits({ orgId, runId }: { orgId: string; runId: string }) {
+  const [data, setData] = useState<RunCreditData | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void evalRequest<RunCreditData>(`/billing/admin/runs/${runId}?orgId=${encodeURIComponent(orgId)}`).then(setData).catch(() => setData(null));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [orgId, runId]);
+  if (!data || (!data.attempts.length && !data.meters.length)) return null;
+  const shadow = data.attempts.some((row) => row.shadow) || data.meters.some((row) => row.shadow);
+  return (
+    <section className="p-section">
+      <SectionHeading title={t("runCreditsTitle")}>{shadow ? t("runCreditsShadowHelp") : t("runCreditsHelp")}</SectionHeading>
+      <StatGrid>
+        <Stat label={t("runCreditsCharged")} value={formatMoney(Number(data.totals.engineCredits) + Number(data.totals.meterCredits))}
+          meta={tv("runCreditsSplit", { engine: formatMoney(data.totals.engineCredits), meters: formatMoney(data.totals.meterCredits) })} />
+        <Stat label={t("runCreditsRevenue")} value={`${formatMoney(data.totals.chargedEur)} €`} meta={Number(data.totals.refundedCredits) ? tv("runCreditsRefunded", { credits: formatMoney(data.totals.refundedCredits) }) : undefined} />
+        <Stat label={t("runCreditsOurCost")} value={`${formatMoney(data.totals.settledEur)} €`} meta={t("runCreditsOurCostHelp")} />
+      </StatGrid>
+      {data.attempts.length > 0 && (
+        <DataTable caption={t("runCreditsTitle")} headers={[t("attempt"), t("statusLabel"), { label: t("runCreditsCostColumn"), align: "end" }, { label: t("runCreditsHeldColumn"), align: "end" }, { label: t("runCreditsChargedColumn"), align: "end" }]}>
+          {data.attempts.map((row) => (
+            <tr key={row.attemptId}>
+              <RowTitle meta={humanize(row.role)}><code className="p-code">{row.attemptId.slice(0, 12)}</code></RowTitle>
+              <td><StatusBadge value={row.status} /></td>
+              <td className="p-num">{row.settledEur !== null ? `${formatMoney(row.settledEur)} €` : row.reservedEur !== null ? `${formatMoney(row.reservedEur)} € (${humanize(row.reservation ?? "reserved")})` : "—"}</td>
+              <td className="p-num">{row.held !== null ? formatMoney(row.held) : "—"}</td>
+              <td className="p-num">{row.charged !== null ? formatMoney(row.charged) : "—"}{row.shadow ? <span className="p-cell-meta p-cell-note">{t("runCreditsShadow")}</span> : null}</td>
+            </tr>
+          ))}
+        </DataTable>
+      )}
+      {data.meters.length > 0 && (
+        <p className="p-field-hint">{data.meters.map((row) => `${humanize(row.meter)}: ${row.count} · ${formatMoney(row.credits)}${row.shadow ? ` (${t("runCreditsShadow")})` : ""}`).join(" · ")}</p>
+      )}
+    </section>
   );
 }

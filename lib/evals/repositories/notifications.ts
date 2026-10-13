@@ -21,6 +21,8 @@ export const NOTICE_CATEGORY: Record<string, "completion" | "required_input" | "
   credits_expiring: "billing", unusual_spend: "billing",
   // Scheduled runs (launch L-18): a slot skipped for credits or a cap (owners and editors), and a run that did not finish.
   schedule_skipped: "billing", monitor_unknown: "failure",
+  // A credit-rate increase notice (launch L-16, §6.4).
+  price_increase: "billing",
 };
 /** Billing notices about payments: owners only (§6.12: editors see the balance and usage). */
 export const OWNER_NOTICE_KINDS: readonly string[] = ["auto_recharge_failed", "auto_recharge_succeeded"];

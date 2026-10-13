@@ -5,8 +5,10 @@
 # unresolved paid attempts, unhealthy providers, budget pauses, failed report
 # rendering), plus the launch signals: demo failure rate, demo and engine
 # queue age, webhook failures, credit holds unresolved for 24 hours, a
-# daily shadow credit report with mismatches (L-11) and invoice requests the
-# invoicing provider has failed for an hour (L-13). Each
+# daily shadow credit report with mismatches (L-11), invoice requests the
+# invoicing provider has failed for an hour (L-13), a daily billing
+# reconciliation with unexplained differences and a price increase whose
+# 30-day notice is due within a week or was missed (L-16). Each
 # alert is emailed once when it opens, repeated at most daily while open, and
 # once when it resolves, with a link to its runbook. Messages carry counts and
 # names only: no prompts, customer content, secrets or private endpoints.
@@ -63,6 +65,7 @@ runbook_for() {
     webhook_failures) echo "$runbooks#16-webhook-failures" ;;
     holds_stale|billing_shadow_drift) echo "$runbooks#17-billing-incident" ;;
     invoicing_stalled) echo "$runbooks#22-invoicing-backlog" ;;
+    billing_reconciliation|price_notice_due) echo "$runbooks#23-billing-reconciliation-and-price-notices" ;;
     database_down|database_unreadable) echo "$runbooks#18-database-unreachable" ;;
     *) echo "$runbooks" ;;
   esac
@@ -165,6 +168,18 @@ if (( ${#psql_cmd[@]} )); then
   elif (( invoices_stalled > 0 )); then
     flag invoicing_stalled "${invoices_stalled} invoice requests are still queued: the invoicing provider has failed for over an hour, or invoicing is off."
   fi
+  # Reconciliation and price notices (L-16): the latest daily report with
+  # unexplained differences, and a raising price-book revision whose notice
+  # is due within 7 days or was missed (it then cannot take effect).
+  reconcile_sql="SELECT coalesce((SELECT discrepancies FROM billing.reconciliation_report WHERE generated_at > now()-interval '26 hours' ORDER BY day DESC, generated_at DESC LIMIT 1),0) AS c"
+  notice_sql="SELECT count(*) AS c FROM billing.price_book_revision WHERE status='scheduled' AND raises_prices AND notice_sent_at IS NULL AND effective_at - interval '30 days' < now() + interval '7 days'"
+  read -r reconcile_diff notice_due < <(sql caudals "SELECT $(optional_count billing.reconciliation_report discrepancies,generated_at "$reconcile_sql"), $(optional_count billing.price_book_revision notice_sent_at,raises_prices "$notice_sql")" 2>/dev/null || echo "x x")
+  if [[ $reconcile_diff == x ]]; then
+    flag database_unreadable "Billing reconciliation signals could not be read from PostgreSQL."
+  else
+    (( reconcile_diff > 0 )) && flag billing_reconciliation "The daily billing reconciliation found ${reconcile_diff} unexplained differences (billing.reconciliation_report)."
+    (( notice_due > 0 )) && flag price_notice_due "${notice_due} price-book revisions raise prices and their 30-day notice is due within a week or was missed."
+  fi
   engine_waiting=$(sql "$queue_database" "SELECT count(*) FROM ${queue_schema}.job WHERE state IN ('created','retry') AND start_after < now()-interval '${queue_minutes} minutes'" 2>/dev/null || echo x)
   if [[ $engine_waiting == x ]]; then
     flag database_unreadable "Engine queue signals could not be read from PostgreSQL."
@@ -177,7 +192,7 @@ fi
 
 # Drill: open the named alerts (or all launch alerts) without evaluating them.
 if [[ -n $drill ]]; then
-  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift invoicing_stalled)
+  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift invoicing_stalled billing_reconciliation price_notice_due)
   [[ $drill == all ]] || IFS=, read -r -a drill_keys <<<"$drill"
   for key in "${drill_keys[@]}"; do
     [[ $key =~ ^[a-z0-9_]+$ ]] || { echo "Invalid drill key: $key" >&2; exit 2; }

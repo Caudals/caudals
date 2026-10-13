@@ -52,6 +52,7 @@ const KIND_LABEL: Record<string, MessageKey> = {
   credits_expiring: "noticeCreditsExpiring", unusual_spend: "noticeUnusualSpend",
   // Scheduled runs (launch L-18).
   schedule_skipped: "noticeScheduleSkipped", monitor_unknown: "noticeMonitorUnknown",
+  price_increase: "noticePriceIncrease",
 };
 const JOB_LABEL: Record<Job["type"], MessageKey> = { website: "jobWebsite", document: "jobDocument", generation: "jobGeneration", run: "jobRun", export: "jobExport" };
 export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["payload"] }) {

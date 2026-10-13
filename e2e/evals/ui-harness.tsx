@@ -13,6 +13,8 @@ import { AuthenticatedReport, ReportView, SharedReport } from "../../components/
 import { PublicFrame } from "../../components/evals/public-frame";
 import { ReviewQueue } from "../../components/evals/assessment-review";
 import { PlatformConsole } from "../../components/evals/platform-console";
+import { RunInspector } from "../../components/evals/run-inspector";
+import { isBillingView } from "../../components/evals/ops-billing-views";
 import { EngineSettings } from "../../components/evals/engine-settings";
 import { OperatorLibrary } from "../../components/evals/operator-library";
 import { SectorPackLibrary } from "../../components/evals/sector-packs";
@@ -272,6 +274,12 @@ const content =
     <OperatorLibrary section="sector-packs" improvements={false} sectorPacks />
   ) : location.pathname === "/review/sector-packs" ? (
     <SectorPackLibrary mode="expert" />
+  ) : location.pathname === "/ops/platform/billing" ? (
+    // Launch L-16: the billing console; `?readonly` renders it for a platform operator.
+    <PlatformConsole section="billing" admin={!params.has("readonly")} billingView={isBillingView(params.get("view")) ? params.get("view") as "accounts" : "accounts"}
+      userId="test-user" initialOrgId={params.get("org")} />
+  ) : location.pathname.startsWith("/ops/runs/") ? (
+    <RunInspector runId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname === "/ops/library/domain-packs" ? (
     <OperatorLibrary section="domain-packs" improvements={false} />
   ) : location.pathname === "/ops/review" ? (

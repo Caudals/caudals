@@ -230,6 +230,16 @@ export const en = {
     action: "View billing",
     footer: "You receive this email because it is the billing contact of the workspace {workspace}.",
   },
+  priceIncrease: {
+    subject: "Caudals credit rates change on {date}",
+    preview: "New credit rates for {models} from {date}.",
+    heading: "Credit rates are changing",
+    body: "From {date}, the credit rates of models used in {workspace} go up, following the provider's price change. We give at least 30 days' notice. Runs that start before that date keep today's rates.",
+    rates: "Credits per 1M tokens (input · output), now → from {date}",
+    next: "You can keep using these models, or choose another model for each role in Settings → AI models.",
+    action: "Review AI models",
+    footer: "You receive this notice because you own the workspace {workspace}, which used these models in the last 90 days.",
+  },
   lowBalance: {
     subject: "Your Caudals credit balance is low",
     preview: "{balance} credits left in {workspace}.",
@@ -527,6 +537,16 @@ export const es: EmailCopy = {
     note: "Guarda este correo para tus registros. Los propietarios del espacio de trabajo pueden volver a descargar el PDF desde Caudals.",
     action: "Ver facturación",
     footer: "Recibes este correo porque es el contacto de facturación del espacio de trabajo {workspace}.",
+  },
+  priceIncrease: {
+    subject: "Las tarifas de créditos de Caudals cambian el {date}",
+    preview: "Nuevas tarifas de créditos para {models} desde el {date}.",
+    heading: "Las tarifas de créditos cambian",
+    body: "Desde el {date}, las tarifas de créditos de los modelos que se usan en {workspace} suben, tras el cambio de precio del proveedor. Avisamos con al menos 30 días de antelación. Las ejecuciones que empiecen antes de esa fecha mantienen las tarifas actuales.",
+    rates: "Créditos por 1 M de tokens (entrada · salida), ahora → desde el {date}",
+    next: "Puedes seguir usando estos modelos o elegir otro modelo para cada función en Ajustes → Modelos de IA.",
+    action: "Revisar los modelos de IA",
+    footer: "Recibes este aviso porque eres propietario del espacio de trabajo {workspace}, que usó estos modelos en los últimos 90 días.",
   },
   lowBalance: {
     subject: "Tu saldo de créditos de Caudals es bajo",

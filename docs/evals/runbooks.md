@@ -221,11 +221,28 @@ Signal: `invoicing_stalled` (an invoice or rectifying-invoice request has stayed
 3. Attempts with an error code: the provider refused or was down. `provider_unavailable`/`provider_error` retry by themselves (backoff up to an hour); `original_not_issued` waits for the original invoice; anything else (`customer_invalid`, `wrong_document_kind`…) needs the request's data or the adapter fixed. The scheduler's `billing_invoicing_failed` lines name the document.
 4. Never edit document rows or make up a number. With the manual adapter, the accountant issues pending requests from the monthly export and ops attach number and PDF through `POST /api/evals/v1/billing/admin/invoices/:id`.
 
+## 23. Billing reconciliation and price notices
+
+Signals: `billing_reconciliation` (the latest daily reconciliation report has unexplained differences; L-16), a `billing_reconciliation_mismatch` line from the scheduler, `price_notice_due` (a price-book revision raises prices and its 30-day notice is due within a week, or was missed). docs/TOOLS.md → Ops billing console.
+
+Reconciliation (every day at 05:00 UTC for the previous UTC day, and at scheduler start; Gate B needs three clean days in a row):
+
+1. Open `/ops/platform/billing?view=reconciliation`. Each failing check lists up to 20 ids. Or, as `postgres`: `SELECT day, discrepancies, report->'checks' FROM billing.reconciliation_report ORDER BY generated_at DESC LIMIT 1`.
+2. Stripe side: *missing in Stripe* or *different amount* for an order means Stripe and our order disagree — open the PaymentIntent in the Stripe dashboard (test or live per the report). *Payments whose order got no credits* means a payment succeeded but the webhook was not processed: check `billing.stripe_event` and runbook 16, then let Stripe resend the event (or the return page's sync) — never credit by hand. *Settled on another day* and *not a Caudals order* are explained notes.
+3. Database side: `paid_order_purchase_mismatch`, `purchase_without_paid_order`, refund and chargeback checks point at an order and its ledger entries (`/ops/platform/billing?view=accounts&org=<workspace>`); invoice checks at `billing.invoice_document` (runbook 22); `holds_open_over_25h` at runbook 17 step 3; `inconsistent_accounts` at the verifier (runbook 17 step 4); `shadow_drift` at the shadow report.
+4. Correct only through the console's audited actions (adjust, reverse, refund) with a reason that names the report day; never edit ledger or order rows. Large corrections need a second admin.
+5. Re-run the day from the console (Reconcile this day) to confirm zero; the alert resolves with the next clean report. Record the explanation in the incident note.
+
+Price notices (§6.4): a revision that raises any rate takes effect only if its notice went out at least 30 days before its date; otherwise the previous revision stays in effect (we absorb the provider's increase).
+
+1. Due: open the revision under Price book, check the increases and recipients, send a test (internal address), then — with `BILLING_PRICE_NOTICES=owners`, a founder decision — Send the notice before the deadline.
+2. Missed: the revision is held. Cancel it (allowed for a held revision) and schedule it again at least 30 days after the notice you will send. The alert stays open until then.
+
 ## Alert drills
 
 Each alert must fire once in a drill and link to its runbook (L-08 acceptance).
 
-- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds, shadow drift, invoicing backlog), each with its runbook link. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
+- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds, shadow drift, invoicing backlog), each with its runbook link. Since L-16 it also opens the billing reconciliation and price-notice alerts. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
 - Uptime: runbook 19.
 - Sentry: runbook 20, step 2.
 - The production drills are recorded in `docs/launch/L-08.md`.

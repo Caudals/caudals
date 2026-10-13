@@ -30,6 +30,9 @@ import { runInvoicing } from "../../lib/billing/invoicing/jobs";
 import { runBillingWatch } from "../../lib/billing/watch";
 import { sectorPacksEnabled } from "../../lib/evals/sector-packs/flags";
 import { advanceSourceRefreshes, monthlyQuestionsDue } from "../../lib/evals/sector-packs/refresh";
+import { reconciliationDue, runReconciliation } from "../../lib/billing/reconcile";
+import { stripeMode } from "../../lib/billing/payments-config";
+import { getStripe } from "../../lib/billing/stripe";
 
 async function main() {
   initWorkerSentry("evals-scheduler");
@@ -53,6 +56,7 @@ async function main() {
   let lastPriceBook = 0;
   let lastLifecycleEmail = 0;
   let lastShadowReport = 0;
+  let lastReconciliation = 0;
   let lastDigest = 0;
   let lastRefresh = 0;
   const stop = () => { stopping = true; };
@@ -195,6 +199,26 @@ async function main() {
           } catch (error) {
             console.error(JSON.stringify({ event: "billing_shadow_report_failed" }));
             captureServerError(error, { service: "evals-scheduler", event: "billing_shadow_report_failed" });
+          }
+        }
+        // Daily reconciliation (§6.13, P-49, L-16): Stripe ↔ orders ↔ ledger
+        // purchases, invoices, stale holds, account invariants and shadow drift
+        // for the previous UTC day, stored in billing.reconciliation_report. Any
+        // unexplained difference is an error line and the billing_reconciliation alert.
+        if (reconciliationDue(lastReconciliation)) {
+          lastReconciliation = Date.now();
+          try {
+            let stripe = null;
+            try { stripe = getStripe(); } catch { stripe = null; }
+            const report = await runReconciliation(actorId, previousUtcDay(), stripeMode() === "live", { stripe });
+            const failing = Object.entries(report.checks).filter(([, check]) => check.count > 0).map(([name]) => name);
+            const line = JSON.stringify({ event: report.discrepancies ? "billing_reconciliation_mismatch" : "billing_reconciliation", day: report.day,
+              livemode: report.livemode, discrepancies: report.discrepancies, explained: report.explained, stripeChecked: report.stripeChecked,
+              stripeMatched: report.stripe.matched, failing: failing.slice(0, 20) });
+            if (report.discrepancies) console.error(line); else console.info(line);
+          } catch (error) {
+            console.error(JSON.stringify({ event: "billing_reconciliation_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_reconciliation_failed" });
           }
         }
         // Price book (spec §6.4): scheduled revisions take effect by date; the

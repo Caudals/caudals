@@ -144,6 +144,7 @@ const SECTION: Record<string, string> = {
   usage: t("usageBudgets"),
   accounts: t("accounts"),
   audit: t("auditLog"),
+  billing: t("billingOpsTitle"),
 };
 const DETAIL: Record<string, string> = {
   evaluations: t("evaluation"),

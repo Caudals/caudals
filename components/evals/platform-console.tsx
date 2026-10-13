@@ -35,9 +35,11 @@ import { ActionMenu, Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { usePlatformAction } from "./platform-action";
 import { EntitlementForm } from "./entitlement-form";
+import { OpsBilling, type BillingView } from "./ops-billing";
+import { accountHref, credits as fmtCredits, euros, planLabel } from "./ops-billing-shared";
 import { t, tv } from "@/lib/evals/messages/en";
 
-export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit";
+export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit" | "billing";
 const ROLES = ["target", "generator", "context_analyzer", "judge", "adjudicator", "report_writer", "embedding"] as const;
 const CAPABILITIES = ["text", "boundedTokens", "jsonObject", "probeApproved"] as const;
 const money = (value: string | null | undefined) => (value == null ? "—" : String(Number(value)));
@@ -53,9 +55,14 @@ const SECTIONS: Array<{ id: PlatformSection; href: string; label: string }> = [
   { id: "usage", href: "/ops/platform/usage", label: t("usageBudgets") },
   { id: "accounts", href: "/ops/platform/accounts", label: t("accounts") },
   { id: "audit", href: "/ops/platform/audit", label: t("auditLog") },
+  { id: "billing", href: "/ops/platform/billing", label: t("billingOpsTitle") },
 ];
 
-export function PlatformConsole({ section, admin }: { section: PlatformSection; admin: boolean }) {
+export function PlatformConsole({ section, admin, billingView = "accounts", userId = "", initialOrgId = null }: {
+  section: PlatformSection; admin: boolean;
+  /** Billing console (L-16): the sub-view, the signed-in admin (to tell their own approval requests apart) and an account to open. */
+  billingView?: BillingView; userId?: string; initialOrgId?: string | null;
+}) {
   const { workspace } = useWorkspace();
   const scoped = section === "usage" || section === "audit";
   return (
@@ -64,8 +71,9 @@ export function PlatformConsole({ section, admin }: { section: PlatformSection; 
         {t("platformConsoleHelp")}
       </PageHeading>
       <TabLinks label={t("platformSections")} current={section} options={SECTIONS} />
-      {!admin && <Status>{t("platformReadOnly")}</Status>}
-      {section === "providers" ? <Providers admin={admin} /> : section === "inference" ? <Inference /> : section === "usage" ? <Usage admin={admin} /> : section === "accounts" ? <Accounts admin={admin} /> : <Audit />}
+      {!admin && section !== "billing" && <Status>{t("platformReadOnly")}</Status>}
+      {section === "providers" ? <Providers admin={admin} /> : section === "inference" ? <Inference /> : section === "usage" ? <Usage admin={admin} />
+        : section === "accounts" ? <Accounts admin={admin} /> : section === "billing" ? <OpsBilling view={billingView} admin={admin} userId={userId} initialOrgId={initialOrgId} /> : <Audit />}
     </>
   );
 }
@@ -324,7 +332,9 @@ function Providers({ admin }: { admin: boolean }) {
         {(() => {
           // €0 guard (spec v2 §6.4, G9): paid models without a price cannot serve customers.
           const zero = data.revisions.filter((revision) => !revision.retired_at && !revision.free_model && revision.price_issue === "MODEL_PRICE_ZERO");
-          return zero.length ? <Status tone="warn">{tv("zeroPriceModelsWarning", { count: zero.length })}</Status> : null;
+          return zero.length ? (
+            <Status tone="warn" action={<Link href="/ops/platform/billing?view=price-book">{t("billingOpsOpenPriceBook")}</Link>}>{tv("zeroPriceModelsWarning", { count: zero.length })}</Status>
+          ) : null;
         })()}
         {data.revisions.length ? (
           <DataTable caption={t("modelRevisions")} headers={[t("model"), t("rolesLabel"), { label: t("limitsLabel"), align: "end" }, t("apiKey"), t("health"), { label: t("actions"), align: "end", hidden: true }]}>
@@ -743,6 +753,8 @@ function Usage({ admin }: { admin: boolean }) {
         <Stat label={t("externalTargetCalls")} value={data.targetCalls.calls} meta={`${data.targetCalls.unknown} ${t("unknownOutcome")}`} />
       </StatGrid>
 
+      <CreditUsage admin={admin} />
+
       <div className="p-settings p-section">
         <div className="p-setting">
           <div className="p-setting-text">
@@ -886,6 +898,59 @@ function Usage({ admin }: { admin: boolean }) {
         )}
       </Modal>
     </>
+  );
+}
+
+/* --------------------------------------------------------- credit usage --- */
+
+type CreditUsageData = {
+  month: string;
+  totals: { sold: string; soldNetCents: number; granted: string; consumed: string; held: string; expired: string; available: string; shadowCharged: string };
+  workspaces: Array<{ orgId: string; workspace: string; plan: string | null; billingMode: string; frozen: boolean; available: string; held: string; sold: string; soldNetCents: number;
+    granted: string; consumed: string; returned: string; refunded: string; expired: string; shadowCharged: string }>;
+};
+
+/** Credits sold, consumed, held and expired per workspace (launch L-16, spec §5.3). Platform-wide; amounts only. */
+function CreditUsage({ admin }: { admin: boolean }) {
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [data, setData] = useState<CreditUsageData | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void evalRequest<CreditUsageData>(`/billing/admin/usage?month=${month}`).then(next => { setData(next); setFailed(false); }).catch(() => setFailed(true));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [month]);
+  return (
+    <section className="p-section">
+      <SectionHeading title={t("billingOpsCreditUsage")} actions={
+        <Field id="credit-usage-month" label={t("billingOpsMonth")} type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
+      }>{t("billingOpsCreditUsageHelp")}</SectionHeading>
+      {failed ? <Status error>{t("error")}</Status> : !data ? <TableSkeleton columns={6} /> : (
+        <>
+          <StatGrid>
+            <Stat label={t("billingOpsSold")} value={fmtCredits(data.totals.sold)} meta={euros(data.totals.soldNetCents)} />
+            <Stat label={t("billingOpsConsumed")} value={fmtCredits(data.totals.consumed)} meta={tv("billingOpsShadowCharged", { credits: fmtCredits(data.totals.shadowCharged) })} />
+            <Stat label={t("billingOpsHeld")} value={fmtCredits(data.totals.held)} meta={tv("billingOpsAvailableCredits", { credits: fmtCredits(data.totals.available) })} />
+            <Stat label={t("billingOpsExpired")} value={fmtCredits(data.totals.expired)} meta={tv("billingOpsGrantedCredits", { credits: fmtCredits(data.totals.granted) })} />
+          </StatGrid>
+          {!data.workspaces.length ? <p className="p-cell-meta">{t("billingOpsNoCreditActivity")}</p> : (
+            <DataTable caption={t("billingOpsCreditUsage")} headers={[t("workspace"), { label: t("billingOpsSold"), align: "end" }, { label: t("billingOpsConsumed"), align: "end" }, { label: t("billingOpsHeld"), align: "end" }, { label: t("billingOpsExpired"), align: "end" }, { label: t("billingOpsAvailable"), align: "end" }]}>
+              {data.workspaces.map(row => (
+                <tr key={row.orgId}>
+                  <RowTitle href={admin ? accountHref(row.orgId) : undefined} meta={[planLabel(row.plan), humanize(row.billingMode), row.frozen && t("billingOpsFrozen")].filter(Boolean).join(" · ")}>{row.workspace}</RowTitle>
+                  <td className="p-num">{fmtCredits(row.sold)}{row.soldNetCents ? <span className="p-cell-meta p-cell-note">{euros(row.soldNetCents)}</span> : null}</td>
+                  <td className="p-num">{fmtCredits(row.consumed)}{Number(row.shadowCharged) ? <span className="p-cell-meta p-cell-note">{tv("billingOpsShadowShort", { credits: fmtCredits(row.shadowCharged) })}</span> : null}</td>
+                  <td className="p-num">{fmtCredits(row.held)}</td>
+                  <td className="p-num">{fmtCredits(row.expired)}</td>
+                  <td className="p-num">{fmtCredits(row.available)}</td>
+                </tr>
+              ))}
+            </DataTable>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 

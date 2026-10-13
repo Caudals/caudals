@@ -46,6 +46,8 @@ export type TemplateProps = {
     workspace: string; kind: "invoice" | "credit_note"; number: string; issueDate: string; totalCents: number; currency: string;
     originalNumber?: string | null; billingUrl: string;
   };
+  /** A credit-rate increase notice (L-16, §6.4): 30 days ahead, to owners who used the models in the last 90 days. */
+  price_increase: { workspace: string; effectiveAt: string; models: Array<{ label: string; now: string; next: string }>; modelsUrl: string };
   low_balance: { workspace: string; balance: number; threshold: number; topUpUrl: string; settingsUrl: string };
   auto_recharge_succeeded: { workspace: string; amountCents: number; currency: string; credits: number; threshold: number; balance: number; billingUrl: string; settingsUrl: string };
   auto_recharge_failed: { workspace: string; amountCents: number; currency: string; billingUrl: string; settingsUrl: string };
@@ -69,7 +71,7 @@ export type TemplateName = keyof TemplateProps;
 
 export const TEMPLATE_CATEGORY: Record<TemplateName, EmailCategory> = {
   signup_link: "essential", signup_existing: "essential", signup_domain_taken: "essential", password_reset: "essential",
-  invitation: "essential", payment_receipt: "essential", invoice_available: "essential", demo_report: "essential",
+  invitation: "essential", payment_receipt: "essential", invoice_available: "essential", demo_report: "essential", price_increase: "essential",
   test_set_ready: "notification", report_published: "notification", run_failed: "notification", input_required: "notification",
   export_failed: "notification", generation_failed: "notification", website_failed: "notification", document_failed: "notification",
   low_balance: "billing", auto_recharge_succeeded: "billing", auto_recharge_failed: "billing", credits_expiring: "billing", cap_reached: "billing",
@@ -296,6 +298,21 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
           { kind: "text", text: fill(rectifying ? copy.bodyCreditNote : copy.bodyInvoice, values) },
           { kind: "facts", rows: [[copy.number, props.number], [copy.date, date(locale, `${props.issueDate}T12:00:00Z`)], [copy.total, money(locale, props.totalCents, props.currency)]] },
           { kind: "text", tone: "muted", text: copy.note }, { kind: "action", label: copy.action, url: props.billingUrl },
+        ],
+        footer: [fill(copy.footer, { workspace: props.workspace })],
+      };
+    }
+    case "price_increase": {
+      const props = p as TemplateProps["price_increase"];
+      const copy = c.priceIncrease;
+      const values = { date: date(locale, props.effectiveAt), workspace: props.workspace, models: props.models.map(model => model.label).join(", ") };
+      return {
+        subject: fill(copy.subject, values), preview: fill(copy.preview, values), heading: copy.heading,
+        blocks: [
+          { kind: "text", text: fill(copy.body, values) },
+          { kind: "text", tone: "muted", text: fill(copy.rates, values) },
+          { kind: "facts", rows: props.models.map(model => [model.label, `${model.now} → ${model.next}`] as [string, string]) },
+          { kind: "text", text: copy.next }, { kind: "action", label: copy.action, url: props.modelsUrl },
         ],
         footer: [fill(copy.footer, { workspace: props.workspace })],
       };

@@ -35,6 +35,9 @@ const PRICE_BOOK_MESSAGES: Partial<Record<PriceBookError["code"], [number, strin
   ROUTE_UNPRICED: [422, "A model in use by a customer route would have no credit rate in this revision."],
   INPUT_INVALID: [422, "Check the rates: each must be at least 10 credits per 1M tokens, on a 5-credit step, and listed once."],
   SCOPE_DENIED: [403, "A platform administrator is required."],
+  NOTICE_NOT_SENT: [409, "This revision raises prices and its notice did not go out 30 days before its date, so it cannot take effect. Cancel it and schedule it again with 30 days' notice."],
+  NOTICE_TOO_LATE: [409, "The notice deadline (30 days before the date) has passed. Cancel the revision and schedule it at least 30 days after today."],
+  NOTICE_NOT_REQUIRED: [409, "This revision raises no rate: decreases apply without notice."],
 };
 
 /** Maps billing errors to the API's error shape. */
@@ -119,8 +122,18 @@ const adminBody = z.object({ orgId: z.uuid() }).passthrough();
 export async function listRevisionsForAdmin(identity: EvalIdentity, orgId: string) {
   requirePlatformAdmin(identity);
   return withTenant({ orgId, actorId: identity.user.id }, async db => {
-    const [revisions, effective, routes] = await Promise.all([listPriceBookRevisions(db), getPriceBookAt(db), routePriceIssues(db)]);
-    return { effectiveRevisionId: effective?.revision.id ?? null, revisions, routes };
+    const revisions = await listPriceBookRevisions(db);
+    const effective = await getPriceBookAt(db);
+    const routes = await routePriceIssues(db);
+    // The inputs of a new draft (L-16): the latest ECB rate and the weekly provider-price check.
+    const fx = (await db.query("SELECT per_eur::text AS per_eur, to_char(rate_date,'YYYY-MM-DD') AS rate_date, source FROM billing.fx_rate WHERE currency='USD' ORDER BY rate_date DESC LIMIT 1")).rows[0];
+    const check = (await db.query("SELECT checked_at, revision_id, changed, unavailable, changes FROM billing.price_check ORDER BY checked_at DESC LIMIT 1")).rows[0];
+    return {
+      effectiveRevisionId: effective?.revision.id ?? null, revisions, routes,
+      latestFx: fx ? { usdPerEur: String(fx.per_eur), date: String(fx.rate_date), source: String(fx.source) } : null,
+      latestCheck: check ? { checkedAt: new Date(check.checked_at).toISOString(), revisionId: String(check.revision_id), changed: Number(check.changed),
+        unavailable: Number(check.unavailable), changes: (check.changes ?? []) as unknown[] } : null,
+    };
   }).catch(billingApiError);
 }
 
