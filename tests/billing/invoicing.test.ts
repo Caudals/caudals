@@ -163,6 +163,7 @@ describe("invoice wording (ES and EN)", () => {
   });
   it("shows owners a pending request until it is issued", () => {
     expect(documentView(invoice({ status: "pending_issue", provider: "manual" }))).toMatchObject({ status: "pending", number: null, pdfAvailable: false });
+    expect(documentView(invoice({ status: "voided", livemode: false, voided_at: "2026-10-13T12:00:00Z" })).status).toBe("voided");
     expect(documentView(invoice({ status: "issued", number: "CAU-2026-0001", issue_date: "2026-10-13", provider: "manual" })).pdfAvailable).toBe(false);
     expect(documentView(invoice({ status: "issued", number: "CAU-2026-0001", issue_date: "2026-10-13", provider: "manual", pdf_object_key: `evals/${ORG}/x/sealed/y`,
       pdf_sha256: "0".repeat(64), pdf_byte_size: 100, pdf_attached_at: "2026-10-13T11:00:00Z" }))).toMatchObject({ status: "issued", pdfAvailable: true });

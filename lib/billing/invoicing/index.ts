@@ -196,10 +196,11 @@ export function numberFitsDocument(number: string, document: Pick<InvoiceDocumen
   return document.kind === "invoice" ? /^CAU-[0-9][0-9A-Za-z/._-]{0,39}$/.test(number) : /^CAU-R-[0-9][0-9A-Za-z/._-]{0,39}$/.test(number);
 }
 
-/** The owner-facing state: requests are "pending" until the invoice is issued. */
+/** The owner-facing state: requests are "pending" until the invoice is issued; voided test documents say so. */
 export function documentView(document: InvoiceDocument) {
+  const status = document.status === "issued" || document.status === "voided" ? document.status : "pending" as const;
   return {
-    id: document.id, kind: document.kind, orderId: document.orderId, status: document.status === "issued" ? "issued" as const : "pending" as const,
+    id: document.id, kind: document.kind, orderId: document.orderId, status,
     series: document.seriesCode, number: document.number, issueDate: document.issueDate, operationDate: document.operationDate,
     currency: "EUR", netCents: document.netCents, vatRateBp: document.vatRateBp, vatCents: document.vatCents, grossCents: document.grossCents,
     taxTreatment: document.taxTreatment, taxMention: document.taxMention, rectifies: document.invoiceId, livemode: document.livemode,
