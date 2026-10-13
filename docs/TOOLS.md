@@ -1023,6 +1023,7 @@ Launch L-12 (spec v2 §6.6, §6.14–§6.16). Stripe **test mode only** until th
   - verify `CREATE EXTENSION vector;` on a disposable database before applying migrations.
 - `Symlink [project]/node_modules is invalid` from Turbopack in a launch worktree (whose `node_modules` links to the main checkout):
   - start the dev server with `npx next dev --webpack -p 4173` and run Playwright with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173`.
+  - on atlantic the webpack dev server restarts at its memory threshold ("approaching the used memory threshold") after almost every page with a 2.5 GB heap, so a full `e2e/public-routes.spec.ts` run times out; run a `-g` subset locally and the full suite against production after the deploy (`DEMO_PUBLIC=true PLAYWRIGHT_BASE_URL=https://caudals.com npx playwright test e2e/public-routes.spec.ts --project=chromium`, read-only). Stop the server afterwards (`pkill -f "launch-L-xx/node_modules/.bin/next dev"`): killing `npx` leaves `next` running.
 - `Unable to acquire lock at .next/dev/lock` during Playwright:
   - use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000` if dev server is already running.
 - `browserType.launch: Executable doesn't exist` during Playwright:
