@@ -4,6 +4,9 @@ export default defineConfig({
   testMatch: ["ui.contract.ts", "example.contract.ts", "report-v2.contract.ts"],
   workers: 1,
   fullyParallel: false,
+  // The first page the harness serves also compiles its stylesheet; the
+  // default 30 s was spent on that warm-up and failed the first test alone.
+  timeout: 60_000,
   outputDir: "/tmp/evals-ui-test-results",
   reporter: "list",
   use: { baseURL: "http://127.0.0.1:4187", browserName: "chromium" },

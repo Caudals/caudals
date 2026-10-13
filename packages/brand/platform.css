@@ -3023,6 +3023,55 @@
   height: 8px;
   border-radius: 2px;
 }
+/* Stacked outcome bars (report: by topic, by severity). */
+.p-stacks {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-stacks li {
+  display: grid;
+  grid-template-columns: minmax(96px, 200px) minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  font-size: var(--p-text-label);
+}
+.p-stacks-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.p-stacks-track {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  min-width: 6px;
+  border-radius: var(--p-radius-pill);
+  overflow: hidden;
+}
+.p-stacks-track > span {
+  display: block;
+  height: 100%;
+  background: var(--p-chart-1);
+}
+.p-stacks-track > span[data-tone="pass"] { background: var(--p-pass); }
+.p-stacks-track > span[data-tone="warn"] { background: var(--p-warn); }
+.p-stacks-track > span[data-tone="fail"] { background: var(--p-fail); }
+.p-stacks-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 64px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.p-stacks-value small {
+  font-weight: 400;
+  color: var(--p-text-secondary);
+}
+.p-stacks-value[data-tone="fail"] small { color: var(--p-fail-text, var(--p-fail)); }
 .p-barlist {
   display: grid;
   gap: 10px;

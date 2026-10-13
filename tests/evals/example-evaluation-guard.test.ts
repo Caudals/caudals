@@ -18,7 +18,9 @@ function files(directory: string): string[] {
     return statSync(join(root, path)).isDirectory() ? files(path) : /\.(ts|tsx|mjs)$/.test(name) ? [path] : [];
   });
 }
-const imports = (path: string) => /from\s+["'][^"']*evals\/example(?:\/[^"']*)?["']|import\(["'][^"']*evals\/example/.test(readFileSync(join(root, path), "utf8"));
+// `evals/example/flags` only says whether the example is switched on; it holds
+// no fixture data, so reading it is not reading the example.
+const imports = (path: string) => /from\s+["'][^"']*evals\/example(?!\/flags["'])(?:\/[^"']*)?["']|import\(["'][^"']*evals\/example(?!\/flags["'])/.test(readFileSync(join(root, path), "utf8"));
 
 /** Every file allowed to read the example fixtures: the pages that show it and the tooling around it. */
 const READERS = new Set([
