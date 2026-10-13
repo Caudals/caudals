@@ -9,7 +9,7 @@ Current production scope:
 - Public marketing, authority and demand capture: `/`, `/sectors`, `/sectors/*`, `/methodology` (`/es/metodologia`), `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`, `/api/demo/*`
 - Public demo: `/demo`, the public front door while `DEMO_PUBLIC=true` (launch L-04); self-serve sign-up from it at `/workspace/signup`; direct work-email sign-up at `/workspace/start` (app host, `SELF_SERVE_DIRECT_SIGNUP`)
-- Event contact cards: `connect.caudals.com`, a separate static service in `services/connect` on atlantic; permanent `/mario` and `/alonso` links, bilingual pages, vCard/QR sharing and offline cache. No database or evaluation-app dependency. See `services/connect/README.md`.
+- Event contact cards: `connect.caudals.com`, a separate static service in `services/connect` (Vite + three.js, nginx on atlantic). Permanent `/mario` and `/alonso` links negotiate `/es` or `/en`; each card page has a WebGL card over a flow field, vCard, QR presenter (link or offline contact), WhatsApp/email hand-off of the visitor's details, Web Share and an offline service worker. Owner Wallet passes are issued through the WalletWallet API at build time, not at runtime. No database, secrets or evaluation-app dependency. See `services/connect/README.md`.
 - Private operator access: `/auth/*`, `/api/auth/*` (retained internal-account auth)
 - Evaluation: `/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share` and scoped `/api/evals/v1` APIs
 

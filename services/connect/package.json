@@ -2,15 +2,33 @@
   "name": "@caudals/connect",
   "private": true,
   "type": "module",
+  "description": "connect.caudals.com: 3D event contact cards for the Caudals founders.",
   "scripts": {
-    "build": "node build.mjs",
-    "test": "node --test test.mjs",
-    "dev": "node serve.mjs"
+    "dev": "vite --host 127.0.0.1 --port 4190 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4191 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "media": "node scripts/media.mjs",
+    "wallet": "node scripts/wallet.mjs"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
-    "qrcode": "1.5.4"
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "three": "0.186.1"
   },
   "devDependencies": {
-    "jsqr": "1.4.0"
+    "@types/node": "22.20.5",
+    "@types/qrcode": "1.5.6",
+    "@types/three": "0.186.0",
+    "jsqr": "1.4.0",
+    "jszip": "3.10.2",
+    "playwright": "1.63.0",
+    "qrcode": "1.5.4",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
   }
 }

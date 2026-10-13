@@ -1,14 +1,19 @@
+# Traefik dynamic route for connect.caudals.com on atlantic, installed as
+# /etc/dokploy/traefik/dynamic/caudals-connect.yml by scripts/deploy-connect.sh.
 http:
   routers:
-    caudals-connect-http:
+    caudals-connect-web:
       rule: Host(`connect.caudals.com`)
       service: caudals-connect
-      middlewares: [redirect-to-https]
-      entryPoints: [web]
-    caudals-connect-https:
+      middlewares:
+        - redirect-to-https
+      entryPoints:
+        - web
+    caudals-connect-websecure:
       rule: Host(`connect.caudals.com`)
       service: caudals-connect
-      entryPoints: [websecure]
+      entryPoints:
+        - websecure
       tls:
         certResolver: letsencrypt
   services:
@@ -16,3 +21,4 @@ http:
       loadBalancer:
         servers:
           - url: http://caudals-connect:8080
+        passHostHeader: true

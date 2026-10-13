@@ -7,12 +7,15 @@ Implementation rules for the public funnel (including the `/demo` free test), th
 ## Stack and Constraints
 
 The event contact microsite at `connect.caudals.com` is an intentionally static
-exception to the application stack below: build-time HTML/SVG generation with
-small progressive-enhancement JavaScript, using the public Paper fonts/palette.
-Its independent `/{es,en}/{mario,alonso}` pages, contact downloads, QR sheet,
-native sharing and offline cache live in `services/connect`; deployment and
-device acceptance are documented in its README. It does not import either
-application root layout or add routes to the main site's sitemap/navigation.
+exception to the application stack below: Vite renders every page at build
+time from `services/connect/src/site`, and a lazily loaded three.js stage
+(`src/client/scene`) draws the card and the flow field over a CSS card that is
+also the no-WebGL fallback. It keeps the public Paper palette and Geist type
+(no italics or serif accents, by founder request) in light and dark, follows
+the phone's colour scheme and reduced-motion setting, ships no inline scripts
+or styles (strict CSP), and does not import either application root layout or
+add routes to the main site's sitemap/navigation.
+Deployment, Wallet passes and device acceptance are in its README.
 
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives

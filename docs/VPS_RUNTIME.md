@@ -8,14 +8,15 @@ tasks; the migration checks below cover the affected dependency paths.
 
 ## Ownership and access
 
-**Additive deployment, 2026-10-12:** `caudals-connect_web` serves the public event
-contact cards at `connect.caudals.com` on atlantic. A 64 MiB unprivileged Nginx
-service on `dokploy-network`, without a published host port, database, secrets
-or outbound application calls. Definitions: `infra/connect`; deployment:
-`scripts/deploy-connect.sh`; source, use and acceptance: `services/connect/README.md`.
-Its dedicated Traefik dynamic file is `caudals-connect.yml`; the Cloudflare
-proxied A record points to `168.119.49.95`. Existing application/worker services
-are unchanged by this release.
+**Rebuilt 2026-10-13:** `caudals-connect_web` serves the public event contact
+cards at `connect.caudals.com` on atlantic: a read-only, 64 MiB
+`nginx-unprivileged` task on `dokploy-network` (alias `caudals-connect`),
+without a published host port, database, secrets, volumes or outbound calls.
+Definitions: `infra/connect`; deployment: `scripts/deploy-connect.sh`
+(releases in `~/connect-releases`, newest three kept); source, use and
+acceptance: `services/connect/README.md`. Its Traefik dynamic file is
+`caudals-connect.yml`; the Cloudflare proxied A record points to
+`168.119.49.95`.
 
 - Platform owner: `caudals`; Leads app schema/growth behaviour owner: `leads`.
 - CRM of record since 2026-10-03: self-hosted **Warmbly** at `out.caudals.com`
