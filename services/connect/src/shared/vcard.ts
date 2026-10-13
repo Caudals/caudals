@@ -32,8 +32,6 @@ export function fold(line: string): string {
 const finish = (lines: string[]): string => lines.map(fold).join('\r\n') + '\r\n';
 
 export interface VCardOptions {
-  /** Base64 PNG shown as the contact picture. */
-  photo?: string;
   revision?: string;
 }
 
@@ -62,7 +60,6 @@ export function fullVCard(p: Person, locale: Locale, options: VCardOptions = {})
     `X-SOCIALPROFILE;TYPE=linkedin:${p.linkedin}`,
     `NOTE:${escapeText(ABOUT[locale])}`,
   ];
-  if (options.photo) lines.push(`PHOTO;ENCODING=b;TYPE=PNG:${options.photo}`);
   if (options.revision) lines.push(`REV:${options.revision}`);
   lines.push('END:VCARD');
   return finish(lines);

@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import jsQR from 'jsqr';
 import { LOCALES, PEOPLE, links } from '../src/data/people.ts';
 import { composeMessage, validateVisitor } from '../src/shared/message.ts';
@@ -74,6 +75,7 @@ test('card pages carry the contact and the right links', () => {
       assert.ok(html.includes(`href="${p.linkedin}"`));
       assert.ok(html.includes(`href="${links.vcard(p, l)}"`));
       assert.ok(html.includes(`href="${links.call(l)}"`));
+      assert.ok(html.includes(`href="${links.companyLinkedin}"`), 'company LinkedIn link');
       assert.ok(html.includes('<meta name="robots" content="noindex, nofollow">'));
       // Cloudflare's email obfuscation would rewrite the mailto links and break them offline.
       assert.ok(html.indexOf('<!--email_off-->') < html.indexOf(p.email) && html.lastIndexOf(p.email) < html.indexOf('<!--/email_off-->'));
@@ -135,7 +137,7 @@ test('vCards follow RFC 2426 framing', () => {
       assert.ok(unfolded.includes(`TEL;TYPE=CELL,VOICE,pref:${p.phone}`));
       assert.ok(unfolded.includes(`EMAIL;TYPE=INTERNET,WORK,pref:${p.email}`));
       assert.ok(unfolded.includes(`TITLE:${p.role[l]}`));
-      assert.ok(unfolded.includes('PHOTO;ENCODING=b;TYPE=PNG:'));
+      assert.ok(!unfolded.includes('PHOTO'), 'contact has no photo');
     }
   }
   assert.ok(fullVCard(PEOPLE[0], 'es').includes('ORG:Caudals'));
@@ -201,4 +203,18 @@ test('no WalletWallet key leaks into the repository or the build', () => {
   const pattern = /ww_live_[0-9a-f]{32}/;
   const files = [...walk(dist), ...walk(join(root, 'src')), ...walk(join(root, 'scripts')), ...walk(join(root, 'wallet')).filter((f) => !f.endsWith('.pkpass'))];
   for (const file of files) assert.doesNotMatch(readFileSync(file, 'latin1'), pattern, file);
+});
+
+test('Wallet passes carry the contact in the QR and no link text', () => {
+  const run = spawnSync(process.execPath, [join(root, 'scripts/wallet.mjs'), '--dry-run'], { encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const bodies = run.stdout.split(/^(?:PUT|POST) .+$/m).slice(1).map((chunk) => JSON.parse(chunk));
+  assert.equal(bodies.length, PEOPLE.length * LOCALES.length);
+  for (const body of bodies) {
+    assert.ok(body.barcodeValue.startsWith('BEGIN:VCARD'), 'QR saves the contact');
+    assert.equal(body.barcodeAltText, '', 'no text under the QR');
+    assert.equal(body.logoText, undefined, 'the wordmark image replaces logo text');
+    const visible = [...body.primaryFields, ...body.secondaryFields, ...body.footerFields, ...body.backFields];
+    assert.ok(visible.every((f) => !String(f.value).includes('connect.caudals.com')), 'no link to the card');
+  }
 });

@@ -27,7 +27,7 @@ interface StageSpec {
   height: number;
   anchor: { x: number; y: number; w: number };
   dark: boolean;
-  still: { rotX: number; rotY: number; time: number; sweep?: number; presence?: number; hideCard?: boolean; grain?: number };
+  still: { rotX?: number; rotY?: number; beta?: number; gamma?: number; eyeBeta?: number; eyeGamma?: number; presence?: number; hideCard?: boolean; grain?: number };
   personId?: string;
   locale?: Locale;
   overlay?: string;
@@ -59,6 +59,43 @@ const tile = (size: number, background: string, color: string, markHeight: numbe
     `<div class="tile" style="background:${background};color:${color};border-radius:${radius}px">${markSvg('m').replace('<svg', `<svg style="height:${markHeight}px;width:auto"`)}</div>`,
   );
 
+const MARK_RATIO = 926.9 / 1053.7;
+
+/** Wallet wordmark: mark and name on a transparent 1280 × 400 canvas (Apple draws it in a 160 × 50 pt slot). */
+const wordmark = () =>
+  shell(
+    1280,
+    400,
+    `<div style="height:400px;display:flex;align-items:center;gap:58px;padding-left:36px;color:#ffffff;font-family:'Geist Variable',sans-serif">${markSvg('m').replace('<svg', '<svg style="height:250px;width:auto;flex:none"')}<span style="font-weight:500;font-size:236px;line-height:1;letter-spacing:-0.035em;transform:translateY(-6px)">Caudals</span></div>`,
+  );
+
+/**
+ * Wallet poster (iOS 27 posterGeneric, 690 × 1010): Wallet darkens it and
+ * lays the wordmark, the name, two contact lines and the QR over it, so the
+ * art stays quiet: deep ink, the card's holographic mark bleeding off the
+ * right edge and one soft reflection (no grain, to keep the pass light).
+ */
+const poster = () => {
+  const markH = 640;
+  const markW = markH * MARK_RATIO;
+  const holo = `<linearGradient id="holo" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#9fd8cc"/><stop offset="0.28" stop-color="#b5a8ec"/><stop offset="0.52" stop-color="#f0b9cf"/>
+<stop offset="0.76" stop-color="#f3dea4"/><stop offset="1" stop-color="#a5d3ee"/></linearGradient>`;
+  const mark = markSvg('m')
+    .replace('<svg', `<svg style="position:absolute;left:${690 - markW * 0.64}px;top:64px;height:${markH}px;width:${markW}px"`)
+    .replace('xmlns="http://www.w3.org/2000/svg">', `xmlns="http://www.w3.org/2000/svg"><defs>${holo}</defs>`)
+    .replaceAll('fill="currentColor"', 'fill="url(#holo)" fill-opacity="0.16" stroke="url(#holo)" stroke-opacity="0.45" stroke-width="2.5"');
+  return shell(
+    690,
+    1010,
+    `<div style="position:relative;width:690px;height:1010px;overflow:hidden;background:linear-gradient(162deg,#24241f 0%,#161614 42%,#0d0d0c 100%)">
+<div style="position:absolute;left:300px;top:90px;width:540px;height:540px;border-radius:50%;background:radial-gradient(closest-side,rgba(181,200,214,0.16),rgba(181,200,214,0) 72%)"></div>
+${mark}
+<div style="position:absolute;left:-260px;top:300px;width:1300px;height:170px;transform:rotate(-27deg);background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.055) 48%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.055) 52%,rgba(255,255,255,0))"></div>
+</div>`,
+  );
+};
+
 export function mediaPage(url: URL): string | null {
   const [, kind, a, b] = url.pathname.split('/').filter(Boolean);
   switch (kind) {
@@ -73,7 +110,7 @@ export function mediaPage(url: URL): string | null {
         height: 630,
         anchor: { x: 600, y: 322, w: 700 },
         dark: url.searchParams.get('theme') !== 'light',
-        still: { rotX: num('rotX', 0.16), rotY: num('rotY', -0.36), time: num('time', 18.5), sweep: num('sweep', 0.42) },
+        still: { rotX: num('rotX', 0.1), rotY: num('rotY', -0.3), beta: num('beta', 50), gamma: num('gamma', -6), eyeBeta: num('eyeBeta', 58), eyeGamma: num('eyeGamma', 0) },
         personId: a,
         locale,
       });
@@ -86,18 +123,12 @@ export function mediaPage(url: URL): string | null {
         height: 630,
         anchor: { x: 600, y: 318, w: 560 },
         dark: true,
-        still: { rotX: 0, rotY: 0, time: 9, hideCard: true },
+        still: { hideCard: true },
         overlay: `<div style="position:fixed;inset:0;display:grid;place-items:center;color:${PAPER};font-family:'Geist Variable',sans-serif"><div style="display:grid;justify-items:center;gap:26px">${markSvg('m').replace('<svg', '<svg style="height:92px;width:auto"')}<div style="font-size:64px;letter-spacing:-0.04em">${esc(title)}</div></div></div>`,
       });
     }
     case 'poster':
-      return stagePage({
-        width: 690,
-        height: 1010,
-        anchor: { x: 345, y: 800, w: 300 },
-        dark: true,
-        still: { rotX: 0, rotY: 0, time: 31, hideCard: true, grain: 0 },
-      });
+      return poster();
     case 'icon': {
       switch (a) {
         case 'app-512':
@@ -110,10 +141,10 @@ export function mediaPage(url: URL): string | null {
           return tile(180, INK, PAPER, 86);
         case 'favicon-32':
           return tile(32, INK, PAPER, 18, 7);
-        case 'photo':
-          return tile(256, INK, PAPER, 112);
         case 'wallet-logo':
           return tile(160, 'transparent', '#ffffff', 132);
+        case 'wallet-wordmark':
+          return wordmark();
         case 'wallet-icon':
           return tile(120, INK, '#ffffff', 64);
         default:

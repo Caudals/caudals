@@ -202,6 +202,7 @@ ${quick
 <ul class="links">
 <li><a href="${links.site(l)}" target="_blank" rel="noopener">${esc(c.about.site)}${icons.arrow}</a></li>
 <li><a href="${links.call(l)}" target="_blank" rel="noopener">${esc(c.about.call)}${icons.arrow}</a></li>
+<li><a href="${links.companyLinkedin}" target="_blank" rel="noopener">${esc(c.about.linkedin)}${icons.arrow}</a></li>
 </ul>
 </section>
 </main>

@@ -232,6 +232,9 @@ async function initStage(data: CardData) {
       },
       onInteract,
       onFlip: (back) => stage.classList.toggle('is-back', back),
+      onTiltActive: () => {
+        if (motionButton) motionButton.hidden = true;
+      },
     });
   } catch (error) {
     console.warn('connect: 3D card unavailable', error);
@@ -243,11 +246,21 @@ async function initStage(data: CardData) {
   reduced.addEventListener('change', (e) => scene?.setReducedMotion(e.matches));
 
   const touch = window.matchMedia('(pointer: coarse)').matches;
-  if (motionButton && touch && scene.tiltNeedsPermission && !reduced.matches) {
-    motionButton.addEventListener('click', async () => {
+  if (motionButton && touch && scene.tiltNeedsPermission) {
+    // iOS grants motion access only from a tap, so the first tap on the card
+    // asks as well as the button; a refusal is not asked again from the card.
+    // Tilt only moves reflections, so it stays available with Reduce Motion.
+    let asked = false;
+    const ask = async () => {
+      if (asked || scene?.tiltActive()) return;
+      asked = true;
+      if (await scene?.enableTilt()) motionButton.hidden = true;
+    };
+    stage.addEventListener('click', () => void ask());
+    motionButton.addEventListener('click', () => {
       onInteract();
-      const on = await scene?.enableTilt();
-      if (on) motionButton.hidden = true;
+      asked = false;
+      void ask();
     });
     // Offer the button only where the phone has not started reporting tilt.
     window.setTimeout(() => {

@@ -9,8 +9,8 @@ Implementation rules for the public funnel (including the `/demo` free test), th
 The event contact microsite at `connect.caudals.com` is an intentionally static
 exception to the application stack below: Vite renders every page at build
 time from `services/connect/src/site`, and a lazily loaded three.js stage
-(`src/client/scene`) draws the card and the flow field over a CSS card that is
-also the no-WebGL fallback. It keeps the public Paper palette and Geist type
+(`src/client/scene`) draws the glossy card, its shadow and the tilt-driven
+reflections over a CSS card that is also the no-WebGL fallback. It keeps the public Paper palette and Geist type
 (no italics or serif accents, by founder request) in light and dark, follows
 the phone's colour scheme and reduced-motion setting, ships no inline scripts
 or styles (strict CSP), and does not import either application root layout or

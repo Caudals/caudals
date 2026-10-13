@@ -4,6 +4,7 @@ import {
   Group,
   LinearFilter,
   LinearMipmapLinearFilter,
+  Matrix3,
   Mesh,
   NoColorSpace,
   PerspectiveCamera,
@@ -15,7 +16,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three';
-import { cardFragment, cardVertex, flowFragment, flowVertex } from './glsl.ts';
+import { backdropFragment, backdropVertex, cardFragment, cardVertex } from './glsl.ts';
 import { CARD_RATIO, drawBack, drawFront, fontsReady, type FaceData } from './textures.ts';
 
 type Rgb = readonly [number, number, number];
@@ -23,57 +24,53 @@ const hex = (h: string): Rgb => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2),
 
 interface Theme {
   bg: Rgb;
-  line: Rgb;
-  pulse: Rgb;
   glow: Rgb;
   shadow: Rgb;
-  lineAlpha: number;
-  pulseAlpha: number;
   glowAlpha: number;
   shadowAlpha: number;
-  ambient: number;
+  fill: number;
   foilBoost: number;
   base: number;
   rim: number;
+  coat: number;
 }
 
 const LIGHT: Theme = {
   bg: hex('#fafaf8'),
-  line: hex('#141413'),
-  pulse: hex('#141413'),
   glow: hex('#ffffff'),
   shadow: hex('#1c1b18'),
-  lineAlpha: 0.15,
-  pulseAlpha: 0.62,
   glowAlpha: 0,
-  shadowAlpha: 0.2,
-  ambient: 0.11,
+  shadowAlpha: 0.26,
+  fill: 1.15,
   foilBoost: 1,
   base: 0.046,
   rim: 0.05,
+  coat: 1,
 };
 
 const DARK: Theme = {
   bg: hex('#0c0c0b'),
-  line: hex('#f2f1ec'),
-  pulse: hex('#ffffff'),
   glow: hex('#f2f1ec'),
   shadow: hex('#000000'),
-  lineAlpha: 0.12,
-  pulseAlpha: 0.85,
-  glowAlpha: 0.11,
+  glowAlpha: 0.09,
   shadowAlpha: 0.6,
-  ambient: 0.08,
+  fill: 0.9,
   foilBoost: 1.1,
   base: 0.082,
   rim: 0.16,
+  coat: 1.1,
 };
 
+/** A fixed pose for share images rendered by scripts/media.mjs. */
 export interface Still {
-  rotX: number;
-  rotY: number;
-  time: number;
-  sweep?: number;
+  rotX?: number;
+  rotY?: number;
+  /** How the phone is held, in degrees, as DeviceOrientation beta/gamma. */
+  beta?: number;
+  gamma?: number;
+  /** Where the viewer's eye is, as a hold; defaults to the hold itself. */
+  eyeBeta?: number;
+  eyeGamma?: number;
   presence?: number;
   hideCard?: boolean;
   grain?: number;
@@ -91,6 +88,8 @@ export interface SceneOptions {
   onReady?: () => void;
   onInteract?: () => void;
   onFlip?: (back: boolean) => void;
+  /** Permission alone is not enough: called once a sensor delivers data. */
+  onTiltActive?: () => void;
 }
 
 export interface StageScene {
@@ -107,10 +106,21 @@ export interface StageScene {
 
 const CARD_W = 8.56;
 const CARD_H = CARD_W / CARD_RATIO;
-const SPACING_CSS = 15;
+/** A usual way to hold a phone: screen tipped back about 30° from upright. */
+const REST = { beta: 58, gamma: 0 };
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const easeOut = (x: number) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+const RAD = Math.PI / 180;
+
+/** Screen space → room, for a phone held at beta/gamma (DeviceOrientation, alpha = 0). */
+function holdMatrix(m: Matrix3, beta: number, gamma: number): Matrix3 {
+  const cb = Math.cos(beta * RAD);
+  const sb = Math.sin(beta * RAD);
+  const cg = Math.cos(gamma * RAD);
+  const sg = Math.sin(gamma * RAD);
+  return m.set(cg, 0, sg, sb * sg, cb, -sb * cg, -cb * sg, sb, cb * cg);
+}
 
 function cardShape(w: number, h: number, r: number): Shape {
   const s = new Shape();
@@ -156,48 +166,36 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
   const scene = new Scene();
   const camera = new PerspectiveCamera(24, 1, 1, 400);
 
-  const flowUniforms = {
+  const backdropUniforms = {
     uRes: { value: new Vector2(1, 1) },
     uDpr: { value: 1 },
-    uTime: { value: 0 },
-    uMotion: { value: motion },
-    uCenter: { value: new Vector2() },
-    uHalf: { value: new Vector2(1, 1) },
-    uAngle: { value: 0 },
-    uPresence: { value: 0 },
-    uPointer: { value: new Vector3() },
     uBg: { value: new Vector3() },
-    uLine: { value: new Vector3() },
-    uPulse: { value: new Vector3() },
     uGlow: { value: new Vector3() },
-    uLineAlpha: { value: 0 },
-    uPulseAlpha: { value: 0 },
     uGlowAlpha: { value: 0 },
-    uSpacing: { value: SPACING_CSS },
-    uReveal: { value: 0 },
     uShadowColor: { value: new Vector3() },
     uShadowAlpha: { value: 0 },
     uShadowOffset: { value: new Vector2() },
     uShadowBlur: { value: 40 },
     uFadeTop: { value: 1 },
     uFadeBottom: { value: 1 },
+    uPresence: { value: 0 },
+    uGrain: { value: still?.grain ?? 1 },
     uQuad: { value: [new Vector2(), new Vector2(), new Vector2(), new Vector2()] },
     uQuadRadius: { value: 0 },
-    uGrain: { value: still?.grain ?? 1 },
   };
-  const flow = new Mesh(
+  const backdrop = new Mesh(
     new PlaneGeometry(2, 2),
     new ShaderMaterial({
-      vertexShader: flowVertex,
-      fragmentShader: flowFragment,
-      uniforms: flowUniforms,
+      vertexShader: backdropVertex,
+      fragmentShader: backdropFragment,
+      uniforms: backdropUniforms,
       depthTest: false,
       depthWrite: false,
     }),
   );
-  flow.frustumCulled = false;
-  flow.renderOrder = -1;
-  scene.add(flow);
+  backdrop.frustumCulled = false;
+  backdrop.renderOrder = -1;
+  scene.add(backdrop);
 
   await fontsReady();
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -211,12 +209,14 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
     uBack: { value: back },
     uSize: { value: new Vector2(CARD_W, CARD_H) },
     uTexel: { value: new Vector2(1 / texWidth, CARD_RATIO / texWidth) },
-    uTime: { value: 0 },
-    uSweep: { value: 0 },
-    uAmbient: { value: theme.ambient },
+    uHold: { value: new Matrix3() },
+    uEye: { value: new Matrix3() },
+    uEyeDir: { value: new Vector3(0, 0, 1) },
     uFoilBoost: { value: theme.foilBoost },
     uBase: { value: theme.base },
     uRim: { value: theme.rim },
+    uCoat: { value: theme.coat },
+    uFill: { value: theme.fill },
   };
   const geometry = new ExtrudeGeometry(cardShape(CARD_W, CARD_H, 0.318), {
     depth: 0.05,
@@ -238,16 +238,13 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
   card.visible = !still?.hideCard;
 
   function applyTheme() {
-    flowUniforms.uBg.value.set(...theme.bg);
-    flowUniforms.uLine.value.set(...theme.line);
-    flowUniforms.uPulse.value.set(...theme.pulse);
-    flowUniforms.uGlow.value.set(...theme.glow);
-    flowUniforms.uShadowColor.value.set(...theme.shadow);
-    flowUniforms.uLineAlpha.value = theme.lineAlpha;
-    flowUniforms.uPulseAlpha.value = theme.pulseAlpha;
-    flowUniforms.uGlowAlpha.value = still?.hideCard ? 0 : theme.glowAlpha;
-    flowUniforms.uShadowAlpha.value = still?.hideCard ? 0 : theme.shadowAlpha;
-    cardUniforms.uAmbient.value = theme.ambient;
+    backdropUniforms.uBg.value.set(...theme.bg);
+    backdropUniforms.uGlow.value.set(...theme.glow);
+    backdropUniforms.uShadowColor.value.set(...theme.shadow);
+    backdropUniforms.uGlowAlpha.value = still?.hideCard ? 0 : theme.glowAlpha;
+    backdropUniforms.uShadowAlpha.value = still?.hideCard ? 0 : theme.shadowAlpha;
+    cardUniforms.uCoat.value = theme.coat;
+    cardUniforms.uFill.value = theme.fill;
     cardUniforms.uFoilBoost.value = theme.foilBoost;
     cardUniforms.uBase.value = theme.base;
     cardUniforms.uRim.value = theme.rim;
@@ -257,7 +254,7 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
 
   // ---- Layout: the 3D card rests exactly where the flat card sits. ----
   let maxDpr = 2;
-  let size = { w: 1, h: 1, dpr: 1, left: 0, top: 0 };
+  let size = { w: 1, h: 1, dpr: 1 };
   function layout() {
     const rect = o.stage.getBoundingClientRect();
     const w = Math.max(1, rect.width);
@@ -278,16 +275,30 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
     camera.lookAt(0, 0, 0);
     camera.setViewOffset(fullW, fullH, fullW / 2 - cx, fullH / 2 - cy, w, h);
     camera.updateProjectionMatrix();
-    size = { w, h, dpr, left: rect.left, top: rect.top };
-    flowUniforms.uRes.value.set(w * dpr, h * dpr);
-    flowUniforms.uDpr.value = dpr;
-    flowUniforms.uSpacing.value = SPACING_CSS * dpr;
-    flowUniforms.uShadowBlur.value = 38 * dpr;
-    flowUniforms.uFadeTop.value = Math.min(90, h * 0.2) * dpr;
-    flowUniforms.uFadeBottom.value = Math.min(110, h * 0.26) * dpr;
+    size = { w, h, dpr };
+    backdropUniforms.uRes.value.set(w * dpr, h * dpr);
+    backdropUniforms.uDpr.value = dpr;
+    backdropUniforms.uFadeTop.value = Math.min(90, h * 0.2) * dpr;
+    backdropUniforms.uFadeBottom.value = Math.min(110, h * 0.26) * dpr;
   }
 
-  // ---- Card silhouette for the flow field ----
+  // ---- Card pose: still on screen, like a card in the hand, except flips ----
+  let rotY = still?.rotY ?? 0;
+  let velY = 0;
+  let baseY = 0;
+  const rotX = still?.rotX ?? 0;
+
+  // ---- How the phone is held: this is what moves the reflections ----
+  const hold = { beta: still?.beta ?? REST.beta, gamma: still?.gamma ?? REST.gamma };
+  const holdTarget = { ...hold };
+  const eye = { beta: still?.eyeBeta ?? hold.beta, gamma: still?.eyeGamma ?? hold.gamma };
+  const hover = { beta: 0, gamma: 0 };
+  const holdM = new Matrix3();
+  const eyeM = new Matrix3();
+  const toScreen = new Matrix3();
+  const up = new Vector3();
+
+  // ---- Projected card outline for the shadow ----
   const corners = [
     new Vector3(-CARD_W / 2, -CARD_H / 2, 0),
     new Vector3(CARD_W / 2, -CARD_H / 2, 0),
@@ -296,7 +307,7 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
   ];
   const tmp = new Vector3();
   const pts: Vector2[] = corners.map(() => new Vector2());
-  function silhouette() {
+  function silhouette(lift: number) {
     pivot.updateMatrixWorld(true);
     const bw = size.w * size.dpr;
     const bh = size.h * size.dpr;
@@ -306,10 +317,10 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
     });
     const [p0, p1, p2, p3] = pts as [Vector2, Vector2, Vector2, Vector2];
     // Inset the corners by the card's corner radius; the shader adds it back
-    // as a rounded offset, so shadow and glow follow the rounded outline.
+    // as a rounded offset, so the shadow follows the rounded outline.
     const radius = Math.max(1, 0.0372 * ((p0.distanceTo(p1) + p3.distanceTo(p2)) / 2));
-    flowUniforms.uQuadRadius.value = radius;
-    flowUniforms.uQuad.value.forEach((q, i) => {
+    backdropUniforms.uQuadRadius.value = radius;
+    backdropUniforms.uQuad.value.forEach((q, i) => {
       const c = pts[i]!;
       const next = pts[(i + 1) % 4]!;
       const prev = pts[(i + 3) % 4]!;
@@ -321,127 +332,90 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
         c.y + ((next.y - c.y) / a) * inset + ((prev.y - c.y) / b) * inset,
       );
     });
-    const cxp = (p0.x + p1.x + p2.x + p3.x) / 4;
-    const cyp = (p0.y + p1.y + p2.y + p3.y) / 4;
-    const ux = (p1.x - p0.x + p2.x - p3.x) / 2;
-    const uy = (p1.y - p0.y + p2.y - p3.y) / 2;
-    const angle = Math.atan2(uy, ux);
-    const e1x = Math.cos(angle);
-    const e1y = Math.sin(angle);
-    let hw = 0;
-    let hh = 0;
-    for (const p of pts) {
-      const dx = p.x - cxp;
-      const dy = p.y - cyp;
-      hw = Math.max(hw, Math.abs(dx * e1x + dy * e1y));
-      hh = Math.max(hh, Math.abs(-dx * e1y + dy * e1x));
-    }
-    flowUniforms.uCenter.value.set(cxp, cyp);
-    flowUniforms.uHalf.value.set(Math.max(hw, 2 * size.dpr), Math.max(hh, 2 * size.dpr));
-    flowUniforms.uAngle.value = angle;
-    flowUniforms.uShadowOffset.value.set(10 * size.dpr, -20 * size.dpr);
+    // The room is lit from the ceiling. Seen from the phone, "up" moves as
+    // the phone tilts, and the shadow falls the other way; a card lifted
+    // mid-flip casts a longer, softer shadow.
+    up.set(0, 0, 1).applyMatrix3(toScreen.copy(holdM).transpose());
+    const reach = 20 * (1 + lift * 0.9) * size.dpr;
+    backdropUniforms.uShadowOffset.value.set(-up.x * reach + 4 * size.dpr, -up.y * reach);
+    backdropUniforms.uShadowBlur.value = 38 * (1 + lift * 0.8) * size.dpr;
   }
 
-  // ---- Motion state ----
-  let rotX = still?.rotX ?? 0;
-  let rotY = still?.rotY ?? 0;
-  let velX = 0;
-  let velY = 0;
-  let baseY = 0;
-  let hoverX = 0;
-  let hoverY = 0;
-  let tiltX = 0;
-  let tiltY = 0;
-  let pointerStrength = 0;
-  let pointerTarget = 0;
-  const pointer = new Vector2(-9999, -9999);
-  let elapsed = still?.time ?? 0;
-  let introStart = -1;
+  // ---- Touch: tap or swipe to flip, or turn the card by hand ----
+  const drag = { active: false, id: -1, x0: 0, y0: 0, ry0: 0, lastT: 0, t0: 0, moved: false, horizontal: false };
 
-  const drag = { active: false, mouse: false, id: -1, x0: 0, y0: 0, rx0: 0, ry0: 0, lastT: 0, moved: false, t0: 0 };
-
-  const toBuffer = (clientX: number, clientY: number) => {
-    const rect = o.stage.getBoundingClientRect();
-    pointer.set((clientX - rect.left) * size.dpr, (rect.height - (clientY - rect.top)) * size.dpr);
-  };
-
-  function settle() {
-    const projected = rotY + velY * 0.16;
-    const nextBase = Math.round(projected / Math.PI) * Math.PI;
-    if (Math.round(nextBase / Math.PI) % 2 !== Math.round(baseY / Math.PI) % 2) {
-      o.onFlip?.(Math.abs(Math.round(nextBase / Math.PI)) % 2 === 1);
-    }
-    baseY = nextBase;
+  function setBase(next: number) {
+    const before = Math.abs(Math.round(baseY / Math.PI)) % 2;
+    const after = Math.abs(Math.round(next / Math.PI)) % 2;
+    baseY = next;
+    if (before !== after) o.onFlip?.(after === 1);
   }
 
   function flip(direction = 1) {
-    const before = Math.abs(Math.round(baseY / Math.PI)) % 2;
-    baseY += Math.PI * direction;
-    velY += 2.2 * direction;
-    o.onFlip?.(before === 0);
+    setBase(baseY + Math.PI * direction);
+    velY += 2.4 * direction;
   }
 
   const onDown = (e: PointerEvent) => {
     if (e.button !== 0 || still) return;
     drag.active = true;
-    drag.mouse = e.pointerType === 'mouse';
     drag.id = e.pointerId;
     drag.x0 = e.clientX;
     drag.y0 = e.clientY;
-    drag.rx0 = rotX;
     drag.ry0 = rotY;
-    drag.lastT = performance.now();
-    drag.t0 = drag.lastT;
+    drag.t0 = drag.lastT = performance.now();
     drag.moved = false;
-    velY = 0;
-    pointerTarget = 1;
-    toBuffer(e.clientX, e.clientY);
+    drag.horizontal = false;
     o.onInteract?.();
   };
   const onMove = (e: PointerEvent) => {
     if (drag.active && e.pointerId === drag.id) {
-      const now = performance.now();
       const dx = e.clientX - drag.x0;
       const dy = e.clientY - drag.y0;
-      if (!drag.moved && Math.hypot(dx, dy) > 7) drag.moved = true;
-      if (drag.moved) {
-        const next = drag.ry0 + dx * 0.0095;
+      if (!drag.moved && Math.hypot(dx, dy) > 8) {
+        drag.moved = true;
+        drag.horizontal = Math.abs(dx) > Math.abs(dy);
+      }
+      if (drag.moved && drag.horizontal) {
+        const now = performance.now();
+        const next = drag.ry0 + dx * 0.0105;
         const dt = Math.max((now - drag.lastT) / 1000, 1 / 240);
         velY = velY * 0.4 + ((next - rotY) / dt) * 0.6;
         rotY = next;
-        if (e.pointerType === 'mouse') rotX = clamp(drag.rx0 + dy * 0.006, -0.7, 0.7);
+        drag.lastT = now;
       }
-      drag.lastT = now;
-      toBuffer(e.clientX, e.clientY);
       return;
     }
-    if (e.pointerType === 'mouse' && motion) {
+    if (e.pointerType === 'mouse' && !tiltSeen) {
+      // Without a gyroscope, the cursor tips the card under the room lights.
       const rect = o.stage.getBoundingClientRect();
-      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      hoverY = clamp(nx, -1, 1) * 0.26;
-      hoverX = clamp(ny, -1, 1) * 0.2;
-      toBuffer(e.clientX, e.clientY);
-      pointerTarget = 0.55;
+      const inside = e.clientY >= rect.top && e.clientY <= rect.bottom;
+      hover.gamma = inside ? clamp(((e.clientX - rect.left) / rect.width) * 2 - 1, -1, 1) * 14 : 0;
+      hover.beta = inside ? clamp(((e.clientY - rect.top) / rect.height) * 2 - 1, -1, 1) * -11 : 0;
     }
   };
   const onUp = (e: PointerEvent) => {
     if (!drag.active || e.pointerId !== drag.id) return;
     drag.active = false;
-    pointerTarget = 0;
-    const quick = performance.now() - drag.t0 < 380;
+    const quick = performance.now() - drag.t0 < 400;
     if (!drag.moved && quick && e.type === 'pointerup') {
       const rect = o.stage.getBoundingClientRect();
       flip(e.clientX - rect.left < rect.width / 2 ? -1 : 1);
-    } else {
-      settle();
+      return;
+    }
+    if (drag.moved && drag.horizontal) {
+      // Finish what the hand started: a flick or a third of a turn flips it.
+      const turned = rotY + velY * 0.16 - baseY;
+      if (Math.abs(turned) > Math.PI * 0.32) {
+        const turns = Math.max(1, Math.round(Math.abs(turned) / Math.PI));
+        setBase(baseY + Math.PI * Math.sign(turned) * turns);
+      }
     }
   };
   const onLeave = (e: PointerEvent) => {
-    if (e.pointerType === 'mouse' && !drag.active) {
-      hoverX = 0;
-      hoverY = 0;
-      pointerTarget = 0;
+    if (e.pointerType === 'mouse') {
+      hover.beta = 0;
+      hover.gamma = 0;
     }
   };
   if (!still) {
@@ -454,44 +428,69 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
 
   // ---- Device tilt ----
   type OrientationCtor = typeof DeviceOrientationEvent & { requestPermission?: () => Promise<'granted' | 'denied'> };
+  type MotionCtor = typeof DeviceMotionEvent & { requestPermission?: () => Promise<'granted' | 'denied'> };
   const Orientation = (typeof DeviceOrientationEvent !== 'undefined' ? DeviceOrientationEvent : undefined) as
     | OrientationCtor
     | undefined;
-  const tiltNeedsPermission = typeof Orientation?.requestPermission === 'function';
-  let tiltBase: { b: number; g: number } | null = null;
+  const Motion = (typeof DeviceMotionEvent !== 'undefined' ? DeviceMotionEvent : undefined) as MotionCtor | undefined;
+  const tiltNeedsPermission =
+    typeof Orientation?.requestPermission === 'function' || typeof Motion?.requestPermission === 'function';
   let tiltOn = false;
   let tiltSeen = false;
-  const onOrientation = (e: DeviceOrientationEvent) => {
-    if (e.beta == null || e.gamma == null || !motion) return;
-    tiltSeen = true;
-    let b = e.beta;
-    let g = e.gamma;
-    const angle = screen.orientation?.angle ?? 0;
+  let lastOrientation = -Infinity;
+
+  const applyTilt = (beta: number, gamma: number) => {
+    if (!Number.isFinite(beta) || !Number.isFinite(gamma)) return;
+    let b = beta;
+    let g = gamma;
+    // Older iPhone Safari exposes window.orientation rather than ScreenOrientation.
+    const angle = screen.orientation?.angle ?? (window as Window & { orientation?: number }).orientation ?? 0;
     if (angle === 90) [b, g] = [-g, b];
     else if (angle === 270 || angle === -90) [b, g] = [g, -b];
     else if (angle === 180) [b, g] = [-b, -g];
-    if (!tiltBase) tiltBase = { b, g };
-    tiltBase.b += (b - tiltBase.b) * 0.01;
-    tiltBase.g += (g - tiltBase.g) * 0.01;
-    tiltX = clamp((b - tiltBase.b) * 0.017, -0.42, 0.42);
-    tiltY = clamp((g - tiltBase.g) * 0.021, -0.5, 0.5);
+    holdTarget.beta = clamp(b, -10, 120);
+    holdTarget.gamma = clamp(g, -75, 75);
+    if (!tiltSeen) {
+      tiltSeen = true;
+      hold.beta = eye.beta = holdTarget.beta;
+      hold.gamma = eye.gamma = holdTarget.gamma;
+      hover.beta = hover.gamma = 0;
+      o.onTiltActive?.();
+    }
+  };
+  const onOrientation = (e: DeviceOrientationEvent) => {
+    if (e.beta == null || e.gamma == null) return;
+    lastOrientation = performance.now();
+    applyTilt(e.beta, e.gamma);
+  };
+  const onMotion = (e: DeviceMotionEvent) => {
+    // Some iOS contexts grant access but never report orientation; gravity
+    // still gives pitch and roll.
+    if (performance.now() - lastOrientation < 600) return;
+    const a = e.accelerationIncludingGravity;
+    if (a?.x == null || a.y == null || a.z == null || Math.hypot(a.x, a.y, a.z) < 1) return;
+    applyTilt(Math.atan2(-a.y, -a.z) / RAD, Math.atan2(a.x, Math.hypot(a.y, a.z)) / RAD);
   };
   function listenTilt() {
     if (tiltOn) return;
     tiltOn = true;
     window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('devicemotion', onMotion);
   }
   // Listen straight away: Android reports without asking, iOS stays silent
   // until enableTilt() gets permission from a tap.
-  if (!still && Orientation && motion) listenTilt();
+  if (!still && (Orientation || Motion)) listenTilt();
 
   async function enableTilt(): Promise<boolean> {
-    if (!Orientation) return false;
+    if (!Orientation && !Motion) return false;
     try {
-      if (tiltNeedsPermission) {
-        const result = await Orientation.requestPermission!();
-        if (result !== 'granted') return false;
-      }
+      // Ask for both before awaiting either: iOS needs the tap's user
+      // activation for each request.
+      const requests = [Orientation, Motion]
+        .filter((ctor) => typeof ctor?.requestPermission === 'function')
+        .map((ctor) => ctor!.requestPermission!());
+      const results = await Promise.allSettled(requests);
+      if (results.length && !results.some((r) => r.status === 'fulfilled' && r.value === 'granted')) return false;
       listenTilt();
       return true;
     } catch {
@@ -503,49 +502,52 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
   let raf = 0;
   let running = false;
   let last = performance.now();
+  let elapsed = 0;
+  let introStart = -1;
   let slow = 0;
   let frames = 0;
 
   function update(dt: number) {
     const t = elapsed;
-    flowUniforms.uTime.value = t;
-    cardUniforms.uTime.value = t;
-    const cycle = 7.5;
-    const phase = ((t - 0.4) % cycle) / 1.7;
-    cardUniforms.uSweep.value = still?.sweep ?? (motion && t > 0.4 && phase < 1 ? phase : 0);
-
     if (still) {
-      flowUniforms.uPresence.value = still.presence ?? 1;
-      flowUniforms.uReveal.value = 1;
+      backdropUniforms.uPresence.value = still.presence ?? 1;
       return;
     }
-
     if (introStart < 0) introStart = t;
-    const since = t - introStart;
-    flowUniforms.uPresence.value = motion ? easeOut((since - 0.25) / 1.5) : 1;
-    flowUniforms.uReveal.value = motion ? easeOut(since / 0.9) : 1;
+    backdropUniforms.uPresence.value = motion ? easeOut((t - introStart) / 0.9) : 1;
 
-    const idleX = motion ? Math.sin(t * 0.55) * 0.065 + Math.sin(t * 0.21 + 2.0) * 0.03 : 0;
-    const idleY = motion ? Math.sin(t * 0.41 + 1.2) * 0.11 + Math.sin(t * 0.17) * 0.05 : 0;
-    const targetX = idleX + hoverX + tiltX;
-    const targetY = baseY + idleY + hoverY + tiltY;
-    const k = 38;
-    const d = 9.5;
-    if (!(drag.active && drag.mouse && drag.moved)) {
-      velX += ((targetX - rotX) * k - velX * d) * dt;
-      rotX += velX * dt;
+    if (!tiltSeen) {
+      // No sensor: the rest pose, the cursor and a hand's slow sway.
+      const sway = motion;
+      holdTarget.beta = REST.beta + hover.beta + sway * (Math.sin(t * 0.47) * 1.6 + Math.sin(t * 0.19 + 1.1) * 0.9);
+      holdTarget.gamma = REST.gamma + hover.gamma + sway * (Math.sin(t * 0.33 + 0.6) * 2.2 + Math.sin(t * 0.13) * 1.1);
     }
-    if (!(drag.active && drag.moved)) {
-      velY += ((targetY - rotY) * k - velY * d) * dt;
+    // Smooth the sensor; the eye follows the hand only slowly, so a quick
+    // tilt moves the reflections twice as far, as on a real card.
+    const k = 1 - Math.exp(-dt * 14);
+    hold.beta += (holdTarget.beta - hold.beta) * k;
+    hold.gamma += (holdTarget.gamma - hold.gamma) * k;
+    const settle = tiltSeen ? 1 - Math.exp(-dt / 5) : 0;
+    eye.beta += (hold.beta - eye.beta) * settle;
+    eye.gamma += (hold.gamma - eye.gamma) * settle;
+
+    // Flip spring; while a finger turns the card, the finger leads.
+    if (!(drag.active && drag.moved && drag.horizontal)) {
+      velY += ((baseY - rotY) * 42 - velY * 10.5) * dt;
       rotY += velY * dt;
     }
-    pivot.position.y = motion ? Math.sin(t * 0.7) * 0.05 : 0;
-    pointerStrength += (pointerTarget - pointerStrength) * Math.min(1, dt * (pointerTarget > pointerStrength ? 10 : 2.6));
-    flowUniforms.uPointer.value.set(pointer.x, pointer.y, pointerStrength);
   }
+
   function render() {
+    const lift = Math.sin(clamp(Math.abs(rotY - baseY), 0, Math.PI));
+    pivot.position.z = lift * 0.9;
     card.rotation.set(rotX, rotY, 0);
-    silhouette();
+    holdMatrix(holdM, hold.beta, hold.gamma);
+    holdMatrix(eyeM, eye.beta, eye.gamma);
+    cardUniforms.uHold.value.copy(holdM);
+    cardUniforms.uEye.value.copy(eyeM);
+    cardUniforms.uEyeDir.value.set(0, 0, 1).applyMatrix3(eyeM).normalize();
+    silhouette(lift);
     renderer.render(scene, camera);
   }
 
@@ -620,7 +622,6 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
     },
     setReducedMotion(reduce) {
       motion = reduce ? 0 : 1;
-      flowUniforms.uMotion.value = motion;
       if (!running) render();
     },
     enableTilt,
@@ -631,6 +632,9 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('deviceorientation', onOrientation);
+      window.removeEventListener('devicemotion', onMotion);
+      o.stage.removeEventListener('pointerdown', onDown);
+      o.stage.removeEventListener('pointerleave', onLeave);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
@@ -641,4 +645,3 @@ export async function createStage(o: SceneOptions): Promise<StageScene> {
     },
   };
 }
-

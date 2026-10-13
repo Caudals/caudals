@@ -9,18 +9,28 @@ A static site: no database, no secrets at runtime, no calls to the main app.
 
 ## What is on the page
 
-- **The card.** three.js renders a black ID-1 card (85.6 × 54 mm) with a
-  holographic foil mark that breaks into colour where it catches the light,
-  and a paper back with the QR and contact details. Drag to turn it, tap to
-  flip it; on phones it follows the tilt (iOS asks for motion access from the
-  "Move it with your phone" chip).
-- **The flow.** Behind it, streamlines part around the card like water around
-  a stone (*caudal* means flow): contours of a stream function for uniform
-  flow past the projected card, plus slowly advected noise. Pulses travel
-  along the lines; a fingertip opens a hole in the field.
-- **Contact.** Save contact (vCard 3.0 with the Caudals mark as photo), then
+- **The card.** three.js renders a black ID-1 card (85.6 × 54 mm) under a
+  glossy clear coat, with a holographic foil mark whose diffraction bands
+  slide with the viewing angle, and a paper back with the QR and contact
+  details. It sits on the plain page with a soft shadow that follows it.
+- **Reflections.** Like a card held in the hand, it stays still on screen
+  while the phone's orientation (DeviceOrientation, or gravity as a fallback)
+  turns it inside a small room: thin ceiling tube lights, a broad LED panel,
+  a window and a warm lamp, plus the viewer's own silhouette. The viewer's
+  eye follows the hand only slowly, so a quick tilt moves reflections twice
+  as far, as on a real glossy card. The clear coat mirrors the lights (with a
+  little bloom and uneven lacquer), the satin stock shows them softly, the
+  foil turns holographic inside a reflection, and the shadow falls away from
+  the ceiling light. Without a gyroscope the cursor tips the card and a slow
+  hand sway keeps it alive. iOS asks for motion access on the first tap of
+  the card or from the "Move it with your phone" chip; Android needs no
+  prompt.
+- **Flip.** Tap the card to flip it to the QR side and back; a swipe or a
+  turn by hand flips it too. The card lifts slightly mid-flip.
+- **Contact.** Save contact (vCard 3.0, no photo), then
   QR, WhatsApp, Email and LinkedIn tiles; the phone and email rows below call
-  and write when tapped.
+  and write when tapped. The footer links caudals.com, Book a call and the
+  Caudals LinkedIn page.
 - **Send me your details.** A sheet that composes a message to the card owner
   and opens WhatsApp (`wa.me`) or the mail app (`mailto:`). Nothing reaches a
   server; the visitor's details are remembered in their own browser only.
@@ -58,7 +68,7 @@ src/site/        build-time HTML, routes, QR and the /__media pages
 src/client/      page behaviour and styles; scene/ holds the three.js stage
 src/sw.js        offline cache (the build fills in the file list)
 public/          favicon, icons and share images (generated, committed)
-assets/          contact photo and Wallet artwork (generated, committed)
+assets/          Wallet wordmark, icon and poster artwork (committed)
 wallet/          passes.json: Wallet serials and install links (committed)
 scripts/         media.mjs, wallet.mjs, screens.mjs, still.mjs
 test/            node:test checks over dist/ and the shared logic
@@ -77,7 +87,7 @@ npm run build        # dist/
 npm run preview      # dist/ on :4191, with the nginx short links
 npm test             # after a build
 npm run typecheck
-npm run media        # re-render share images, icons and Wallet artwork
+npm run media        # re-render share images, icons and the Wallet artwork
 npm run wallet       # create or update the Wallet passes (see below)
 ```
 
@@ -104,9 +114,13 @@ narrow them, `--new` issues fresh passes.
   month). Branding images, the poster artwork and in-place updates are Pro
   features: passes issued now keep their look, but updates after the trial
   need a paid plan or a new pass.
-- Each pass shows the permanent link as a QR, the name, role, phone and email,
-  with links on the back. iOS 27 and later draw the poster layout with the
-  flow artwork; older iOS shows the classic black card.
+- Each pass shows the Caudals wordmark, the name with the role as its label,
+  and phone and email; its QR carries the contact itself (compact vCard), so
+  scanning it saves the contact, even offline, and no link text appears on
+  the face. The back lists phone, email, WhatsApp, LinkedIn, the Caudals
+  LinkedIn page and Book a call. iOS 27 and later draw the poster layout over
+  `assets/wallet/poster.png` (the holographic mark on ink); older iOS shows
+  the classic black card.
 - The signed `.pkpass` files land in `wallet/out/` (ignored).
 
 ## Setting up your phone
@@ -115,7 +129,7 @@ Open `connect.caudals.com/setup` on the phone.
 
 1. **Wallet.** Tap *Add to Apple Wallet* under your name (Android: *Google
    Wallet*); it opens WalletWallet's install page for your pass. To show it,
-   open Wallet and tap the pass. For one-gesture access, touch and hold the
+   open Wallet and tap the pass; whoever scans its QR saves your contact. For one-gesture access, touch and hold the
    Lock Screen → Customize → add the Wallet control. The pass also appears on
    an Apple Watch paired with the phone.
 2. **Home Screen.** Open your card in Safari → Share → Add to Home Screen.

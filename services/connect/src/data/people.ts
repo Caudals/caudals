@@ -73,6 +73,7 @@ export const links = {
   tel: (p: Person) => `tel:${p.phone}`,
   mailto: (p: Person) => `mailto:${p.email}`,
   site: (l: Locale) => `https://caudals.com/${l}`,
+  companyLinkedin: 'https://www.linkedin.com/company/caudals/',
   call: (l: Locale) => (l === 'es' ? 'https://caudals.com/es/llamada' : 'https://caudals.com/en/call'),
   privacy: (l: Locale) =>
     l === 'es' ? 'https://caudals.com/es/legal/privacidad' : 'https://caudals.com/en/legal/privacy',

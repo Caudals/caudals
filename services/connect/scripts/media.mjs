@@ -1,5 +1,5 @@
-// Renders share images, app icons, the contact photo and the Wallet artwork
-// from the live scene: `npm run media`. Outputs are committed.
+// Renders share images, app icons and the Wallet logo, icon and poster
+// artwork: `npm run media`. Outputs are committed.
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,8 +22,8 @@ const jobs = [
   { path: '/__media/icon/app-maskable-512', out: 'public/icons/icon-maskable-512.png', w: 512, h: 512 },
   { path: '/__media/icon/apple-180', out: 'public/icons/apple-touch-icon.png', w: 180, h: 180 },
   { path: '/__media/icon/favicon-32', out: 'public/icons/favicon-32.png', w: 32, h: 32, transparent: true },
-  { path: '/__media/icon/photo', out: 'assets/contact-photo.png', w: 256, h: 256 },
   { path: '/__media/icon/wallet-logo', out: 'assets/wallet/logo.png', w: 160, h: 160, transparent: true },
+  { path: '/__media/icon/wallet-wordmark', out: 'assets/wallet/wordmark.png', w: 1280, h: 400, transparent: true },
   { path: '/__media/icon/wallet-icon', out: 'assets/wallet/icon.png', w: 120, h: 120 },
   { path: '/__media/poster', out: 'assets/wallet/poster.png', w: 690, h: 1010 },
 ];

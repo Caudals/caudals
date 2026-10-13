@@ -50,7 +50,6 @@ const manifest = (id: string, l: Locale): string => {
 
 /** Every generated file of the site, except the bundled assets and public/. */
 export function siteOutputs(assets: Assets): Output[] {
-  const photo = readOptional('assets/contact-photo.png')?.toString('base64');
   const wallet = loadWallet();
   const revision = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   const html = 'text/html; charset=utf-8';
@@ -60,7 +59,7 @@ export function siteOutputs(assets: Assets): Output[] {
     outputs.push({ path: `/${l}/setup/index.html`, type: html, body: setupPage(l, assets, wallet) });
     for (const p of PEOPLE) {
       outputs.push({ path: `${links.page(p, l)}index.html`, type: html, body: cardPage(p, l, assets) });
-      outputs.push({ path: links.vcard(p, l), type: 'text/vcard; charset=utf-8', body: fullVCard(p, l, { photo, revision }) });
+      outputs.push({ path: links.vcard(p, l), type: 'text/vcard; charset=utf-8', body: fullVCard(p, l, { revision }) });
       outputs.push({ path: `${links.page(p, l)}manifest.webmanifest`, type: 'application/manifest+json', body: manifest(p.id, l) });
     }
   }

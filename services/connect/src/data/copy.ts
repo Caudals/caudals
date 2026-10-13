@@ -41,7 +41,7 @@ export interface Copy {
     errContact: string;
     close: string;
   };
-  about: { label: string; statement: string; body: string; site: string; call: string };
+  about: { label: string; statement: string; body: string; site: string; call: string; linkedin: string };
   footer: { privacy: string; rights: (year: number) => string };
   qr: {
     title: string;
@@ -135,6 +135,7 @@ const es: Copy = {
     body: 'Detectamos los fallos de tu IA y trabajamos con profesionales de tu sector para crear los datos que los resuelven.',
     site: 'caudals.com',
     call: 'Reservar una llamada',
+    linkedin: 'Caudals en LinkedIn',
   },
   footer: { privacy: 'Privacidad', rights: (y) => `© ${y} Caudals` },
   qr: {
@@ -165,7 +166,7 @@ const es: Copy = {
     title: 'Tu tarjeta, siempre a mano',
     intro: 'Página interna para Mario y Alonso. No está enlazada desde las tarjetas.',
     wallet: 'Apple Wallet',
-    walletBody: 'Un pase con tu QR para enseñarlo desde Wallet, el Apple Watch o la pantalla bloqueada.',
+    walletBody: 'Un pase con tu QR: quien lo escanea guarda tu contacto al momento, incluso sin internet. Se enseña desde Wallet, el Apple Watch o la pantalla bloqueada.',
     addApple: 'Añadir a Apple Wallet',
     addGoogle: 'Google Wallet',
     walletMissing: 'Pase todavía no generado (npm run wallet).',
@@ -239,6 +240,7 @@ const en: Copy = {
     body: 'We find where your AI fails and work with professionals from your sector to create the data that fixes it.',
     site: 'caudals.com',
     call: 'Book a call',
+    linkedin: 'Caudals on LinkedIn',
   },
   footer: { privacy: 'Privacy', rights: (y) => `© ${y} Caudals` },
   qr: {
@@ -269,7 +271,7 @@ const en: Copy = {
     title: 'Your card, always at hand',
     intro: 'Internal page for Mario and Alonso. The cards do not link to it.',
     wallet: 'Apple Wallet',
-    walletBody: 'A pass with your QR, ready to show from Wallet, your Apple Watch or the Lock Screen.',
+    walletBody: 'A pass with your QR: whoever scans it saves your contact on the spot, even offline. Show it from Wallet, your Apple Watch or the Lock Screen.',
     addApple: 'Add to Apple Wallet',
     addGoogle: 'Google Wallet',
     walletMissing: 'Pass not generated yet (npm run wallet).',
