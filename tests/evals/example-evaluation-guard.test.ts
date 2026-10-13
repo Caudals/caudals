@@ -18,9 +18,17 @@ function files(directory: string): string[] {
     return statSync(join(root, path)).isDirectory() ? files(path) : /\.(ts|tsx|mjs)$/.test(name) ? [path] : [];
   });
 }
-// `evals/example/flags` only says whether the example is switched on; it holds
-// no fixture data, so reading it is not reading the example.
-const imports = (path: string) => /from\s+["'][^"']*evals\/example(?!\/flags["'])(?:\/[^"']*)?["']|import\(["'][^"']*evals\/example(?!\/flags["'])/.test(readFileSync(join(root, path), "utf8"));
+/** Every module path under lib/evals/example a file imports, statically or dynamically. */
+const exampleImports = (path: string) =>
+  [...readFileSync(join(root, path), "utf8").matchAll(/(?:from\s+|import\()["']([^"']*evals\/example(?:\/[^"']*)?)["']/g)].map((match) => match[1]);
+/**
+ * Reading the example's on/off flag is not reading the example: the flags
+ * module only reads the environment (checked below), so a route may ask
+ * whether the example is enabled (launch L-06: the per-workspace "hide the
+ * example" preference) without touching the fixtures.
+ */
+const FLAG_ONLY = /(?:^|\/)evals\/example\/flags$/;
+const imports = (path: string) => exampleImports(path).some((specifier) => !FLAG_ONLY.test(specifier));
 
 /** Every file allowed to read the example fixtures: the pages that show it and the tooling around it. */
 const READERS = new Set([
@@ -43,6 +51,16 @@ describe("example evaluation read-only guarantee", () => {
       .map((path) => relative(root, join(root, path)));
     expect(readers.filter((path) => !READERS.has(path))).toEqual([]);
     expect(readers.some((path) => path.startsWith("app/api/"))).toBe(false);
+  });
+
+  it("lets routes read only its flags, which import nothing from the example", () => {
+    // The exemption above holds only while the flags module stays environment-only.
+    const flags = readFileSync(join(root, "lib/evals/example/flags.ts"), "utf8");
+    expect([...flags.matchAll(/(?:from\s+|import\s*\(?)\s*["']([^"']+)["']/g)].map((match) => match[1])).toEqual(["server-only"]);
+    // API routes that ask for the flag read nothing else of the example.
+    const routes = files("app/api").filter((path) => exampleImports(path).length);
+    for (const path of routes) expect(exampleImports(path).every((specifier) => FLAG_ONLY.test(specifier)), path).toBe(true);
+    expect(routes).toContain("app/api/evals/v1/workspace/onboarding/route.ts");
   });
 
   it("uses identifiers that can never name a database row", () => {
