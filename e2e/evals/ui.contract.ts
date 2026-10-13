@@ -1594,69 +1594,49 @@ test("usage amendments require a reason and send the entitlement change", async 
   expect(posted[0]).toMatchObject({ targetKind: "entitlement", canSchedule: true, maxActiveRuns: 3, reason: "Monitoring subscription signed", allowedConnectionTypes: ["website", "imported_responses"] });
 });
 
-test("workspace administrators edit every allowance and refresh the saved settings", async ({ page }) => {
-  let entitlement = { max_active_runs: 1, monthly_spend_limit: "500.000000000", currency: "EUR", allowed_connection_types: ["website", "imported_responses"], can_schedule: false, can_export: true, review_allowance: 17, version: 4 };
-  const posted: Array<Record<string, unknown>> = [];
+test("workspace Settings shows Plan and limits; allowance amendments stay in ops (launch L-15)", async ({ page }) => {
+  const entitlement = { plan: "managed", max_active_runs: 3, monthly_spend_limit: "750.25", currency: "EUR", allowed_connection_types: ["website", "imported_responses"], can_schedule: true, can_export: false, review_allowance: 17, version: 4 };
   await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: { ...summaryFixture(), entitlement }, meta: {} } }));
-  await page.route("**/api/evals/v1/usage?**", (route) => route.fulfill({ json: { data: { entitlement }, meta: {} } }));
-  await page.route("**/api/evals/v1/budgets/**", (route) => {
-    const body = route.request().postDataJSON(); posted.push(body);
-    entitlement = { ...entitlement, max_active_runs: body.maxActiveRuns, monthly_spend_limit: body.monthlySpendLimit, allowed_connection_types: body.allowedConnectionTypes, can_schedule: body.canSchedule, can_export: body.canExport, review_allowance: body.reviewAllowance, version: entitlement.version + 1 };
-    return route.fulfill({ json: { data: { amendmentId: "amended" }, meta: {} } });
-  });
   await page.goto("/workspace/settings?admin");
-  await page.getByRole("button", { name: "Edit Active run allowance", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Edit workspace settings" });
-  await expect(dialog.getByLabel("Monthly machine-spend limit (EUR)")).toHaveValue("500");
-  await expect(dialog.getByLabel("Reviewed-case allowance")).toHaveValue("17");
-  await dialog.getByLabel("Active run allowance").fill("3");
-  await dialog.getByLabel("Monthly machine-spend limit (EUR)").fill("750.25");
-  await dialog.getByLabel("Website chatbot", { exact: true }).uncheck();
-  await dialog.getByLabel("OpenAI-compatible API", { exact: true }).check();
-  await dialog.getByLabel("Scheduled monitoring").check();
-  await dialog.getByLabel("Exports", { exact: true }).uncheck();
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  expect(posted).toHaveLength(0);
-  await dialog.getByLabel("Reason").fill("Client agreement updated");
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(dialog).toBeHidden();
-  await expect(page.getByText("750.25 EUR", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan and limits" })).toBeVisible();
+  await expect(page.getByText("Managed", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("3 runs at a time")).toBeVisible();
   await expect(page.getByText("Exports off", { exact: true })).toBeVisible();
   await expect(page.getByText("Scheduling on", { exact: true })).toBeVisible();
-  expect(posted).toEqual([{ targetKind: "entitlement", expectedVersion: 4, reason: "Client agreement updated", maxActiveRuns: 3, monthlySpendLimit: "750.25", allowedConnectionTypes: ["openai_compatible", "imported_responses"], canSchedule: true, canExport: false, reviewAllowance: 17 }]);
-  await page.reload();
-  await expect(page.getByText("Scheduling on", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit Allowed connections", exact: true }).click();
-  await expect(dialog.getByLabel("Active run allowance")).toHaveValue("3");
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  // Machine spend is an ops figure, not a customer's.
+  await expect(page.getByText("Spend this month", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("750.25 EUR", { exact: false })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Edit / })).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: "/tmp/caudals-workspace-settings-mobile.png" });
 });
 
 for (const role of ["owner", "editor", "viewer", "operator"]) {
   test(`workspace ${role} cannot edit administrator settings`, async ({ page }) => {
     await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture(), meta: {} } }));
     await page.goto(`/workspace/settings?${role}`);
-    await expect(page.getByText("Spend this month", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Plan and limits" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Edit (Active|Allowed|Exports|Monthly)/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Manage roles", exact: true })).toHaveCount(0);
     await expect(page.getByRole("tab", { name: "AI models" })).toHaveCount(0);
   });
 }
 
-test("administrator settings keep changes in the dialog after errors or cancelled reauthentication", async ({ page }) => {
+test("ops entitlement amendments keep changes in the dialog after errors or cancelled reauthentication", async ({ page }) => {
   const entitlement = { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["website"], can_schedule: false, can_export: true, review_allowance: 0, version: 1 };
   let requests = 0;
-  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: { ...summaryFixture(), entitlement }, meta: {} } }));
-  await page.route("**/api/evals/v1/usage?**", (route) => route.fulfill({ json: { data: { entitlement }, meta: {} } }));
+  await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));
+  await page.route("**/api/evals/v1/usage?**", (route) => route.fulfill({ json: { data: {
+    budgets: [{ id: "b", kind: "workspace", scope_id: actionOrg, currency: "EUR", ceiling: "500", settled: "12.5", reserved: "1" }],
+    entitlement, evaluations: [], amendments: [], targetCalls: { calls: 0, unknown: 0 },
+  }, meta: {} } }));
   await page.route("**/api/evals/v1/budgets/**", (route) => {
     requests++;
     return route.fulfill({ status: requests === 1 ? 409 : 403, json: { error: { code: requests === 1 ? "SETTINGS_CONFLICT" : "REAUTHENTICATION_REQUIRED" } } });
   });
-  await page.goto("/workspace/settings?admin");
-  await page.getByRole("button", { name: "Edit Exports and scheduling", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Edit workspace settings" });
+  await page.goto("/ops/platform/usage");
+  await page.getByRole("button", { name: "Amend entitlements" }).click();
+  const dialog = page.getByRole("dialog", { name: "Amend entitlements" });
   await dialog.getByLabel("Active run allowance").fill("2");
   await dialog.getByLabel("Reason").fill("New agreement");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();

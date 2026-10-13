@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { evalRequest } from "./api";
-import { Action, Badge, Check, PageHeading, SettingsRow, Status, Tabs, formatMoney } from "./primitives";
+import { Action, Badge, Check, PageHeading, SettingsRow, Status, Tabs } from "./primitives";
 import { ExampleEvaluationSetting } from "./example-evaluation-links";
 import { DpaSetting } from "./dpa-setting";
-import { Meter } from "./charts";
-import { Modal, notify } from "./overlays";
-import { EntitlementForm, type WorkspaceEntitlement } from "./entitlement-form";
-import { usePlatformAction } from "./platform-action";
+import { notify } from "./overlays";
+import { useBilling } from "./billing-state";
+import { PlanAndLimits, WorkspaceBilling } from "./workspace-billing";
 import { InvitationManager } from "./invitation-manager";
 import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
 import { ApiReference } from "./api-reference";
@@ -33,7 +32,9 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
   const router = useRouter();
   const pathname = usePathname();
   const owner = role === "owner";
-  const tabs = settingsTabs({ canManage, platformAdmin, owner });
+  // Billing and usage (launch L-15): owners and editors where the billing screens show.
+  const { summary: billing } = useBilling();
+  const tabs = settingsTabs({ canManage, platformAdmin, owner, billing: !!billing });
   const requested = params.get("tab") as Tab | null;
   const tab: Tab = tabs.some((item) => item.value === requested) ? requested! : "general";
   function select(value: Tab) {
@@ -69,13 +70,15 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
       )}
       {tab === "models" ? (
         <EngineSettings key={orgId} orgId={orgId} workspaceName={workspace.name} />
+      ) : tab === "billing" ? (
+        <WorkspaceBilling key={orgId} />
       ) : !summary ? (
         <p className="p-loading" role="status">
           <span className="p-spinner" aria-hidden="true" />
           {t("loading")}
         </p>
       ) : tab === "general" ? (
-        <General key={orgId} platformAdmin={platformAdmin} onManageRoles={() => select("members")} onSaved={reload} summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} marketingOrigin={marketingOrigin} />
+        <General key={orgId} platformAdmin={platformAdmin} onManageRoles={() => select("members")} summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} marketingOrigin={marketingOrigin} />
       ) : tab === "members" ? (
         <InvitationManager orgId={orgId} workspaceName={workspace.name} />
       ) : tab === "notifications" ? (
@@ -96,41 +99,18 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
   );
 }
 
-function General({ summary, orgId, workspaceName, role, canRename, platformAdmin, onSaved, onManageRoles, marketingOrigin }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean; platformAdmin: boolean; onSaved: () => Promise<void>; onManageRoles: () => void; marketingOrigin?: string }) {
+/**
+ * Settings → General. "Plan and limits" (launch L-15, P-13) replaces the
+ * machine-spend, run-allowance, connection and export rows: the plan and its
+ * limits in plain words, and the credit balance where billing shows. Machine
+ * spend and entitlement amendments stay in ops (/ops/platform/usage).
+ */
+function General({ summary, orgId, workspaceName, role, canRename, platformAdmin, onManageRoles, marketingOrigin }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean; platformAdmin: boolean; onManageRoles: () => void; marketingOrigin?: string }) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [editable, setEditable] = useState<WorkspaceEntitlement | null>(null);
-  const [loadError, setLoadError] = useState("");
-  const { run, pending, messages, clearError } = usePlatformAction();
-  async function edit() {
-    setEditing(true);
-    setEditable(null);
-    setLoadError("");
-    clearError();
-    try {
-      const data = await evalRequest<{ entitlement: WorkspaceEntitlement }>(`/usage?orgId=${encodeURIComponent(orgId)}`);
-      setEditable(data.entitlement);
-    } catch (value) {
-      setLoadError(value instanceof Error ? value.message : t("error"));
-    }
-  }
-  async function save(body: Record<string, unknown>) {
-    const ok = await run(() => evalRequest(`/budgets/${orgId}/amendments`, "POST", body), t("amendmentRecorded"));
-    if (ok) {
-      setEditing(false);
-      await onSaved();
-    }
-  }
-  const editAction = (label: string) => platformAdmin && (
-    <Action variant="secondary" size="sm" aria-label={`${t("edit")} ${label}`} onClick={() => void edit()} disabled={editing}>{t("edit")}</Action>
-  );
-  const { entitlement, usage } = summary;
-  const limit = Number(entitlement.monthly_spend_limit);
-  const used = Number(usage.settled) + Number(usage.outstanding);
+  const { entitlement } = summary;
   return (
     <div className="p-settings">
-      {!editing && messages}
       <SettingsRow title={t("workspace")} description={t("workspaceNameHelp")}>
         <span className="p-row p-nowrap">
           <strong>{workspaceName}</strong>
@@ -164,27 +144,14 @@ function General({ summary, orgId, workspaceName, role, canRename, platformAdmin
         </span>
       </SettingsRow>
       <DpaSetting orgId={orgId} workspaceName={workspaceName} marketingOrigin={marketingOrigin} />
-      <SettingsRow
-        title={t("spendThisMonth")}
-        description={`${t("settledSpend")}: ${formatMoney(usage.settled, entitlement.currency)} · ${t("outstandingSpend")}: ${formatMoney(usage.outstanding, entitlement.currency)}. ${t("spendHelp")}`}
-      >
-        <span className="p-row p-nowrap">
-          <Meter value={limit > 0 ? used / limit : null} label={t("spendThisMonth")} />
-          <span className="p-cell-meta">
-            {formatMoney(used, entitlement.currency)} / {formatMoney(entitlement.monthly_spend_limit, entitlement.currency)}
-          </span>
-          {editAction(t("monthlyLimit"))}
-        </span>
-      </SettingsRow>
-      <SettingsRow title={t("activeRunAllowance")} description={t("activeRunAllowanceHelp")}>
-        <span className="p-row"><strong>{entitlement.max_active_runs}</strong>{editAction(t("activeRunAllowance"))}</span>
+      <SettingsRow title={t("planAndLimits")} description={t("planAndLimitsHelp")} id="plan-and-limits">
+        <PlanAndLimits entitlement={entitlement} systems={summary.systems.length} />
       </SettingsRow>
       <SettingsRow title={t("allowedConnections")} description={t("allowedConnectionsHelp")}>
         <span className="p-row">
           {[...new Set(entitlement.allowed_connection_types.map(connectionLabel))].map((label) => (
             <Badge key={label}>{label}</Badge>
           ))}
-          {editAction(t("allowedConnections"))}
         </span>
       </SettingsRow>
       <SettingsRow title={t("exportsAndScheduling")} description={t("exportsAndSchedulingHelp")}>
@@ -195,19 +162,8 @@ function General({ summary, orgId, workspaceName, role, canRename, platformAdmin
           <Badge tone={entitlement.can_schedule ? "pass" : "neutral"} dot>
             {entitlement.can_schedule ? t("schedulingOn") : t("schedulingOff")}
           </Badge>
-          {editAction(t("exportsAndScheduling"))}
         </span>
       </SettingsRow>
-      {editing && (
-        <Modal open onOpenChange={(value) => !value && !pending && setEditing(false)} size="lg" title={t("editWorkspaceSettings")} description={t("amendmentHelp")} alert={messages}
-          footer={<>
-            <Action variant="secondary" disabled={pending} onClick={() => setEditing(false)}>{t("cancel")}</Action>
-            <Action type="submit" form="workspace-entitlement-form" disabled={pending || !editable}>{pending ? t("saving") : t("save")}</Action>
-          </>}
-        >
-          {loadError ? <Status error action={<Action variant="secondary" onClick={() => void edit()}>{t("retry")}</Action>}>{loadError}</Status> : editable ? <EntitlementForm id="workspace-entitlement-form" entitlement={editable} pending={pending} onSubmit={save} /> : <p className="p-loading" role="status">{t("loading")}</p>}
-        </Modal>
-      )}
     </div>
   );
 }

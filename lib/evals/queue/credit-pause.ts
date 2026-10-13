@@ -35,14 +35,15 @@ export async function pauseWorkflowForCredits(c: PoolClient, orgId: string, work
 
 /**
  * Resume re-queues: every workflow of the workspace paused for a billing
- * reason goes back to the queue with its paused steps. Runs and generation
+ * reason (or only the reasons given: a purchase lifts credits_exhausted, not
+ * a cap) goes back to the queue with its paused steps. Runs and generation
  * jobs paused for that reason return to their working state; a run waits in
  * the queue for its slot again.
  */
-export async function resumeCreditPausedWork(c: PoolClient, orgId: string): Promise<number> {
+export async function resumeCreditPausedWork(c: PoolClient, orgId: string, reasons: readonly CreditPauseReason[] = CREDIT_PAUSE_REASONS): Promise<number> {
   const workflows = (await c.query(`SELECT id,run_id FROM evals.execution_workflow
     WHERE org_id=$1 AND status IN ('paused','pause_requested') AND reason_code=ANY($2::text[]) ORDER BY created_at,id FOR UPDATE`,
-  [orgId, CREDIT_PAUSE_REASONS])).rows as Array<{ id: string; run_id: string }>;
+  [orgId, reasons])).rows as Array<{ id: string; run_id: string }>;
   for (const workflow of workflows) {
     await controlWorkflow(c, orgId, workflow.id, "resume");
     await c.query("UPDATE evals.execution_workflow SET reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2", [orgId, workflow.id]);

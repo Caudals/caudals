@@ -8,11 +8,13 @@
  */
 import { t } from "@/lib/evals/messages/en";
 
-export type SettingsTab = "general" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
+export type SettingsTab = "general" | "billing" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
 
-export function settingsTabs({ canManage, platformAdmin, owner }: { canManage: boolean; platformAdmin: boolean; owner: boolean }): Array<{ value: SettingsTab; label: string }> {
+/** `billing`: Billing and usage shows for this person and workspace (launch L-15; owners and editors where billing is on). */
+export function settingsTabs({ canManage, platformAdmin, owner, billing = false }: { canManage: boolean; platformAdmin: boolean; owner: boolean; billing?: boolean }): Array<{ value: SettingsTab; label: string }> {
   return [
     { value: "general", label: t("general") },
+    ...(billing ? [{ value: "billing" as const, label: t("billingAndUsage") }] : []),
     ...(canManage || platformAdmin ? [{ value: "members" as const, label: t("members") }] : []),
     { value: "notifications", label: t("notifications") },
     { value: "monitoring", label: t("monitoring") },

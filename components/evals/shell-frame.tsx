@@ -59,6 +59,8 @@ import { NotificationCenter } from "./notification-center";
 import { ExampleAvailability } from "./example-evaluation-links";
 import { OnboardingAvailability } from "./onboarding-checklist";
 import { LimitDialogHost } from "./limit-dialog";
+import { BillingProvider } from "./billing-state";
+import { BillingPill, LowBalanceBanner } from "./workspace-billing";
 import { setInterfaceLocale } from "./locale";
 import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useCrumbParent, useWorkspace, type ParentCrumb } from "./workspace-context";
@@ -67,7 +69,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean; billing?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -448,6 +450,8 @@ function SidebarBody({
       <WorkspaceSwitcher collapsed={collapsed} />
       <Nav groups={groups} collapsed={collapsed} onNavigate={onNavigate} />
       <div className="p-sidebar-foot">
+        {/* Plan and credit balance, linking to Billing (launch L-15, P-13); nothing where billing does not show. */}
+        <BillingPill collapsed={collapsed} onNavigate={onNavigate} />
         {/* A visible Help entry (launch L-22, spec §5.2 Shell); the account menu and ⌘K keep theirs. */}
         <button type="button" className="p-nav-item" title={collapsed ? t("help") : undefined} onClick={onHelp}>
           <CircleHelp />
@@ -635,7 +639,10 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
           <main id="p-main" className="p-canvas" tabIndex={-1}>
             <div className="p-page">
               <SessionExpiry>
-                <OpenHelpProvider open={openHelp}>{children}</OpenHelpProvider>
+                <OpenHelpProvider open={openHelp}>
+                  <LowBalanceBanner />
+                  {children}
+                </OpenHelpProvider>
               </SessionExpiry>
             </div>
           </main>
@@ -666,9 +673,11 @@ export function ShellFrame({
         <CrumbProvider>
           <ExampleAvailability enabled={!!features.example}>
             <OnboardingAvailability enabled={!!features.onboarding}>
-              <Frame identity={identity} expert={expert} features={features}>
-                {children}
-              </Frame>
+              <BillingProvider enabled={!!features.billing}>
+                <Frame identity={identity} expert={expert} features={features}>
+                  {children}
+                </Frame>
+              </BillingProvider>
             </OnboardingAvailability>
           </ExampleAvailability>
         </CrumbProvider>

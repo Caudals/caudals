@@ -12,7 +12,12 @@ import { authenticateCustomerToken } from "@/lib/evals/monitoring/tokens";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { idempotent } from "@/lib/evals/repositories/evidence";
 import { requirePlatformAdmin, requireRecentAuthentication } from "@/lib/evals/repositories/platform";
+import type { PoolClient } from "pg";
+import { billingUiEligible } from "./billing-ui";
 import { billingEstimatesMode } from "./config";
+import { engineBillingMode, workspaceEngineMode } from "./engine";
+import { autoRechargeCover } from "./limits";
+import { creditsToUcr } from "./units";
 import { EstimateError, estimateEvaluationRun, estimateRequestSchema } from "./estimate";
 import {
   PriceBookError, activatePriceBook, cancelPriceBook, createPriceBookDraft, getPriceBookAt, getPriceBookRevision, listPriceBookRevisions,
@@ -56,7 +61,13 @@ function idempotencyKey(request: Request) {
 
 const estimateBody = z.object({ orgId: z.uuid() }).passthrough();
 
-/** Signed-in editors (owner, editor, operator; platform admins with an audited support check). */
+/**
+ * Signed-in editors (owner, editor, operator; platform admins with an audited
+ * support check). With BILLING_ESTIMATES_ENABLED=operators, editors of a
+ * workspace where the billing screens show (L-15: the run estimate dialog) are
+ * served too. The answer adds the run gate (§6.7): whether credits are
+ * enforced for the workspace and whether auto-recharge covers a shortfall.
+ */
 export async function estimateForMember(request: Request, identity: EvalIdentity, body: unknown) {
   const mode = billingEstimatesMode();
   if (mode === "off") throw new EvalError("SCOPE_DENIED", 404);
@@ -64,11 +75,28 @@ export async function estimateForMember(request: Request, identity: EvalIdentity
   const input = estimateRequestSchema.parse(rest);
   await requireWorkspace(identity, orgId, "write");
   const membership = identity.workspaces.find(workspace => workspace.id === orgId)?.role;
-  if (mode === "operators" && !identity.platformRole && membership !== "operator") throw new EvalError("SCOPE_DENIED", 404);
-  const key = idempotencyKey(request);
   const scope = { orgId, actorId: identity.user.id };
-  return withTenant(scope, db => idempotent(db, scope, "billing-estimates", key, input, () => estimateEvaluationRun(db, orgId, input)))
-    .catch(billingApiError);
+  if (mode === "operators" && !identity.platformRole && membership !== "operator"
+    && !(await withTenant(scope, db => billingUiEligible(db, orgId)))) throw new EvalError("SCOPE_DENIED", 404);
+  const key = idempotencyKey(request);
+  return withTenant(scope, db => idempotent(db, scope, "billing-estimates", key, input, async () => {
+    const estimate = await estimateEvaluationRun(db, orgId, input);
+    return { ...estimate, gate: await runGate(db, orgId, estimate) };
+  })).catch(billingApiError);
+}
+
+/**
+ * §6.7: a run can start when available credits cover the p90 estimate, or
+ * auto-recharge covers the gap. `enforced` is false where credits are not
+ * enforced (shadow mode) or for contract workspaces, which run on their
+ * contract budget; admission (lib/billing/engine.ts admitRun) applies the same rule.
+ */
+async function runGate(db: PoolClient, orgId: string, estimate: Awaited<ReturnType<typeof estimateEvaluationRun>>) {
+  const enforced = estimate.balance?.requiresCredits === true && (await workspaceEngineMode(db, engineBillingMode(), orgId)) === "enforce";
+  const shortfallUcr = estimate.balance && !estimate.balance.coversP90 && estimate.balance.addCredits !== null
+    ? BigInt(estimate.ucr.p90) - creditsToUcr(estimate.balance.availableCredits) : BigInt(0);
+  const cover = shortfallUcr > BigInt(0) ? await autoRechargeCover(db, orgId, shortfallUcr) : null;
+  return { enforced, autoRechargeCovers: cover?.covers ?? false, autoRechargePackCredits: cover?.packCredits ?? null, canStart: !enforced || shortfallUcr <= BigInt(0) || cover?.covers === true };
 }
 
 /** A CI token (scope runs:read) for its own workspace, once estimates are open to everyone. */

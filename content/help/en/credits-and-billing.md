@@ -1,11 +1,11 @@
 ---
 title: Plans, limits and billing
-summary: What the free plan includes, what the figures in Settings mean, and where credits and paid plans stand today.
+summary: What the free plan includes, what Settings shows, and how credits, the run estimate and spending limits work where credits are on.
 keywords: [billing, credits, plan, free plan, limits, pricing, price, payment, invoice, spend, top up, pilot, subscription, upgrade]
 related: [getting-help, prepare-and-run, team-and-roles]
 owner: founder
-reviewed: 2026-10-12
-review_by: 2026-12-12
+reviewed: 2026-10-13
+review_by: 2026-12-13
 ---
 
 A workspace is either on the free plan or on a plan agreed with Caudals for a pilot or a subscription.
@@ -24,18 +24,22 @@ Scheduled runs, uploaded answers and the private runner are not part of the free
 
 ## What Settings shows {#settings}
 
-**Settings → General** shows the limits that apply to your workspace:
-
-- **Spend this month**: the processing cost Caudals records for your workspace against its monthly limit. It is a safeguard, not a bill.
-- **Active run allowance**: how many evaluations can run at the same time.
-- **Allowed connections**: the ways Caudals may reach your systems.
-- **Exports and scheduling**: whether these are switched on.
+**Settings → General** shows **Plan and limits**: your plan and what it includes, such as how many AI systems, questions per test set and runs a month, and how many runs can go at the same time. It also lists the ways Caudals may reach your systems and whether exports and scheduling are on.
 
 These are set by your plan or your agreement with Caudals; a workspace member cannot change them.
 
 ## Credits {#credits}
 
-Caudals is introducing prepaid credits for pay-as-you-go use beyond the free plan. Buying credits, a balance and usage screens are not available in the app yet, and nothing in your workspace is charged in credits today. This article will explain them when they are. Until then, our [Terms of Service](https://caudals.com/en/legal/terms) describe how credits will work.
+Caudals is introducing prepaid credits for pay-as-you-go use, workspace by workspace. Where credits are on for your workspace, Settings has a **Billing and usage** tab and the sidebar shows your plan and balance. Elsewhere nothing is charged in credits.
+
+- **1 credit = €0.01 excluding VAT.** Credits pay for completed work only: engine tokens, each question your system answers, pages and documents read. Failed, retried and cancelled calls are free.
+- **Before every run** you see an estimate, for example "About 270–340 credits (≈ €2.70–€3.40). You have 1,820." The range is what most runs like this one cost; the higher figure must be covered before the run starts, unless auto-recharge will cover the gap.
+- **While a run works**, a few credits are held for the call in progress and released when it finishes. You pay what the call used, never more than was held.
+- **If credits run out**, the run pauses with "Paused — add credits to continue". Add credits and it continues by itself.
+- **Limits.** Owners can set a monthly credit limit and a per-run limit (twice the run's estimate unless they change it). A run that reaches a limit pauses until an owner raises it.
+- **Alerts.** Owners get an email and everyone who sees the balance gets a notice when it is low, when credits are about to expire and when a limit is near. Choose which emails you get in Settings → Notifications.
+
+Owners see everything in Billing and usage; editors see the balance and usage; viewers do not see billing. Purchased credits and their bonus are valid for 24 months, and the monthly free credits until the end of the month. Our [Terms of Service](https://caudals.com/en/legal/terms) describe how credits work.
 
 ## Pilots and subscriptions {#managed}
 

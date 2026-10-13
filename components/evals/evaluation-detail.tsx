@@ -6,7 +6,7 @@
  * switching devices never loses progress (spec §5.2, §5.3).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowRight, Download, FileCheck2, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
+import { Activity, ArrowRight, CreditCard, Download, FileCheck2, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest, EvalRequestError } from "./api";
@@ -41,6 +41,10 @@ import { reviewModeForPlan } from "@/lib/evals/review/spot-check";
 import { FirstEvaluationPanel, OnboardingWelcome, useFirstEvaluation, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { HelpLink } from "./help";
 import { evaluationStage, stepStates } from "./evaluation-stage";
+import { formatCredits, useBilling } from "./billing-state";
+import { ModelRates, RunEstimateDialog } from "./run-estimate-dialog";
+import { TopUpDialog } from "./billing-top-up";
+import { billingHref } from "./workspace-billing";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import type { HelpContextKey } from "@/lib/evals/help/articles";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
@@ -81,6 +85,10 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
   const [caseCount, setCaseCount] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  // Billing (launch L-15): the estimate before a run and the top-up from a run paused for credits.
+  const { summary: billing } = useBilling();
+  const [estimateOpen, setEstimateOpen] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
   const controls = useEvaluationControls(orgId, evaluationId, canWrite, reload);
   const [actionError, setActionError] = useState<{ message: string; help: string } | null>(null);
   const startKey = useRef(crypto.randomUUID());
@@ -172,23 +180,35 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
 
   const fail = useCallback((value: unknown) => {
     if (value instanceof EvalRequestError && value.code === "BUDGET_PAUSED") setActionError({ message: t("budgetPaused"), help: t("budgetPausedHelp") });
+    else if (value instanceof EvalRequestError && (value.code === "CREDITS_EXHAUSTED" || value.code === "CAP_REACHED")) setActionError({ message: value.message, help: t(value.code === "CAP_REACHED" ? "capReachedHelp" : "creditsExhaustedHelp") });
     else if (value instanceof EvalRequestError && value.code === "CONNECTION_UNSUPPORTED") setActionError({ message: t("unsupportedConnection"), help: t("unsupportedConnectionHelp") });
     else setActionError({ message: value instanceof Error ? value.message : t("error"), help: t("actionFailedHelp") });
   }, []);
 
+  /** Starts the run; throws what the API answered (the estimate dialog shows it). */
+  async function launch() {
+    if (!evaluation) return;
+    await evalRequest(`/evaluations/${evaluationId}/start`, "POST", { orgId, ...(system ? { targetRevisionId: system.target_revision_id } : {}) }, startKey.current);
+    startKey.current = crypto.randomUUID();
+    await reload();
+  }
   async function start() {
     if (!evaluation) return;
     setPending(true);
     setActionError(null);
     try {
-      await evalRequest(`/evaluations/${evaluationId}/start`, "POST", { orgId, ...(system ? { targetRevisionId: system.target_revision_id } : {}) }, startKey.current);
-      startKey.current = crypto.randomUUID();
-      await reload();
+      await launch();
     } catch (value) {
       fail(value);
     } finally {
       setPending(false);
     }
+  }
+  /** Where billing shows (L-15), every run starts from its estimate; elsewhere it starts at once. */
+  function requestStart() {
+    setActionError(null);
+    if (billing) setEstimateOpen(true);
+    else void start();
   }
   async function cancel() {
     if (!latestRunId) return;
@@ -355,7 +375,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
         {system && <div className="p-row"><strong>{system.title}</strong><Badge>{connectionLabel(system.document.kind)}</Badge><ActionLink variant="secondary" href={withOrg(`/workspace/systems?system=${system.id}`)}>{t("manageConnection")}</ActionLink></div>}
         {system && <ConnectionHealth system={system} orgId={orgId} onChecked={reload} fixHref={withOrg(`/workspace/systems?system=${system.id}&fix=1`)} />}
         {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} />}
-        {platformAdmin && <EvaluationModels expanded orgId={orgId} evaluationId={evaluationId} />}
+        {platformAdmin ? <EvaluationModels expanded orgId={orgId} evaluationId={evaluationId} /> : <ModelRates evaluationId={evaluationId} />}
         <div className="p-row"><Action variant="secondary" onClick={() => setConnectOpen(false)}>{t("backToEvaluation")}<ArrowRight aria-hidden="true" /></Action></div>
       </Panel>}
 
@@ -384,7 +404,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
       <div hidden={connectOpen}>
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
-          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} reviewMode={reviewModeForPlan(summary.entitlement.plan)} onRun={start} />
+          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} reviewMode={reviewModeForPlan(summary.entitlement.plan)} onRun={async () => requestStart()} />
         ) : (
           <Panel title={stage.label} live={stage.live}>
             <p>{t("viewerPreparationHelp")}</p>
@@ -402,7 +422,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
           </p>
           {canWrite ? (
             <div className="p-row">
-              <Action onClick={() => void start()} disabled={pending}>
+              <Action onClick={requestStart} disabled={pending}>
                 <Play aria-hidden="true" />
                 {pending ? t("starting") : t("runEvaluation")}
               </Action>
@@ -433,6 +453,10 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
             </div>
           )}
         </Panel>
+      ) : runStatus === "paused" && billing && (run.run.reason_code === "credits_exhausted" || run.run.reason_code === "cap_reached") ? (
+        <CreditPausedPanel reason={run.run.reason_code} answered={counts.answered} total={counts.total} canWrite={canWrite} pending={pending || controls.pending}
+          canResume={!!controls.state?.actions.includes("resume")} onResume={() => void controls.apply("resume")} onTopUp={() => setTopUpOpen(true)}
+          onFinish={() => void cancel()} pipeline={<RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running={false} paused />} />
       ) : runStatus === "paused" ? (
         <Panel title={t("runPausedTitle")} help="run">
           <p>
@@ -492,7 +516,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
             <p>{run.run.reason_code ? `${humanize(run.run.reason_code)}. ` : ""}{t("runFailedHelp")}</p>
             {canWrite && (
               <div className="p-row">
-                <Action variant="secondary" onClick={() => void start()} disabled={pending}>
+                <Action variant="secondary" onClick={requestStart} disabled={pending}>
                   <RotateCcw aria-hidden="true" />
                   {t("runAgain")}
                 </Action>
@@ -520,7 +544,52 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
         )
       ) : null}
       </div>
+      {estimateOpen && (
+        <RunEstimateDialog open onClose={() => setEstimateOpen(false)} evaluationId={evaluationId} targetRevisionId={system?.target_revision_id ?? null}
+          onStart={launch} onChangeModels={platformAdmin ? () => setConnectOpen(true) : undefined} />
+      )}
+      {topUpOpen && <TopUpDialog orgId={orgId} open onClose={() => setTopUpOpen(false)} returnTo={`/workspace/evaluations/${evaluationId}?orgId=${orgId}`} />}
     </>
+  );
+}
+
+/**
+ * A run paused for billing (L-11 pause path, L-15 screen): "Paused — add credits
+ * to continue" with a one-step top-up for owners (the run continues by itself
+ * once the credits arrive) and resume; or a spending cap, with the way to
+ * the limits.
+ */
+function CreditPausedPanel({ reason, answered, total, canWrite, pending, canResume, onResume, onTopUp, onFinish, pipeline }: {
+  reason: "credits_exhausted" | "cap_reached"; answered: number; total: number; canWrite: boolean; pending: boolean; canResume: boolean;
+  onResume: () => void; onTopUp: () => void; onFinish: () => void; pipeline: React.ReactNode;
+}) {
+  const { summary } = useBilling();
+  const { withOrg } = useWorkspace();
+  const owner = summary?.level === "owner";
+  const canBuy = owner && summary?.payments?.access !== "closed";
+  const credits = reason === "credits_exhausted";
+  return (
+    <Panel title={credits ? t("creditsPausedTitle") : t("capPausedTitle")} help="billing">
+      <p>
+        {t("runPausedProgress").replace("{done}", String(answered)).replace("{total}", String(total))}{" "}
+        {credits ? (canBuy ? t("creditsPausedOwner") : t("creditsPausedEditor")) : owner ? t("capPausedOwner") : t("capPausedEditor")}
+      </p>
+      {summary && <p className="p-cell-meta" data-testid="paused-balance">{t("billingBalance")}: <strong>{formatCredits(summary.balance.availableUcr)}</strong></p>}
+      {pipeline}
+      {canWrite && (
+        <div className="p-row">
+          {credits && canBuy && <Action onClick={onTopUp} data-testid="paused-add-credits"><CreditCard aria-hidden="true" />{t("billingAddCredits")}</Action>}
+          {!credits && owner && <ActionLink href={billingHref(withOrg, "limits")}>{t("estimateReviewLimits")}</ActionLink>}
+          <Action variant={(credits && canBuy) || (!credits && owner) ? "secondary" : "primary"} onClick={onResume} disabled={pending || !canResume}>
+            <Play aria-hidden="true" />{t("resumeRun")}
+          </Action>
+          <Action variant="ghost" onClick={onFinish} disabled={pending}>
+            <Square aria-hidden="true" />
+            {answered ? t("finishRun").replace("{n}", String(answered)) : t("finishRunNone")}
+          </Action>
+        </div>
+      )}
+    </Panel>
   );
 }
 

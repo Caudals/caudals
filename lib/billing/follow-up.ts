@@ -13,6 +13,7 @@ import { CheckoutError, openCheckout } from "./checkout";
 import { sendAutoRechargeFailure, sendReceipt, receiptLocale } from "./emails";
 import { createTopUpOrder, recordPaymentDetails, type TopUpOrder } from "./payments";
 import { chargeCard, isLivemode, retrievePaymentIntent } from "./stripe";
+import { resumeAfterCredits } from "./settlement";
 import { normalizeTaxId } from "./tax";
 
 /** Tax IDs entered at Checkout, normalised, with and without an "ES" prefix. */
@@ -45,6 +46,8 @@ export async function afterPayment(order: TopUpOrder, context: { stripe: Stripe;
   } catch {
     console.error(JSON.stringify({ event: "billing_payment_details_failed", order: order.id }));
   }
+  // Runs paused for credits continue (L-15); then the receipt.
+  if (current.purchaseEntryId) await resumeAfterCredits(current.orgId, context.actorId, context.pool);
   await sendReceipt(current, card, context.pool);
   return current;
 }

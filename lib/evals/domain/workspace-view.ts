@@ -71,8 +71,13 @@ export function customerWorkspaceView(value: Summary) {
       n_eligible: item.n_eligible,
     })),
     entitlement: {
-      // The plan decides the review mode (launch L-22) and is shown on Home.
+      // The plan decides the review mode (launch L-22), is shown on Home and with its caps in
+      // Settings → General (launch L-15: plan and limits, never money).
       plan: value.entitlement.plan,
+      max_systems: value.entitlement.max_systems,
+      max_tests_per_set: value.entitlement.max_tests_per_set,
+      max_runs_per_month: value.entitlement.max_runs_per_month,
+      max_members: value.entitlement.max_members,
       max_active_runs: value.entitlement.max_active_runs,
       monthly_spend_limit: value.entitlement.monthly_spend_limit,
       currency: value.entitlement.currency,

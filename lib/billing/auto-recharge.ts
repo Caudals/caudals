@@ -17,7 +17,7 @@ import type Stripe from "stripe";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { attachPaymentIntent, autoRechargeDue, claimAutoRecharge, getStripeCustomer, type TopUpOrder } from "./payments";
 import { paymentsAccessFor } from "./payments-config";
-import { settleFailure, settlePayment } from "./settlement";
+import { resumeAfterCredits, settleFailure, settlePayment } from "./settlement";
 import { chargeOffSession, getStripe, isLivemode, offSessionPaymentMethod, outcomeOf, type OffSessionOutcome } from "./stripe";
 
 export interface AutoRechargeTick { workspaces: number; charged: number; succeeded: number; failed: number; pending: number }
@@ -41,6 +41,7 @@ async function apply(order: TopUpOrder, outcome: OffSessionOutcome, customerId: 
     orgId: order.orgId, orderId: order.id, livemode: intent.livemode, amountCents: intent.amount_received, currency: intent.currency,
     paymentIntentId: intent.id, customerId,
   }, actorId, pool);
+  await resumeAfterCredits(order.orgId, actorId, pool);
   tick.succeeded++;
 }
 

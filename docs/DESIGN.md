@@ -182,6 +182,7 @@ The content measure is wide on purpose: these are evidence tables with four to s
 | `Loading` | `.p-status` + spinner | Indeterminate wait, reads as a sentence |
 | `Progress` | `.p-progress` | Determinate, needs `label` |
 | `Stat` / `StatGrid` | `.p-stat` | `label`, `value`, `meta`, `hero` |
+| `DayBars` (charts) | `.p-daybars` | One value per day, one series: ≤ 24px columns from a hairline baseline, only the peak labelled, every value in the tooltip and the table beneath (L-15) |
 | `DefinitionList` | `.p-defs` | Term/value rows |
 | `Field` / `TextArea` / `SelectField` | `.p-field` | Label always present, `hint` optional |
 | `InlineSelect` | `.p-toolbar-label` + `.p-field` | Toolbar-width select |
@@ -358,6 +359,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-13 | Billing and usage (L-15): `DayBars` (one series in `--p-chart-1`, ≤ 24px columns, 2px gaps, only the peak labelled, a table under it), the sidebar plan-and-balance pill (a nav row), the low-balance banner, the run estimate (`.p-estimate`: facts as a definition list, the cost as one subtitle-size sentence), model rates; figures under billing stats use `--p-text-secondary` for contrast. |
 | 2026-10-13 | Help centre, API reference and methodology (L-20): `HelpLink`, `HelpBody` prose (`.p-article`), the help list (`.p-help-item`), `CodeBlock` and the API reference blocks (`.p-api-*`); the Paper methodology page in §13. |
 | 2026-10-13 | Public site refresh (L-30): step 1 and FAQ name the free test, the closing card's pilot line, sector heroes' pilot link, the footer's Trust column, the five-field contact form, the call agenda and confirmation, the 404's test pill; the Settings DPA row (platform kit). |
 | 2026-10-12 | Report v2 and share page (L-17): `.p-summary` with next steps, `.p-fixes`, `.p-share-intro` and `.p-share-cta`; whole-percent headline. |

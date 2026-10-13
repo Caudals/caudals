@@ -157,14 +157,35 @@ describe.skipIf(!ownerUrl || !runtimeUrl || !schedulerUrl)("lifecycle email and 
     expect(candidates.map((row) => row.user_id)).not.toContain(o.userId);
   });
 
-  it("excludes staff, deleted workspaces and paid plans from the sequence", async () => {
-    const staff = await owner_(), deleted = await owner_(), managed = await owner_(), member = await owner_();
+  it("excludes staff, deleted workspaces and managed or partner plans; keeps pay as you go (migration 109)", async () => {
+    const staff = await owner_(), deleted = await owner_(), managed = await owner_(), partner = await owner_(), payg = await owner_(), member = await owner_();
     await owner.query("INSERT INTO evals.platform_role(user_id,role) VALUES($1,'operator')", [staff.userId]);
     await owner.query("UPDATE evals.workspace SET deleted_at=now() WHERE id=$1", [deleted.orgId]);
     await owner.query("UPDATE evals.workspace_entitlement SET plan='managed' WHERE org_id=$1", [managed.orgId]);
-    const ids = (await withTenant({ orgId: "", actorId: "service:evals-scheduler" }, async (db) => (await db.query("SELECT user_id FROM evals.lifecycle_email_candidates(1000)")).rows)).map((row) => row.user_id);
+    await owner.query("UPDATE evals.workspace_entitlement SET plan='partner' WHERE org_id=$1", [partner.orgId]);
+    // A free workspace that bought credits moves to pay as you go (093) and stays in the sequence (L-15).
+    await owner.query("UPDATE evals.workspace_entitlement SET plan='payg' WHERE org_id=$1", [payg.orgId]);
+    const candidates = async () => (await withTenant({ orgId: "", actorId: "service:evals-scheduler" }, async (db) => (await db.query("SELECT user_id FROM evals.lifecycle_email_candidates(1000)")).rows)).map((row) => row.user_id);
+    const ids = await candidates();
     expect(ids).toContain(member.userId);
-    for (const excluded of [staff, deleted, managed]) expect(ids).not.toContain(excluded.userId);
+    expect(ids).toContain(payg.userId);
+    for (const excluded of [staff, deleted, managed, partner]) expect(ids).not.toContain(excluded.userId);
+    // The 109 rollback restores the free-only cohort (checked in a transaction, then undone).
+    const down = (await readFile(new URL("../../db/rollbacks/109_evals_lifecycle_payg_down.sql", import.meta.url), "utf8")).replace(/^BEGIN;$/m, "").replace(/^COMMIT;$/m, "");
+    const client = await owner.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(down);
+      await client.query("SET LOCAL ROLE evals_scheduler");
+      await client.query("SELECT set_config('evals.actor_id','service:evals-scheduler',true),set_config('evals.org_id','',true)");
+      const restored = (await client.query("SELECT user_id FROM evals.lifecycle_email_candidates(1000)")).rows.map((row) => row.user_id);
+      expect(restored).toContain(member.userId);
+      expect(restored).not.toContain(payg.userId);
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+    expect(await candidates()).toContain(payg.userId);
   });
 
   it("saves email categories per person, keeps the legacy switch meaning, and routes notices by category and language", async () => {

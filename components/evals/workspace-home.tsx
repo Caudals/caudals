@@ -19,6 +19,8 @@ import { connectionLabel, evaluationRows, useWorkspaceSummary, type WorkspaceSum
 import { nextStep } from "./evaluation-stage";
 import { HEALTH_LABEL, scoreHistory, systemHealth, trendPoints, type ScorePoint } from "@/lib/evals/workspace/health";
 import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { useBilling } from "./billing-state";
+import { PlanBalance } from "./workspace-billing";
 
 /** At most this many rows per card; the rest are one link away. */
 const LIMIT = 6;
@@ -237,8 +239,11 @@ function NextRun({ summary }: { summary: WorkspaceSummary }) {
 
 /* ------------------------------------------------------------------ plan --- */
 
-function PlanCard({ summary, balance }: { summary: WorkspaceSummary; balance: ReactNode }) {
+function PlanCard({ summary, balance: given }: { summary: WorkspaceSummary; balance: ReactNode }) {
   const { withOrg } = useWorkspace();
+  // Launch L-15: the balance from the billing summary, where billing shows.
+  const { summary: billing } = useBilling();
+  const balance = given ?? (billing ? <PlanBalance /> : null);
   const plan = summary.entitlement.plan ?? null;
   return (
     <HomeCard id="home-plan" title={t("homePlan")} icon={<FileText />} action={<Link className="p-link" href={withOrg("/workspace/settings?tab=general")}>{t("homePlanDetails")}</Link>}>

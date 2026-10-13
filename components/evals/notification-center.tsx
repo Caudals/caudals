@@ -3,16 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, Bell, BellRing, Check, CheckCircle2, CircleDot, Loader2, MessageCircleQuestion, RefreshCw } from "lucide-react";
+import { AlertTriangle, Bell, BellRing, Check, CheckCircle2, CircleDot, CreditCard, Loader2, MessageCircleQuestion, RefreshCw } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, Chip, EmptyState, Progress, Status, Tabs, formatDate, relativeTime } from "./primitives";
 import { SidePanel, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Notice = {
-  id: string; kind: string; category: "completion" | "required_input" | "failure" | "progress"; created_at: string; read: boolean;
-  payload: { evaluationId?: string; evaluationTitle?: string; subjectTitle?: string; reportId?: string; reasonCode?: string; exportKind?: string; runId?: string; supersedes?: string | null; pass?: number | null; scored?: number | null };
+  id: string; kind: string; category: "completion" | "required_input" | "failure" | "progress" | "billing"; created_at: string; read: boolean;
+  payload: { evaluationId?: string; evaluationTitle?: string; subjectTitle?: string; reportId?: string; reasonCode?: string; exportKind?: string; runId?: string; supersedes?: string | null; pass?: number | null; scored?: number | null;
+    // Billing notices (launch L-15): whole credits.
+    balance?: number; threshold?: number; cap?: number; percent?: number; scope?: "monthly" | "run"; credits?: number; expiresAt?: string; amountCents?: number; average?: number };
 };
 type Cursor = { createdAt: string; id: string };
 type NoticePage = { notifications: Notice[]; unread: number; nextCursor: Cursor | null };
@@ -40,6 +42,9 @@ const KIND_LABEL: Record<string, MessageKey> = {
   document_failed: "noticeDocumentFailed", export_failed: "noticeExportFailed", monitor_regression: "noticeMonitorRegression", monitor_inconclusive: "noticeMonitorInconclusive",
   run_canceled: "noticeRunCanceled", website_started: "noticeWebsiteStarted", generation_started: "noticeGenerationStarted", run_started: "noticeRunStarted",
   auto_recharge_failed: "noticeAutoRechargeFailed",
+  // Billing notices (launch L-15).
+  auto_recharge_succeeded: "noticeAutoRechargeSucceeded", low_balance: "noticeLowBalance", cap_reached: "noticeCapReached",
+  credits_expiring: "noticeCreditsExpiring", unusual_spend: "noticeUnusualSpend",
 };
 const JOB_LABEL: Record<Job["type"], MessageKey> = { website: "jobWebsite", document: "jobDocument", generation: "jobGeneration", run: "jobRun", export: "jobExport" };
 export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["payload"] }) {
@@ -47,17 +52,35 @@ export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["p
   const key = KIND_LABEL[notice.kind];
   return key ? t(key) : notice.kind.replaceAll("_", " ");
 }
+const count = (value: number | undefined) => new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB").format(Number(value ?? 0));
+function billingDetail(notice: Notice): string | null {
+  const p = notice.payload;
+  switch (notice.kind) {
+    case "low_balance": return tv("noticeLowBalanceDetail", { balance: count(p.balance), threshold: count(p.threshold) });
+    case "cap_reached": return p.scope === "run" ? tv("noticeCapRunDetail", { cap: count(p.cap) }) : tv("noticeCapMonthDetail", { percent: p.percent ?? 100, cap: count(p.cap) });
+    case "credits_expiring": return tv("noticeCreditsExpiringDetail", { credits: count(p.credits), date: formatDate(p.expiresAt ?? null) });
+    case "auto_recharge_succeeded": return tv("noticeAutoRechargeSucceededDetail", { credits: count(p.credits) });
+    case "unusual_spend": return tv("noticeUnusualSpendDetail", { credits: count(p.credits), average: count(p.average) });
+    default: return null;
+  }
+}
 function noticeDetail(notice: Notice) {
+  if (notice.category === "billing") return billingDetail(notice) ?? "";
   const score = notice.kind === "report_published" && typeof notice.payload.scored === "number" && notice.payload.scored > 0
     ? tv("answersCorrectOf", { pass: notice.payload.pass ?? 0, scored: notice.payload.scored }) : null;
   return [notice.payload.subjectTitle, notice.payload.evaluationTitle, score].filter(Boolean).join(" · ");
 }
 function noticeHref(notice: Notice, withOrg: (href: string) => string) {
+  if (notice.category === "billing") {
+    const view = notice.kind === "cap_reached" ? "&view=limits" : notice.kind === "low_balance" || notice.kind === "auto_recharge_failed" ? "&view=top-up" : notice.kind === "unusual_spend" ? "&view=usage" : "";
+    return withOrg(`/workspace/settings?tab=billing${view}`);
+  }
   if (notice.payload.reportId) return withOrg(`/workspace/reports/${notice.payload.reportId}`);
   if (notice.payload.evaluationId) return withOrg(`/workspace/evaluations/${notice.payload.evaluationId}`);
   return null;
 }
 function NoticeIcon({ category }: { category: Notice["category"] }) {
+  if (category === "billing") return <CreditCard aria-hidden="true" />;
   if (category === "failure") return <AlertTriangle aria-hidden="true" />;
   if (category === "required_input") return <MessageCircleQuestion aria-hidden="true" />;
   if (category === "progress") return <CircleDot aria-hidden="true" />;

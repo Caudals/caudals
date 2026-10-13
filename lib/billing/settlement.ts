@@ -15,6 +15,7 @@ import { sanitizeAttribution } from "@/lib/analytics/events";
 import { findPack } from "./packs";
 import { getOrder, recordPaymentFailure, recordPurchase, stripeEventFinish, type TopUpOrder } from "./payments";
 import { plansV2For } from "./overrides";
+import { resumeCreditPausedWork } from "../evals/queue/credit-pause";
 
 export const WEBHOOK_ACTOR = "system:stripe-webhook";
 export const SYNC_ACTOR = "system:stripe-sync";
@@ -76,4 +77,24 @@ export async function settleFailure(input: { orgId: string; orderId: string; pay
     if (input.eventId) await stripeEventFinish(db, input.eventId, "processed", "payment_failed", input.orgId, input.orderId);
     return order;
   }, pool);
+}
+
+/**
+ * After credits arrive (a paid top-up or auto-recharge, launch L-15): work the
+ * workspace paused for `credits_exhausted` goes back to the queue, so "add
+ * credits to continue" needs no second click. A cap pause stays: credits do
+ * not lift a cap. Its own transaction, after the purchase committed (the
+ * workflow locks come after the account lock nowhere else); best effort.
+ */
+export async function resumeAfterCredits(orgId: string, actorId: string, pool?: Pool): Promise<number> {
+  try {
+    return await withTenant({ orgId, actorId }, db => resumeCreditPausedWork(db, orgId, ["credits_exhausted"]), pool);
+  } catch (error) {
+    const sqlstate = (error as { code?: unknown } | null)?.code;
+    const code = typeof sqlstate === "string" && /^[0-9A-Z]{5}$/.test(sqlstate) ? `sqlstate_${sqlstate}`
+      : error instanceof Error && /^[a-z_]{3,60}$/.test(error.message) ? error.message : "unknown";
+    const constraint = (error as { constraint?: unknown } | null)?.constraint;
+    console.error(JSON.stringify({ event: "billing_resume_after_credits_failed", org: orgId, code, ...(typeof constraint === "string" ? { constraint } : {}) }));
+    return 0;
+  }
 }

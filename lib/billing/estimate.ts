@@ -399,10 +399,41 @@ export async function estimateEvaluationRun(db: PoolClient, orgId: string, raw: 
     } : null,
     models: Object.fromEntries(Object.entries(roles).map(([role, model]) => [role, {
       modelId: model!.modelId, free: model!.free, priced: model!.free || model!.tiers.length > 0, rate: model!.tiers[0]?.label ?? null,
+      // Credits per 1M input and output tokens at the lowest prompt-size tier (L-15: rates beside each model).
+      credits: model!.tiers[0] ? { input: ucrToCredits(model!.tiers[0].inputUcrPerM), output: ucrToCredits(model!.tiers[0].outputUcrPerM) } : null,
       webResearch: model!.webResearch, statsSource: model!.stats.source, samples: model!.stats.samples,
     }])),
     lines: result.lines.map(line => ({ ...line, p50Ucr: line.p50Ucr.toString(), p90Ucr: line.p90Ucr.toString() })),
     unpriced: result.unpriced,
     estimatedAt: now.toISOString(),
+  };
+}
+
+/**
+ * The models an evaluation's next run would use, per engine role, with their
+ * credit rates in the revision in effect, plus the priced catalog and the
+ * platform meters (launch L-15: credit rates beside the model picker). The
+ * price list is the spec's public §6.4 table; nothing here is per customer.
+ */
+export async function evaluationModelRates(db: PoolClient, orgId: string, evaluationId: string | null, now: Date = new Date()) {
+  const book = await getPriceBookAt(db, now);
+  if (!book) throw new EstimateError("PRICE_BOOK_MISSING", "No price book is in effect.");
+  const credits = (ucr: bigint) => ucrToCredits(ucr);
+  let roles: Array<{ role: EngineRole; modelId: string; label: string | null; free: boolean; input: string | null; output: string | null }> = [];
+  if (evaluationId) {
+    const evaluation = (await db.query("SELECT id FROM evals.evaluation WHERE org_id=$1 AND id=$2 AND archived_at IS NULL", [orgId, evaluationId])).rows[0];
+    if (!evaluation) throw new EstimateError("SCOPE_DENIED", "Evaluation not found.");
+    const routes = await modelRoutes(db, orgId, evaluationId, undefined);
+    roles = ENGINE_ROLES.filter(role => routes.has(role)).map(role => {
+      const route = routes.get(role)!;
+      const tier = tiersFor(book.models, route.provider, route.model_key)[0];
+      return { role, modelId: route.model_id, label: tier?.label ?? null, free: route.free_model, input: tier ? credits(tier.inputUcrPerM) : null, output: tier ? credits(tier.outputUcrPerM) : null };
+    });
+  }
+  return {
+    priceBook: { id: book.revision.id, revision: book.revision.revision, effectiveAt: book.revision.effectiveAt?.toISOString() ?? null },
+    roles,
+    catalog: book.models.map(rate => ({ label: rate.label, provider: rate.provider, minInputTokens: rate.minInputTokens, input: credits(rate.inputUcrPerM), output: credits(rate.outputUcrPerM) })),
+    meters: book.actions.map(action => ({ meter: action.meter, unit: action.unit, credits: credits(action.ucrPerUnit) })),
   };
 }

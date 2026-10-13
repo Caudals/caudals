@@ -6113,3 +6113,73 @@ button.p-nav-item {
 .p-shortcuts dd {
   margin: 0;
 }
+
+/* --- Billing and usage (launch L-15) ---------------------------------------
+   Settings → Billing and usage, the sidebar plan-and-balance pill, the
+   low-balance banner, the run estimate dialog and the model rates. */
+.p-billing { display: grid; gap: 20px; }
+/* Figures the reader acts on: their captions need full contrast (axe, WCAG AA). */
+.p-billing .p-stat-meta { color: var(--p-text-secondary); }
+.p-billing-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.p-billing-head > .p-tabs { min-width: 0; max-width: 100%; overflow-x: auto; }
+/* The pill is a nav row; with a low balance or a frozen account its icon carries the warn tone, and the label says it. */
+.p-billing-pill .p-nav-label-text { font-variant-numeric: tabular-nums; }
+.p-billing-pill[data-tone="warn"] svg { color: var(--p-warn); }
+.p-billing-banner { margin-bottom: 16px; }
+.p-plan-balance { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.p-plan-balance strong { font-variant-numeric: tabular-nums; }
+.p-choice-grid[data-compact="true"] { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+/* Credits per day: one series in --p-chart-1, columns at most 24px wide with a
+   2px gap, square at the baseline and rounded (radius-xs) at the top; only the peak is labelled. */
+.p-daybars { margin: 0; display: grid; gap: 6px; }
+.p-daybars-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 140px;
+  padding-top: 20px;
+  border-bottom: 1px solid var(--p-border-hairline);
+}
+.p-daybars-col { position: relative; flex: 1 1 0; display: flex; justify-content: center; align-items: flex-end; height: 100%; min-width: 0; }
+.p-daybars-bar {
+  display: block;
+  width: 100%;
+  max-width: 24px;
+  border-radius: var(--p-radius-xs) var(--p-radius-xs) 0 0;
+  background: var(--p-chart-1);
+}
+.p-daybars-bar[data-empty="true"] { background: transparent; }
+.p-daybars-peak {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  padding-bottom: 2px;
+  white-space: nowrap;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.p-daybars-axis { display: flex; justify-content: space-between; font-size: var(--p-text-micro); color: var(--p-text-secondary); }
+.p-daybars-table > summary { cursor: pointer; font-size: var(--p-text-label); color: var(--p-text-secondary); }
+.p-daybars-table > summary:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 2px; border-radius: var(--p-radius-sm); }
+.p-daybars-table[open] > .p-table { margin-top: 8px; }
+
+/* The run estimate: facts as a definition list, then the cost in one sentence. */
+.p-estimate { display: grid; gap: 14px; }
+.p-estimate .p-defs dd { min-width: 0; overflow-wrap: anywhere; }
+.p-estimate .p-defs .p-plain-list { text-align: left; gap: 4px; font-weight: 400; }
+.p-estimate-cost { display: grid; gap: 4px; }
+.p-estimate-range { font-size: var(--p-text-subtitle); font-weight: 600; letter-spacing: -0.021em; color: var(--p-text); }
+@media (max-width: 640px) {
+  .p-estimate .p-defs > div { display: grid; gap: 4px; }
+  .p-estimate .p-defs dd { text-align: left; }
+}
+
+.p-model-rates { display: grid; gap: 8px; margin-block: 12px; }
+.p-model-rates > h3 { font-size: var(--p-text-subtitle); font-weight: 600; letter-spacing: -0.021em; }
+.p-model-rates li { overflow-wrap: anywhere; }
+.p-model-rates-list > summary { cursor: pointer; font-size: var(--p-text-label); color: var(--p-text-secondary); }
+.p-model-rates-list > summary:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 2px; border-radius: var(--p-radius-sm); }
+.p-model-rates-list[open] > .p-plain-list { margin-block: 8px; }

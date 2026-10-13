@@ -40,6 +40,7 @@ import { EvalError } from "../evals/domain/errors";
 import { billingCreditsEnabled, billingEnforceMode } from "./config";
 import { estimateEvaluationRun } from "./estimate";
 import { getWorkspaceOverride } from "./overrides";
+import { assertWithinCaps, autoRechargeCover } from "./limits";
 import {
   attemptHoldKey, BillingError, captureCredits, chargeAction, getCreditAccount, holdCredits, releaseCredits, type BillingMode,
 } from "./ledger";
@@ -400,18 +401,23 @@ export function creditsRequiredError(shortfallUcr: bigint) {
 
 /**
  * Enforce mode: refuses to start (or resume) a run whose p90 estimate the
- * available credits do not cover. Contract workspaces are never gated. Off
- * and shadow modes return at once (shadow admissions are recorded by the
- * scheduler, off the request path: recordShadowAdmission).
+ * available credits do not cover, unless auto-recharge covers the gap (§6.7,
+ * L-15), or that would pass a spend cap (§6.10, L-15: CAP_REACHED). Contract
+ * workspaces are never gated. Off and shadow modes return at once (shadow
+ * admissions are recorded by the scheduler, off the request path:
+ * recordShadowAdmission). `runId` is the run being resumed.
  */
-export async function admitRun(db: PoolClient, processMode: EngineBillingMode, orgId: string, run: AdmissionInput, remaining?: { units: number; total: number }): Promise<void> {
+export async function admitRun(db: PoolClient, processMode: EngineBillingMode, orgId: string, run: AdmissionInput, remaining?: { units: number; total: number }, runId?: string | null): Promise<void> {
   if (processMode === "off") return;
   const mode = await workspaceEngineMode(db, processMode, orgId);
   if (mode !== "enforce") return;
   const account = await getCreditAccount(db, orgId);
   if (!account || account.billingMode === "contract") return;
-  const { requiredUcr } = await admissionRequirementUcr(db, orgId, run, remaining);
-  if (account.availableUcr < requiredUcr) throw creditsRequiredError(requiredUcr - account.availableUcr);
+  const { requiredUcr, p90Ucr } = await admissionRequirementUcr(db, orgId, run, remaining);
+  if (account.availableUcr < requiredUcr && !(await autoRechargeCover(db, orgId, requiredUcr - account.availableUcr)).covers) {
+    throw creditsRequiredError(requiredUcr - account.availableUcr);
+  }
+  await assertWithinCaps(db, orgId, { requiredUcr, p90Ucr, heldUcr: account.heldUcr, runId });
 }
 
 /** Shadow mode: what admission would have required, and whether it would have refused. */

@@ -64,6 +64,12 @@ PLANS_V2_ENABLED=$(credential PLANS_V2_ENABLED)
 PLANS_V2_ENABLED=${PLANS_V2_ENABLED:-false}
 [[ $PLANS_V2_ENABLED == true || $PLANS_V2_ENABLED == false ]] || { echo 'PLANS_V2_ENABLED must be true or false' >&2; exit 1; }
 export PLANS_V2_ENABLED
+# Billing screens and alerts (launch L-15): the scheduler's billing alerts go
+# only where the screens show. Off unless the app credentials say true.
+BILLING_UI_ENABLED=$(credential BILLING_UI_ENABLED)
+BILLING_UI_ENABLED=${BILLING_UI_ENABLED:-false}
+[[ $BILLING_UI_ENABLED == true || $BILLING_UI_ENABLED == false ]] || { echo 'BILLING_UI_ENABLED must be true or false' >&2; exit 1; }
+export BILLING_UI_ENABLED
 # Weekly ops digest (launch L-21): off unless the app credentials say true.
 OPS_DIGEST_ENABLED=$(credential OPS_DIGEST_ENABLED)
 OPS_DIGEST_ENABLED=${OPS_DIGEST_ENABLED:-false}

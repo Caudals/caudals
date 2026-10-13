@@ -27,6 +27,7 @@ import { initWorkerSentry } from "../../lib/observability/worker-sentry";
 import { runAutoRecharge } from "../../lib/billing/auto-recharge";
 import { runMonthlyAllowance } from "../../lib/billing/allowance";
 import { runInvoicing } from "../../lib/billing/invoicing/jobs";
+import { runBillingWatch } from "../../lib/billing/watch";
 
 async function main() {
   initWorkerSentry("evals-scheduler");
@@ -97,6 +98,12 @@ async function main() {
             // Shadow mode (L-11): what admission would require, recorded off the request
             // path, for workspaces in shadow mode (globally or by override, L-14).
             ["billing_admissions", () => runShadowAdmissions(scope, engineBillingMode())],
+            // Spend caps where credits are enforced, and billing alerts where the
+            // billing screens show (launch L-15); nothing while credits are off.
+            ["billing_watch", async () => {
+              const watch = await runBillingWatch(scope, { send });
+              if (watch.paused || watch.alerts.length) console.info(JSON.stringify({ event: "billing_watch", orgId, paused: watch.paused, alerts: watch.alerts }));
+            }],
           ];
           for (const [task, run] of tasks) {
             try {

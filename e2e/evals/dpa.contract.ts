@@ -120,7 +120,7 @@ test("the status row keeps the rest of Settings usable when it cannot load", asy
   await page.goto("/workspace/settings?owner");
   await expect(row(page).getByText("The DPA status could not be loaded.")).toBeVisible();
   await expect(row(page).getByRole("button", { name: "Try again" })).toBeVisible();
-  await expect(page.getByText("Spend this month", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan and limits" })).toBeVisible();
 });
 
 test("the DPA row and dialog read in Spanish", async ({ page }) => {

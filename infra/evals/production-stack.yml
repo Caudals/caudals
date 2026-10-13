@@ -85,6 +85,8 @@ services:
       # Invoicing (L-13): the adapter the invoicing job hands requests to
       # (off, manual), from the app credentials like the web app.
       BILLING_INVOICING_PROVIDER: "${BILLING_INVOICING_PROVIDER:-off}"
+      # Billing alerts (L-15) only where the billing screens show; from the app credentials.
+      BILLING_UI_ENABLED: "${BILLING_UI_ENABLED:-false}"
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1

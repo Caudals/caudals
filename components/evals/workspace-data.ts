@@ -74,8 +74,12 @@ export type WorkspaceSummary = {
   systems: WorkspaceSystem[];
   reports: WorkspaceReport[];
   entitlement: {
-    /** free · payg · managed · partner (launch L-14). Older servers omit it. */
-    plan?: string;
+    /** free · payg · managed · partner (launch L-14). Older servers omit it. Plan and limits (launch L-15). */
+    plan?: string | null;
+    max_systems?: number | null;
+    max_tests_per_set?: number | null;
+    max_runs_per_month?: number | null;
+    max_members?: number | null;
     max_active_runs: number;
     monthly_spend_limit: string;
     currency: string;

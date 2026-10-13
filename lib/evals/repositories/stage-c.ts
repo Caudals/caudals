@@ -1047,7 +1047,7 @@ export async function controlRunInTransaction(db: PoolClient, scope: EvidenceSco
         FROM evals.run r WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
       if (run) await admitRun(db, billingMode, scope.orgId,
         { evaluationId: run.evaluation_id, suiteVersionId: run.suite_version_id, targetRevisionId: run.target_revision_id },
-        { units: run.remaining, total: run.total });
+        { units: run.remaining, total: run.total }, runId);
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
     if (action === "pause" && !["completed", "partial", "failed", "canceled"].includes(workflow.status)) {

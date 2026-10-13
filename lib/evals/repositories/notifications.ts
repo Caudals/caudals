@@ -9,15 +9,19 @@ import type { EvidenceScope } from "./evidence";
  * (migration 065); read state is per person. Preferences from Settings →
  * Notifications decide which categories a person sees.
  */
-export const NOTICE_CATEGORY: Record<string, "completion" | "required_input" | "failure" | "progress"> = {
+export const NOTICE_CATEGORY: Record<string, "completion" | "required_input" | "failure" | "progress" | "billing"> = {
   report_published: "completion", test_set_ready: "completion", website_ready: "completion", document_ready: "completion",
   export_completed: "completion", monitor_pass: "completion",
   input_required: "required_input", generation_paused: "required_input", run_paused: "required_input",
   run_failed: "failure", generation_failed: "failure", website_failed: "failure", document_failed: "failure",
   export_failed: "failure", monitor_regression: "failure", monitor_inconclusive: "failure", run_canceled: "failure",
-  auto_recharge_failed: "failure",
   website_started: "progress", generation_started: "progress", run_started: "progress",
+  // Billing notices (launch L-12, L-15): owners and editors only; payment ones owners only.
+  auto_recharge_failed: "billing", auto_recharge_succeeded: "billing", low_balance: "billing", cap_reached: "billing",
+  credits_expiring: "billing", unusual_spend: "billing",
 };
+/** Billing notices about payments: owners only (§6.12: editors see the balance and usage). */
+export const OWNER_NOTICE_KINDS: readonly string[] = ["auto_recharge_failed", "auto_recharge_succeeded"];
 
 export const notificationQuerySchema = z.strictObject({
   limit: z.number().int().min(1).max(100).default(50),
@@ -31,8 +35,12 @@ export function listNotifications(scope: EvidenceScope, raw: unknown = {}) {
   return withTenant(scope, async (db) => {
     const preferences = (await db.query("SELECT completion,required_input,failure FROM evals.notification_preference WHERE org_id=$1 AND user_id=$2", [scope.orgId, scope.actorId])).rows[0]
       ?? { completion: true, required_input: true, failure: true };
+    const role = (await db.query("SELECT role FROM evals.membership WHERE org_id=$1 AND user_id=$2", [scope.orgId, scope.actorId])).rows[0]?.role as string | undefined;
     // Started events belong to Activity. Exclude them before pagination so they cannot crowd out results.
-    const hidden = Object.entries(NOTICE_CATEGORY).filter(([, category]) => category === "progress" || !preferences[category]).map(([kind]) => kind);
+    // Viewers see no billing (§6.12); editors and operators see billing notices except payments.
+    const hidden = Object.entries(NOTICE_CATEGORY).filter(([kind, category]) => category === "progress"
+      || (category === "billing" ? !(role === "owner" || ((role === "editor" || role === "operator") && !OWNER_NOTICE_KINDS.includes(kind))) : !preferences[category]))
+      .map(([kind]) => kind);
     const visible = `FROM evals.notification n LEFT JOIN evals.notification_read r
       ON (r.org_id,r.notification_id)=(n.org_id,n.id) AND r.user_id=$2
       WHERE n.org_id=$1 AND n.audience='workspace' AND n.status<>'dismissed'

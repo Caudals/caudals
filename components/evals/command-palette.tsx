@@ -15,6 +15,7 @@ import { Building2, CircleHelp, FileText, FlaskConical, ListChecks, Plug, Plus, 
 import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import { settingsTabs } from "./settings-tabs";
+import { useBilling } from "./billing-state";
 import { t } from "@/lib/evals/messages/en";
 
 export type PaletteLink = { href: string; label: string; icon: ReactNode; group: string };
@@ -55,7 +56,8 @@ export function CommandPalette({
       live = false;
     };
   }, [open, orgId]);
-  const settings = workspace ? settingsTabs({ canManage, platformAdmin, owner: role === "owner" }) : [];
+  const { summary: billing } = useBilling();
+  const settings = workspace ? settingsTabs({ canManage, platformAdmin, owner: role === "owner", billing: !!billing }) : [];
 
   function go(href: string) {
     onOpenChange(false);

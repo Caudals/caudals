@@ -70,6 +70,7 @@ const migrations=[
  '092_billing_invoices.sql',
  '099_evals_readout_decks.sql',
  '107_auth_two_factor_lockout.sql',
+ '109_evals_lifecycle_payg.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

@@ -49,6 +49,7 @@ const LINK_LABEL: Record<HelpContextKey, MessageKey> = {
   run: "helpLinkRun",
   results: "helpLinkResults",
   monitoring: "helpLinkMonitoring",
+  billing: "helpLinkBilling",
 };
 
 /**

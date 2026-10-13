@@ -151,3 +151,60 @@ export function Meter({ value, label, tone = "neutral" }: { value: number | null
 export function percent(value: number | null | undefined, digits = 0) {
   return value == null ? "—" : `${(value * 100).toFixed(digits)}%`;
 }
+
+/**
+ * One column per day, a single series (launch L-15: credits used per day).
+ * Columns grow from one hairline baseline, at most 24px wide with a 2px gap,
+ * square at the base and rounded at the top. Only the peak carries its value;
+ * every day's value is in its tooltip and in the table under the chart, so
+ * the figure never depends on reading bar heights.
+ */
+export function DayBars({
+  days,
+  label,
+  format,
+  tableLabel,
+  dayLabel,
+  valueLabel,
+}: {
+  days: ReadonlyArray<{ day: string; value: number }>;
+  label: string;
+  format: (value: number) => string;
+  tableLabel: string;
+  dayLabel: (day: string) => string;
+  valueLabel: string;
+}) {
+  const max = Math.max(0, ...days.map((item) => item.value));
+  const peak = max > 0 ? days.findIndex((item) => item.value === max) : -1;
+  const total = days.reduce((sum, item) => sum + item.value, 0);
+  const summary = peak >= 0 ? `${label}: ${format(total)}; ${dayLabel(days[peak].day)} ${format(max)}.` : `${label}: ${format(0)}.`;
+  return (
+    <figure className="p-daybars">
+      <div className="p-daybars-plot" role="img" aria-label={summary}>
+        {days.map((item, index) => (
+          <span key={item.day} className="p-daybars-col" title={`${dayLabel(item.day)} · ${format(item.value)}`}>
+            {index === peak && <span className="p-daybars-peak">{format(item.value)}</span>}
+            <span className="p-daybars-bar" data-empty={item.value <= 0 ? "true" : undefined} style={{ height: `${max > 0 ? Math.max(item.value > 0 ? 2 : 0, Math.round((item.value / max) * 100)) : 0}%` }} />
+          </span>
+        ))}
+      </div>
+      {days.length > 0 && (
+        <figcaption className="p-daybars-axis">
+          <span>{dayLabel(days[0].day)}</span>
+          <span>{dayLabel(days[days.length - 1].day)}</span>
+        </figcaption>
+      )}
+      <details className="p-daybars-table">
+        <summary>{tableLabel}</summary>
+        <table className="p-table">
+          <thead><tr><th scope="col">{tableLabel}</th><th scope="col" className="p-table-action">{valueLabel}</th></tr></thead>
+          <tbody>
+            {days.filter((item) => item.value > 0).map((item) => (
+              <tr key={item.day}><th scope="row">{dayLabel(item.day)}</th><td className="p-table-action">{format(item.value)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
+    </figure>
+  );
+}

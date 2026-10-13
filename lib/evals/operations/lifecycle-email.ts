@@ -19,7 +19,8 @@ import type { SendEmail } from "./notifications";
  *   working hours (Monday to Friday, 09:00–18:00 Madrid), so DST changes and
  *   weekends never shift a send into the night.
  * - At most one lifecycle email per person per 20 hours, and only to owners
- *   of live free self-serve workspaces who did not unsubscribe (non-essential
+ *   of live self-serve workspaces on the free or pay-as-you-go plan (a first
+ *   purchase keeps them in the sequence: migration 109) who did not unsubscribe (non-essential
  *   mail, with an unsubscribe link and one-click headers). Separate from the
  *   newsletter (Caudals Ops) and outreach (Warmbly): no list is shared.
  *

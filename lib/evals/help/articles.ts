@@ -68,6 +68,8 @@ export const CONTEXT_HELP = {
   run: { slug: "prepare-and-run", section: "run" },
   results: { slug: "reading-results" },
   monitoring: { slug: "schedules-and-alerts" },
+  // Launch L-15: Settings → Billing and usage, the run estimate and a run paused for credits.
+  billing: { slug: "credits-and-billing", section: "credits" },
 } as const satisfies Record<string, { slug: HelpSlug; section?: string }>;
 export type HelpContextKey = keyof typeof CONTEXT_HELP;
 
