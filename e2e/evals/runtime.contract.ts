@@ -23,7 +23,8 @@ test('real auth, isolated clients, direct API denial, enrollment, expired sessio
   const noOrigin=await op.request.post('/api/evals/v1/workspaces',{headers:{'Idempotency-Key':randomUUID()},data:{name:'CSRF'}});expect(noOrigin.status()).toBe(403);
   const page=await view.newPage();await page.goto(`/workspace/evaluations?orgId=${a.id}`);await expect(page.locator('html')).toHaveAttribute('lang',/^en(-US)?$/);await expect(page.getByRole('heading',{name:'Evaluations',exact:true})).toBeVisible();
   for(const width of [390,768,1440]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`docs/evals/design/runtime-workspace-${width}.png`,fullPage:true});}
-  const ops=await op.newPage();await ops.goto('/ops');await expect(ops.getByText(a.name,{exact:true}).first()).toBeVisible();await expect(ops.getByText(b.name,{exact:true}).first()).toBeVisible();await ops.screenshot({path:'docs/evals/design/runtime-operator.png',fullPage:true});
+  const ops=await op.newPage();await ops.goto('/ops');await expect(ops.getByRole('heading',{name:'Overview',exact:true})).toBeVisible();await ops.screenshot({path:'docs/evals/design/runtime-operator.png',fullPage:true});
+  await ops.goto('/ops/clients');await expect(ops.getByText(a.name,{exact:true}).first()).toBeVisible();await expect(ops.getByText(b.name,{exact:true}).first()).toBeVisible();
   const enrollmentEmail=`enrolled-${randomUUID()}@example.test`;
   const enrollment=await create(op.request,`/workspaces/${b.id}/invitations`,{email:enrollmentEmail,role:'viewer'});
   const guest=await playwright.request.newContext({baseURL:origin});
