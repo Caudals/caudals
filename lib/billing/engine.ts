@@ -24,6 +24,14 @@
  * mode (§6.8 step 7); shadow mode still records them, flagged contract, so the
  * shadow week can compare the maths on real internal runs.
  *
+ * Per-workspace override (L-14, decision I-11): while the credit layer is on,
+ * a platform admin can set a workspace to `shadow` or `enforce` whatever
+ * BILLING_ENFORCE says (billing.workspace_override). Every hook resolves the
+ * workspace's mode itself (workspaceEngineMode), so callers keep passing the
+ * process mode. `off` stays off: BILLING_CREDITS_ENABLED=false is the kill
+ * switch for every workspace. A capture or release follows its hold: a call
+ * held in shadow mode is settled in shadow mode after a switch to enforce.
+ *
  * The amounts come from the pure functions below in both modes, so the shadow
  * report is enforce-mode maths by construction.
  */
@@ -31,6 +39,7 @@ import type { PoolClient } from "pg";
 import { EvalError } from "../evals/domain/errors";
 import { billingCreditsEnabled, billingEnforceMode } from "./config";
 import { estimateEvaluationRun } from "./estimate";
+import { getWorkspaceOverride } from "./overrides";
 import {
   attemptHoldKey, BillingError, captureCredits, chargeAction, getCreditAccount, holdCredits, releaseCredits, type BillingMode,
 } from "./ledger";
@@ -44,6 +53,36 @@ export type EngineBillingMode = "off" | "shadow" | "enforce";
 /** The credit layer's mode for this process, read at call time. */
 export function engineBillingMode(env: Env = process.env): EngineBillingMode {
   return billingCreditsEnabled(env) ? billingEnforceMode(env) : "off";
+}
+
+let overrideFailures = 0;
+/** Override lookups that failed since the process started (the process mode was used instead). */
+export function overrideFailureCount() { return overrideFailures; }
+
+/**
+ * The credit mode for one workspace: its admin override (L-14) when the
+ * credit layer is on, else the process mode. The lookup runs in a savepoint
+ * and falls back to the process mode on any error, so it can never fail the
+ * caller's transaction (shadow mode must not fail a run).
+ */
+export async function workspaceEngineMode(db: PoolClient, mode: EngineBillingMode, orgId: string): Promise<EngineBillingMode> {
+  if (mode === "off" || !orgId) return mode;
+  try {
+    await db.query("SAVEPOINT billing_override");
+  } catch {
+    overrideFailures++;
+    return mode;
+  }
+  try {
+    const override = await getWorkspaceOverride(db, orgId);
+    await db.query("RELEASE SAVEPOINT billing_override");
+    return override.enforcement === "inherit" ? mode : override.enforcement;
+  } catch (error) {
+    overrideFailures++;
+    console.warn(JSON.stringify({ event: "billing_override_error", code: code(error) }));
+    try { await db.query("ROLLBACK TO SAVEPOINT billing_override"); await db.query("RELEASE SAVEPOINT billing_override"); } catch { /* the caller's transaction reports it */ }
+    return mode;
+  }
 }
 
 /** Engine roles charged as engine tokens (§6.3). Probes, target calls and connection checks are free. */
@@ -218,8 +257,9 @@ async function guarded(db: PoolClient, step: string, fn: () => Promise<unknown>)
 }
 
 /** §6.8 step 2: hold credits for an engine call, right after reserve() in claim(). */
-export async function holdEngineCall(db: PoolClient, mode: EngineBillingMode, ref: EngineCallRef, bound: TokenBound): Promise<void> {
-  if (mode === "off") return;
+export async function holdEngineCall(db: PoolClient, processMode: EngineBillingMode, ref: EngineCallRef, bound: TokenBound): Promise<void> {
+  if (processMode === "off") return;
+  const mode = await workspaceEngineMode(db, processMode, ref.orgId);
   const key = attemptHoldKey(ref.attemptId);
   if (mode === "shadow") {
     await shadow(db, "hold", async () => {
@@ -240,36 +280,43 @@ export async function holdEngineCall(db: PoolClient, mode: EngineBillingMode, re
 }
 
 /** §6.8 step 3: charge a completed call, in the transaction that settles it. */
-export async function captureEngineCall(db: PoolClient, mode: EngineBillingMode, ref: EngineCallRef, usage: ChargedUsage): Promise<void> {
-  if (mode === "off") return;
+export async function captureEngineCall(db: PoolClient, processMode: EngineBillingMode, ref: EngineCallRef, usage: ChargedUsage): Promise<void> {
+  if (processMode === "off") return;
+  const mode = await workspaceEngineMode(db, processMode, ref.orgId);
   const key = attemptHoldKey(ref.attemptId);
+  const shadowCapture = () => shadow(db, "capture", async () => {
+    const hold = (await db.query("SELECT price_book_revision_id FROM billing.shadow_entry WHERE org_id=$1 AND kind='hold' AND entry_key=$2",
+      [ref.orgId, key])).rows[0];
+    if (!hold) return;
+    const requested = engineChargeUcr(await enginePricing(db, ref, usage.input, hold.price_book_revision_id), usage);
+    await db.query("SELECT billing.shadow_capture($1,$2,$3::bigint,$4,NULL)", [ref.orgId, key, requested.toString(), usage]);
+  });
   if (mode === "shadow") {
-    await shadow(db, "capture", async () => {
-      const hold = (await db.query("SELECT price_book_revision_id FROM billing.shadow_entry WHERE org_id=$1 AND kind='hold' AND entry_key=$2",
-        [ref.orgId, key])).rows[0];
-      if (!hold) return;
-      const requested = engineChargeUcr(await enginePricing(db, ref, usage.input, hold.price_book_revision_id), usage);
-      await db.query("SELECT billing.shadow_capture($1,$2,$3::bigint,$4,NULL)", [ref.orgId, key, requested.toString(), usage]);
-    });
+    await shadowCapture();
     return;
   }
   const hold = (await db.query("SELECT state,price_book_revision_id FROM billing.credit_hold WHERE org_id=$1 AND hold_key=$2", [ref.orgId, key])).rows[0];
-  if (!hold) return; // Nothing was held: a contract workspace, a free model, or a call claimed before enforcement.
+  // Nothing was held: a contract workspace, a free model, or a call claimed
+  // before enforcement (held in shadow mode: settle it there).
+  if (!hold) { await shadowCapture(); return; }
   if (hold.state !== "held") { console.warn(JSON.stringify({ event: "billing_hold_not_open", step: "capture", code: hold.state })); return; }
   const requested = engineChargeUcr(await enginePricing(db, ref, usage.input, hold.price_book_revision_id), usage);
   await guarded(db, "capture", () => captureCredits(db, { orgId: ref.orgId, key, amountUcr: requested, metadata: { usage } }));
 }
 
 /** §6.8 step 4: return the whole hold (failed, cancelled or never dispatched). */
-export async function releaseEngineCall(db: PoolClient, mode: EngineBillingMode, orgId: string, attemptId: string, reason: string): Promise<void> {
-  if (mode === "off") return;
+export async function releaseEngineCall(db: PoolClient, processMode: EngineBillingMode, orgId: string, attemptId: string, reason: string): Promise<void> {
+  if (processMode === "off") return;
+  const mode = await workspaceEngineMode(db, processMode, orgId);
   const key = attemptHoldKey(attemptId);
+  const shadowRelease = () => shadow(db, "release", () => db.query("SELECT billing.shadow_release($1,$2,$3)", [orgId, key, reason.slice(0, 200)]));
   if (mode === "shadow") {
-    await shadow(db, "release", () => db.query("SELECT billing.shadow_release($1,$2,$3)", [orgId, key, reason.slice(0, 200)]));
+    await shadowRelease();
     return;
   }
   const hold = (await db.query("SELECT state FROM billing.credit_hold WHERE org_id=$1 AND hold_key=$2", [orgId, key])).rows[0];
-  if (!hold || hold.state !== "held") return;
+  if (!hold) { await shadowRelease(); return; } // held in shadow mode before a switch to enforce
+  if (hold.state !== "held") return;
   await guarded(db, "release", () => releaseCredits(db, { orgId, key, reason }));
 }
 
@@ -287,9 +334,10 @@ export interface MeterCharge {
  * records it. Enforce mode never refuses finished work: it charges what the
  * balance covers and returns the shortfall, so the caller pauses the run.
  */
-export async function chargeMeter(db: PoolClient, mode: EngineBillingMode, charge: MeterCharge): Promise<{ shortfallUcr: bigint }> {
+export async function chargeMeter(db: PoolClient, processMode: EngineBillingMode, charge: MeterCharge): Promise<{ shortfallUcr: bigint }> {
   const none = { shortfallUcr: ZERO };
-  if (mode === "off" || charge.quantity <= 0) return none;
+  if (processMode === "off" || charge.quantity <= 0) return none;
+  const mode = await workspaceEngineMode(db, processMode, charge.orgId);
   if (mode === "shadow") {
     await shadow(db, "action", async () => {
       const pricing = await actionPricing(db, charge.orgId, charge.meter, charge.runId ?? null);
@@ -317,7 +365,9 @@ export async function chargeMeter(db: PoolClient, mode: EngineBillingMode, charg
  * meter. Target work is charged after the answer, so this keeps a run from
  * starting units it cannot pay for. Contract workspaces always pass.
  */
-export async function meterCovered(db: PoolClient, mode: EngineBillingMode, orgId: string, meter: ActionMeter, runId: string | null): Promise<boolean> {
+export async function meterCovered(db: PoolClient, processMode: EngineBillingMode, orgId: string, meter: ActionMeter, runId: string | null): Promise<boolean> {
+  if (processMode === "off") return true;
+  const mode = await workspaceEngineMode(db, processMode, orgId);
   if (mode !== "enforce") return true;
   const pricing = await actionPricing(db, orgId, meter, runId);
   if (pricing.billingMode === "contract" || pricing.ucrPerUnit === null) return true;
@@ -354,7 +404,9 @@ export function creditsRequiredError(shortfallUcr: bigint) {
  * and shadow modes return at once (shadow admissions are recorded by the
  * scheduler, off the request path: recordShadowAdmission).
  */
-export async function admitRun(db: PoolClient, mode: EngineBillingMode, orgId: string, run: AdmissionInput, remaining?: { units: number; total: number }): Promise<void> {
+export async function admitRun(db: PoolClient, processMode: EngineBillingMode, orgId: string, run: AdmissionInput, remaining?: { units: number; total: number }): Promise<void> {
+  if (processMode === "off") return;
+  const mode = await workspaceEngineMode(db, processMode, orgId);
   if (mode !== "enforce") return;
   const account = await getCreditAccount(db, orgId);
   if (!account || account.billingMode === "contract") return;

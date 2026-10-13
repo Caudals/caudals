@@ -26,7 +26,7 @@ import {
   PaymentError, closeCheckout, createTopUpOrder, firstBonusAvailable, getAutoRecharge, getOrder, getProfile, getStripeCustomer,
   purchaseLimits, saveProfile, setAutoRecharge, type AutoRecharge, type BillingProfile, type TopUpOrder,
 } from "./payments";
-import { appBaseUrl, paymentsAccess, stripeMode, type PaymentsAccess } from "./payments-config";
+import { appBaseUrl, paymentsAccessFor, stripeMode, type PaymentsAccess } from "./payments-config";
 import { packLabel, settlePayment, SYNC_ACTOR } from "./settlement";
 import { createPortalSession, ensurePortalConfiguration, getStripe, isLivemode } from "./stripe";
 import { checkTaxId, checkVies, decideTaxTreatment, grossCents, taxMention, vatCents, type ViesResult } from "./tax";
@@ -59,7 +59,7 @@ export function paymentApiError(error: unknown): never {
 
 /** The workspace's owner (or, to read, a platform admin), while payments are open for it. */
 export async function requireBillingOwner(identity: EvalIdentity, orgId: string, intent: "read" | "write" = "write"): Promise<PaymentsAccess> {
-  const access = paymentsAccess(orgId);
+  const access = await paymentsAccessFor(orgId, process.env, { actorId: identity.user.id });
   if (access === "closed") throw new EvalError("SCOPE_DENIED", 404);
   const role = identity.workspaces.find(workspace => workspace.id === orgId)?.role;
   const admin = identity.platformRole === "platform_admin";

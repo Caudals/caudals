@@ -5,7 +5,7 @@
  * ECB FX update.
  */
 import { withTenant } from "../evals/repositories/db";
-import { pendingShadowAdmissions, recordShadowAdmission, type EngineBillingMode } from "./engine";
+import { engineBillingMode, pendingShadowAdmissions, recordShadowAdmission, workspaceEngineMode, type EngineBillingMode } from "./engine";
 import { expireDue, recordVerification, refundRun, type VerificationRun } from "./ledger";
 import { activateDuePriceBooks, type PriceBookRevision } from "./price-book";
 import {
@@ -83,10 +83,10 @@ export async function runPriceCheck(actorId: string, now = new Date(), fetchImpl
 export async function runBillingReconciler(actorId: string, mode: EngineBillingMode): Promise<{ shadowExpired: number; refunds: number; shadowRefunds: number; failed: number }> {
   const result = { shadowExpired: 0, refunds: 0, shadowRefunds: 0, failed: 0 };
   if (mode === "off") return result;
-  if (mode === "shadow") {
-    result.shadowExpired = await withTenant({ orgId: "", actorId }, async db =>
-      Number((await db.query("SELECT billing.shadow_expire_holds(500) AS n")).rows[0].n));
-  }
+  // Shadow holds can exist in enforce mode too (a workspace overridden to
+  // shadow, or held before a switch): release any unsettled after 24 h.
+  result.shadowExpired = await withTenant({ orgId: "", actorId }, async db =>
+    Number((await db.query("SELECT billing.shadow_expire_holds(500) AS n")).rows[0].n));
   const candidates = await withTenant({ orgId: "", actorId }, async db =>
     (await db.query("SELECT org_id,run_id,ledger,shadow FROM billing.run_refund_candidates(100)")).rows as Array<{ org_id: string; run_id: string; ledger: boolean; shadow: boolean }>);
   for (const row of candidates) {
@@ -102,9 +102,15 @@ export async function runBillingReconciler(actorId: string, mode: EngineBillingM
   return result;
 }
 
-/** Shadow admissions (§6.8 step 1) for runs started in the last minutes, off the request path. */
-export async function runShadowAdmissions(scope: { orgId: string; actorId: string }): Promise<number> {
-  const runs = await withTenant(scope, db => pendingShadowAdmissions(db, scope.orgId));
+/**
+ * Shadow admissions (§6.8 step 1) for runs started in the last minutes, off
+ * the request path, in workspaces whose credit mode is shadow (BILLING_ENFORCE
+ * or the workspace's override, L-14).
+ */
+export async function runShadowAdmissions(scope: { orgId: string; actorId: string }, processMode: EngineBillingMode = engineBillingMode()): Promise<number> {
+  if (processMode === "off") return 0;
+  const runs = await withTenant(scope, async db =>
+    (await workspaceEngineMode(db, processMode, scope.orgId)) === "shadow" ? pendingShadowAdmissions(db, scope.orgId) : []);
   let recorded = 0;
   for (const run of runs) if (await withTenant(scope, db => recordShadowAdmission(db, scope.orgId, run))) recorded++;
   return recorded;

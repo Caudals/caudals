@@ -25,6 +25,7 @@ import { digestLocale, digestRecipient, digestSender, digestWeek, opsDigestEnabl
 import { captureServerError, flushErrors } from "../../lib/observability/capture";
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
 import { runAutoRecharge } from "../../lib/billing/auto-recharge";
+import { runMonthlyAllowance } from "../../lib/billing/allowance";
 
 async function main() {
   initWorkerSentry("evals-scheduler");
@@ -92,8 +93,9 @@ async function main() {
             ["finalize", () => finalizeRuns(scope)],
             ["reports", () => refreshJudgedReports(scope)],
             ["notifications", () => queueRequiredInputNotifications(scope)],
-            // Shadow mode (L-11): what admission would require, recorded off the request path.
-            ["billing_admissions", () => engineBillingMode() === "shadow" ? runShadowAdmissions(scope) : Promise.resolve(0)],
+            // Shadow mode (L-11): what admission would require, recorded off the request
+            // path, for workspaces in shadow mode (globally or by override, L-14).
+            ["billing_admissions", () => runShadowAdmissions(scope, engineBillingMode())],
           ];
           for (const [task, run] of tasks) {
             try {
@@ -227,6 +229,18 @@ async function main() {
           } catch (error) {
             console.error(JSON.stringify({ event: "ops_digest_failed", reason: error instanceof Error && /^[a-z_]{1,40}$/.test(error.message) ? error.message : "unknown" }));
             captureServerError(error, { service: "evals-scheduler", event: "ops_digest_failed" });
+          }
+        }
+        // Monthly allowance (spec §6.5, L-14): 1,000 credits per free and PAYG
+        // workspace and month, expiring at month end; only with PLANS_V2_ENABLED
+        // or a workspace's plans v2 override. Idempotent per workspace and month.
+        if (billingCreditsEnabled()) {
+          try {
+            const allowance = await runMonthlyAllowance(actorId);
+            if (allowance.due) console.info(JSON.stringify({ event: "billing_allowance", ...allowance }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "billing_allowance_tick_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_allowance_tick_failed" });
           }
         }
         // Auto-recharge (spec §6.6, L-12): off-session charges for workspaces whose

@@ -21,7 +21,8 @@ import { adjustCredits, CreditsExhausted, expireDue, grantCredits, verifyAccount
 import {
   admissionRequirementUcr, captureEngineCall, chargeMeter, engineChargeUcr, engineHoldUcr, holdEngineCall, shadowFailureCount, type EngineBillingMode,
 } from "../../lib/billing/engine";
-import { runBillingReconciler, runShadowReport, shadowDiff } from "../../lib/billing/jobs";
+import { runBillingReconciler, runShadowAdmissions, runShadowReport, shadowDiff } from "../../lib/billing/jobs";
+import { setWorkspaceOverride, type EnforcementOverride } from "../../lib/billing/overrides";
 import { creditsToUcr } from "../../lib/billing/units";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
@@ -577,6 +578,80 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
       expect((await shadow(f.orgId, "action")).map(row => [row.meter, B(row.amount_ucr), row.would_block])).toEqual(mode === "off" ? [] : [["api_question", await meterRate(await runRevision(run.id), "api_question"), true], ["api_question", await meterRate(await runRevision(run.id), "api_question"), true]]);
     }
   }, 30_000);
+
+  /* ------------------------------------ per-workspace override (L-14) --- */
+
+  async function override(orgId: string, enforcement: EnforcementOverride) {
+    const adminId = createPrefixedId("au");
+    await owner.query('INSERT INTO public.auth_user(id,name,email,"emailVerified") VALUES($1,\'Override admin\',$2,true)', [adminId, `${randomUUID()}@example.test`]);
+    await owner.query("INSERT INTO evals.platform_role(user_id,role) VALUES($1,'platform_admin')", [adminId]);
+    return withTenant({ orgId, actorId: adminId }, db => setWorkspaceOverride(db, { orgId, enforcement, livePayments: false, plansV2: false, reason: "L-14 engine override test" }));
+  }
+
+  it("enforces credits for an overridden workspace while BILLING_ENFORCE is shadow, and the reverse (L-14)", async () => {
+    // Process mode shadow, workspace overridden to enforce: admission refuses without credits, meters are real.
+    setMode("shadow");
+    const f = await apiEvaluation(2);
+    await override(f.orgId, "enforce");
+    await expect(createSelfServiceRun(f.scope, { evaluationId: f.evaluationId }, randomUUID())).rejects.toMatchObject({ code: "CREDITS_EXHAUSTED", status: 402 });
+    const required = await withTenant(f.scope, db => admissionRequirementUcr(db, f.orgId, { evaluationId: f.evaluationId, suiteVersionId: f.suiteVersionId, targetRevisionId: f.revisionId }));
+    await withTenant({ orgId: f.orgId, actorId: SYSTEM }, db => grantCredits(db, { orgId: f.orgId, key: `grant-${randomUUID()}`, amountUcr: required.requiredUcr + c(5), source: "grant" }), schedulerPool);
+    const run = await createSelfServiceRun(f.scope, { evaluationId: f.evaluationId }, randomUUID());
+    const shadowWorker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "shadow", execute: async (_config, input, context) => observation(input, context) });
+    for (const step of await f.steps(run.id)) await shadowWorker.handle(job(f.orgId, step));
+    const api = await meterRate(await runRevision(run.id), "api_question");
+    expect((await entries(f.orgId, "action")).map(row => [row.meter, B(row.amount_ucr)])).toEqual([["api_question", -api], ["api_question", -api]]);
+    expect(await shadow(f.orgId)).toEqual([]);
+    // The scheduler records no shadow admission for an enforced workspace.
+    expect(await runShadowAdmissions({ orgId: f.orgId, actorId: SYSTEM }, "shadow")).toBe(0);
+    // Enforcement cannot change while a run of the workspace is in flight.
+    await owner.query("UPDATE evals.run SET status='running' WHERE id=$1", [run.id]);
+    await expect(override(f.orgId, "inherit")).rejects.toMatchObject({ code: "WORKSPACE_BUSY" });
+    await owner.query("UPDATE evals.run SET status='completed' WHERE id=$1", [run.id]);
+    expect(await issues(f.orgId)).toEqual([]);
+
+    // Process mode enforce, workspace overridden to shadow: no credits needed, shadow entries only.
+    setMode("enforce");
+    const g = await apiEvaluation(2);
+    await override(g.orgId, "shadow");
+    const free = await createSelfServiceRun(g.scope, { evaluationId: g.evaluationId }, randomUUID());
+    const enforceWorker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "enforce", execute: async (_config, input, context) => observation(input, context) });
+    for (const step of await g.steps(free.id)) await enforceWorker.handle(job(g.orgId, step));
+    expect((await owner.query("SELECT status FROM evals.run WHERE id=$1", [free.id])).rows[0].status).toBe("completed");
+    expect(await entries(g.orgId)).toEqual([]);
+    expect((await shadow(g.orgId, "action")).map(row => [row.meter, row.would_block])).toEqual([["api_question", true], ["api_question", true]]);
+
+    // BILLING_CREDITS_ENABLED=false stays the kill switch: an enforce override does nothing.
+    setMode("off");
+    const h = await apiEvaluation(1);
+    await override(h.orgId, "enforce");
+    const off = await createSelfServiceRun(h.scope, { evaluationId: h.evaluationId }, randomUUID());
+    for (const step of await h.steps(off.id)) await new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "off", execute: async (_config, input, context) => observation(input, context) }).handle(job(h.orgId, step));
+    expect(await entries(h.orgId)).toEqual([]);
+    expect(await shadow(h.orgId)).toEqual([]);
+  }, 60_000);
+
+  it("settles a call held in shadow mode in shadow mode after its workspace switches to enforce (L-14)", async () => {
+    setMode("shadow");
+    const f = await workspace();
+    // No run in flight, so enforcement may change (the fixture's imported run is done with).
+    await owner.query("UPDATE evals.run SET status='completed' WHERE org_id=$1", [f.orgId]);
+    const { jobs } = await engineSteps(f, 1);
+    // Claim and hold in shadow mode, then switch the workspace to enforce before the answer is settled.
+    let switched = false;
+    const worker = f.engine("shadow", async () => {
+      if (!switched) { switched = true; await override(f.orgId, "enforce"); }
+      return answer(CALL);
+    });
+    await worker.handle(jobs[0]);
+    expect(await entries(f.orgId)).toEqual([]);
+    const holds = await shadow(f.orgId, "hold"), captures = await shadow(f.orgId, "capture");
+    expect(holds).toHaveLength(1);
+    expect(captures).toHaveLength(1);
+    const today = new Date().toISOString().slice(0, 10);
+    const diff = await withTenant({ orgId: "", actorId: SYSTEM }, async db => (await db.query("SELECT billing.shadow_diff($1::date,$2::uuid) AS d", [today, f.orgId])).rows[0].d, schedulerPool);
+    expect(diff.checks.completed_without_capture).toBe(0);
+  });
 
   /* ---------------------------------------------- monthly window (G8) --- */
 

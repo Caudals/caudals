@@ -56,6 +56,7 @@ import { HelpPanel } from "./help-panel";
 import { NotificationCenter } from "./notification-center";
 import { ExampleAvailability } from "./example-evaluation-links";
 import { OnboardingAvailability } from "./onboarding-checklist";
+import { LimitDialogHost } from "./limit-dialog";
 import { setInterfaceLocale } from "./locale";
 import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
@@ -621,6 +622,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
       </div>
       <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} onHelp={() => setHelp(true)} />
       <HelpPanel open={help} onOpenChange={setHelp} />
+      <LimitDialogHost />
       <Toaster />
     </div>
   );

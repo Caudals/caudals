@@ -79,6 +79,9 @@ services:
       BILLING_STRIPE_MODE: "${BILLING_STRIPE_MODE:-test}"
       BILLING_TEST_WORKSPACE_IDS: "${BILLING_TEST_WORKSPACE_IDS:-}"
       STRIPE_SECRET_KEY_FILE: /run/secrets/evals_stripe_secret_key
+      # Plans v2 (L-14): the monthly allowance and free → PAYG on auto-recharge
+      # payments, from the app credentials; off until Gate B.
+      PLANS_V2_ENABLED: "${PLANS_V2_ENABLED:-false}"
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1

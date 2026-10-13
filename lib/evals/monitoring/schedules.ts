@@ -2,7 +2,8 @@ import "server-only";
 import { z } from "zod";
 import type { PoolClient } from "pg";
 import { units } from "../budget/money";
-import { EvalError } from "../domain/errors";
+import { EvalError, PlanLimitError } from "../domain/errors";
+import { plansV2For } from "../../billing/overrides";
 import { idempotent, type EvidenceScope } from "../repositories/evidence";
 import { withTenant } from "../repositories/db";
 import { createSelfServiceRun } from "../repositories/stage-c";
@@ -28,7 +29,11 @@ export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
     dayOfMonth:input.dayOfMonth},new Date());
   return withTenant(scope,db=>idempotent(db,scope,"monitor-schedules",key,input,async()=>{
     const entitlement=(await db.query("SELECT can_schedule,monthly_spend_limit,currency FROM evals.workspace_entitlement WHERE org_id=$1",[scope.orgId])).rows[0];
-    if(!entitlement?.can_schedule)throw new EvalError("SCOPE_DENIED",403,"Scheduled monitoring is not enabled for this workspace.");
+    if(!entitlement?.can_schedule){
+      // Plans v2 (L-14): a typed limit that opens the upgrade dialog.
+      if(entitlement&&await plansV2For(db,scope.orgId))throw new PlanLimitError("schedules",scope.orgId);
+      throw new EvalError("SCOPE_DENIED",403,"Scheduled monitoring is not enabled for this workspace.");
+    }
     const evaluation=(await db.query("SELECT project_id,preparation_status,selected_suite_version_id,commercial_cap,currency FROM evals.evaluation WHERE org_id=$1 AND id=$2",[scope.orgId,input.evaluationId])).rows[0];
     if(!evaluation || evaluation.preparation_status!=="ready" || evaluation.selected_suite_version_id!==input.suiteVersionId)notFound();
     if(evaluation.currency!==input.currency || entitlement.currency!==input.currency ||

@@ -4,8 +4,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
 import { parseJsonBytes } from "../contracts/bundle";
-import { EvalError, inputError } from "./errors";
+import { EvalError, inputError, PlanLimitError } from "./errors";
 import { requireIdentity, type EvalIdentity } from "./identity";
+import { typedPlanLimit } from "./plan-limits";
 export { requireWorkspace } from "./identity";
 export { EvalError } from "./errors";
 export const privateHeaders = { 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow', 'Referrer-Policy':'no-referrer' };
@@ -23,13 +24,13 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
       if(data instanceof Response) { for(const [key,value] of Object.entries(privateHeaders)) if(!(key==='Cache-Control' && /\bno-store\b/.test(data.headers.get(key)??''))) data.headers.set(key,value); return data; }
       return Response.json({data,meta:{request_id:requestId}},{headers:privateHeaders});
     } catch(caught) {
-      const error=inputError(caught)??caught;
+      const error=(await typedPlanLimit(caught))??inputError(caught)??caught;
       const known=error instanceof EvalError;
       const validation=error instanceof ZodError || error instanceof SyntaxError;
       const code=known?error.code:validation?'INPUT_INVALID':'SERVICE_UNAVAILABLE';
       const status=known?error.status:validation?400:503;
-      if (["BUDGET_PAUSED", "LIMIT_EXCEEDED", "PLAN_LIMIT", "PAYMENT_REQUIRED"].includes(code)) {
-        await recordProductEvent({ eventName: "limit_hit", source: "server", path: new URL(request.url).pathname, payload: { kind: code } });
+      if (["BUDGET_PAUSED", "LIMIT_EXCEEDED", "PLAN_LIMIT", "PAYMENT_REQUIRED"].includes(code) || error instanceof PlanLimitError) {
+        await recordProductEvent({ eventName: "limit_hit", source: "server", path: new URL(request.url).pathname, orgId: error instanceof PlanLimitError ? error.orgId : undefined, payload: { kind: code } });
       }
       const databaseCode =
         typeof error === "object" && error !== null && "code" in error &&
@@ -41,7 +42,7 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
       console.error("eval_api_request_failed",{request_id:requestId,code,status,error_type:error instanceof Error?error.name:typeof error,database_code:databaseCode});
       // Unexpected failures (503) go to Sentry, scrubbed; expected codes do not.
       if(!known&&!validation)captureServerError(error,{request_id:requestId,route:new URL(request.url).pathname,method:request.method,code,database_code:databaseCode});
-      return Response.json({error:{code,message:known?error.message:validation?'Check the supplied fields.':'The service is temporarily unavailable.',field_errors:error instanceof ZodError?error.issues.map(x=>({path:x.path,message:x.message})):[],request_id:requestId,retryable:!known&&!validation}},{status,headers:privateHeaders});
+      return Response.json({error:{code,message:known?error.message:validation?'Check the supplied fields.':'The service is temporarily unavailable.',field_errors:error instanceof ZodError?error.issues.map(x=>({path:x.path,message:x.message})):[],request_id:requestId,retryable:!known&&!validation,...(error instanceof PlanLimitError?{limit:error.view()}:{})}},{status,headers:privateHeaders});
     }
   };
 }

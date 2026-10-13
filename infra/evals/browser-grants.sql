@@ -80,3 +80,11 @@ DO $$ BEGIN
    billing.shadow_charge(uuid,text,text,text,bigint,numeric,uuid,uuid,uuid,jsonb) TO evals_browser;
  END IF;
 END $$;
+
+-- Plans v2 (migration 093): the per-workspace credit enforcement override,
+-- read under RLS on the credit path.
+DO $$ BEGIN
+ IF to_regclass('billing.workspace_override') IS NOT NULL THEN
+  GRANT SELECT ON billing.workspace_override TO evals_browser;
+ END IF;
+END $$;

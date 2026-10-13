@@ -2554,6 +2554,56 @@
   border-top: 1px solid var(--p-border-hairline);
 }
 
+/* Upgrade dialog (launch L-14, P-09): where the workspace stands on a plan
+   limit, then what credits and a managed plan unlock, side by side from 560px. */
+.p-limit {
+  display: grid;
+  gap: 14px;
+}
+.p-limit-now {
+  display: grid;
+  gap: 2px;
+  font-size: var(--p-text-body);
+}
+.p-limit-plan {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.p-limit-options {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 560px) {
+  .p-limit-options:has(> .p-limit-option + .p-limit-option) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.p-limit-option {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 14px;
+  border-radius: var(--p-radius-lg);
+  box-shadow: var(--p-shadow-border);
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.p-limit-option[data-recommended="true"] {
+  background: var(--p-surface-2);
+}
+.p-limit-option h3 {
+  font-size: var(--p-text-body);
+  font-weight: 600;
+  color: var(--p-text);
+}
+.p-limit-gain {
+  color: var(--p-text);
+  font-weight: 500;
+}
+.p-limit-note {
+  color: var(--p-text);
+}
+
 .p-root.p-panel {
   position: fixed;
   top: var(--p-frame-gap);

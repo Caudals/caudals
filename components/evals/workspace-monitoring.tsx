@@ -11,6 +11,7 @@ import { evalRequest } from "./api";
 import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
 import { ActionMenu, CopyField, Modal, notify } from "./overlays";
 import type { WorkspaceSummary } from "./workspace-data";
+import { openLimitDialog, usePlanSummary } from "./limit-dialog";
 import { t } from "@/lib/evals/messages/en";
 
 type Schedule = {
@@ -52,6 +53,8 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
   const [dayOfMonth, setDayOfMonth] = useState(1);
   const [maxRunSpend, setMaxRunSpend] = useState("");
   const [sourceMaxAgeDays, setSourceMaxAgeDays] = useState("");
+  // Plans v2 (launch L-14): where scheduling is not in the plan, say what unlocks it.
+  const { plan } = usePlanSummary(orgId, canManage && !summary.entitlement.can_schedule);
 
   const eligible = summary.evaluations.filter((item) => item.preparation_status === "ready" && item.selected_suite_version_id);
   const evaluation = eligible.find((item) => item.id === evaluationId) ?? eligible[0];
@@ -134,7 +137,11 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
           </Action>
         )}
       </div>
-      {!summary.entitlement.can_schedule && <Status>{t("schedulingDisabled")}</Status>}
+      {!summary.entitlement.can_schedule && (
+        <Status action={plan && canManage ? (
+          <button type="button" className="p-text-button" onClick={() => openLimitDialog("schedules")}>{t("limitSeeWhatUnlocks")}</button>
+        ) : undefined}>{t("schedulingDisabled")}</Status>
+      )}
       {summary.entitlement.can_schedule && canManage && !eligible.length && <Status>{t("scheduleNeedsApprovedSet")}</Status>}
       {error && <Status error>{error}</Status>}
       {schedules === null ? (

@@ -58,6 +58,12 @@ ONBOARDING_AUTOSTART=$(credential ONBOARDING_AUTOSTART)
 ONBOARDING_AUTOSTART=${ONBOARDING_AUTOSTART:-false}
 [[ $ONBOARDING_AUTOSTART == true || $ONBOARDING_AUTOSTART == false ]] || { echo 'ONBOARDING_AUTOSTART must be true or false' >&2; exit 1; }
 export BILLING_CREDITS_ENABLED BILLING_ENFORCE ANALYTICS_EVENTS_V2 ONBOARDING_AUTOSTART
+# Plans v2 (launch L-14): the scheduler's monthly allowance, upgrades on
+# auto-recharge payments and live top-ups. Off until Gate B.
+PLANS_V2_ENABLED=$(credential PLANS_V2_ENABLED)
+PLANS_V2_ENABLED=${PLANS_V2_ENABLED:-false}
+[[ $PLANS_V2_ENABLED == true || $PLANS_V2_ENABLED == false ]] || { echo 'PLANS_V2_ENABLED must be true or false' >&2; exit 1; }
+export PLANS_V2_ENABLED
 # Weekly ops digest (launch L-21): off unless the app credentials say true.
 OPS_DIGEST_ENABLED=$(credential OPS_DIGEST_ENABLED)
 OPS_DIGEST_ENABLED=${OPS_DIGEST_ENABLED:-false}

@@ -30,6 +30,7 @@ import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { evaluationStage } from "./evaluation-stage";
 import { ExampleEvaluationCard, ExampleEvaluationLink } from "./example-evaluation-links";
 import { OnboardingChecklist, OnboardingWelcome, useOnboardingEnabled, useWorkspaceOnboarding } from "./onboarding-checklist";
+import { openLimitDialog, usePlanSummary } from "./limit-dialog";
 import { t, tv } from "@/lib/evals/messages/en";
 
 /* ------------------------------------------------------------- listing --- */
@@ -217,6 +218,13 @@ export function NewEvaluationFlow() {
   const { summary } = useWorkspaceSummary(orgId);
   const allowed = summary?.entitlement.allowed_connection_types ?? null;
   const isAllowed = (kind: ConnectionKind) => !allowed || allowed.includes(KIND_ENTITLEMENT[kind]);
+  // Plans v2 (launch L-14): a disabled card says what unlocks it. Without a
+  // plan summary (plans v2 off) the cards keep today's wording.
+  const { plan } = usePlanSummary(orgId, canWrite);
+  const lockedCopy = (kind: ConnectionKind) => {
+    const unlock = plan?.connectionUnlocks[KIND_ENTITLEMENT[kind]];
+    return unlock === "credits" ? t("availableWithCredits") : unlock === "managed" ? t("availableOnManagedPlan") : t("connectionNotEnabled");
+  };
   const [kind, setKind] = useState<ConnectionKind>("website");
   const [name, setName] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -437,11 +445,18 @@ export function NewEvaluationFlow() {
                   <input type="radio" name="connection-kind" aria-label={choice.label} value={choice.value} checked={kind === choice.value} disabled={!enabled} onChange={() => setKind(choice.value)} />
                   {choice.icon}
                   <span className="p-choice-title">{choice.label}</span>
-                  <span className="p-choice-desc">{enabled ? choice.description : t("connectionNotEnabled")}</span>
+                  <span className="p-choice-desc">{enabled ? choice.description : lockedCopy(choice.value)}</span>
                 </label>
               );
             })}
           </div>
+          {plan && choices.some(choice => !isAllowed(choice.value)) && (
+            <p className="p-flow-note">
+              <button type="button" className="p-text-button" onClick={() => openLimitDialog("connection", KIND_ENTITLEMENT[choices.find(choice => !isAllowed(choice.value))!.value])}>
+                {t("limitMoreConnections")}
+              </button>
+            </p>
+          )}
           {kind === "website" && (
             <>
               {reusableSystems.length > 0 && <SelectField id="evaluation-system" label={t("reuseWebsiteSystem")} value={reuseTargetId} onChange={event => setReuseTargetId(event.target.value)} hint={reuseTargetId ? t("reuseWebsiteHelp") : undefined}>

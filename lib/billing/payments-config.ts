@@ -8,13 +8,21 @@
  *   BILLING_TEST_WORKSPACE_IDS (internal verification) can top up, whatever
  *   BILLING_CREDITS_ENABLED says, so no one can obtain credits with a test card.
  * - Live mode opens top-ups to workspace owners when BILLING_CREDITS_ENABLED
- *   is true and the company's legal data are configured (D-01, §3.2).
+ *   is true and the company's legal data are configured (D-01, §3.2), and
+ *   then (L-14, §6.18) only to the workspaces a platform admin allowlisted
+ *   (billing.workspace_override.live_payments: the founder's €20 purchase,
+ *   the design partners) until PLANS_V2_ENABLED opens them to every owner at
+ *   Gate B.
  * - Webhook signing secrets are per mode: STRIPE_TEST_WEBHOOK_SECRET and
  *   STRIPE_LIVE_WEBHOOK_SECRET.
  */
 import { getSecretEnvValue } from "@/lib/env/secrets";
 import { getLegalEntity } from "@/lib/legal/entity";
+import type { Pool } from "pg";
+import { withTenant } from "@/lib/evals/repositories/db";
 import { billingCreditsEnabled } from "./config";
+import { livePaymentWorkspaces } from "./overrides";
+import { plansV2Enabled } from "./plans";
 
 type Env = Record<string, string | undefined>;
 export type StripeMode = "test" | "live";
@@ -60,11 +68,39 @@ export type PaymentsAccess = "open" | "test_workspace" | "closed";
  * Whether this workspace may use top-ups, auto-recharge and the portal now.
  * The scheduler, which has no legal-entity settings, passes requireEntity
  * false: auto-recharge can only have been switched on through this check.
+ * In live mode before Gate B, `liveAllowlisted` says whether an admin opened
+ * live payments for the workspace (resolvePaymentsAccess looks it up).
  */
-export function paymentsAccess(orgId: string, env: Env = process.env, options: { requireEntity?: boolean } = {}): PaymentsAccess {
+export function paymentsAccess(orgId: string, env: Env = process.env, options: { requireEntity?: boolean; liveAllowlisted?: boolean } = {}): PaymentsAccess {
   try { stripeSecretKey(env); } catch { return "closed"; }
   if (stripeMode(env) === "test") return testWorkspaceIds(env).has(orgId.toLowerCase()) ? "test_workspace" : "closed";
-  return billingCreditsEnabled(env) && (options.requireEntity === false || getLegalEntity(env)) ? "open" : "closed";
+  if (!billingCreditsEnabled(env) || !(options.requireEntity === false || getLegalEntity(env))) return "closed";
+  return plansV2Enabled(env) || options.liveAllowlisted === true ? "open" : "closed";
+}
+
+/**
+ * paymentsAccess for several workspaces, with the live-mode allowlist read
+ * from the database (only in live mode before Gate B; test mode and Gate B
+ * need no query). Any lookup failure keeps live payments closed.
+ */
+export async function resolvePaymentsAccess(orgIds: readonly string[], env: Env = process.env,
+  options: { requireEntity?: boolean; actorId?: string; pool?: Pool } = {}): Promise<Map<string, PaymentsAccess>> {
+  let allowlisted = new Set<string>();
+  const needsList = orgIds.length > 0 && stripeMode(env) === "live" && !plansV2Enabled(env) && billingCreditsEnabled(env)
+    && orgIds.some(id => paymentsAccess(id, env, { requireEntity: options.requireEntity, liveAllowlisted: true }) === "open");
+  if (needsList) {
+    try {
+      allowlisted = await withTenant({ orgId: "", actorId: options.actorId ?? "system:payments-access" }, db => livePaymentWorkspaces(db, orgIds), options.pool);
+    } catch {
+      console.error(JSON.stringify({ event: "billing_live_allowlist_unavailable" }));
+    }
+  }
+  return new Map(orgIds.map(id => [id, paymentsAccess(id, env, { requireEntity: options.requireEntity, liveAllowlisted: allowlisted.has(id.toLowerCase()) })]));
+}
+
+/** resolvePaymentsAccess for one workspace. */
+export async function paymentsAccessFor(orgId: string, env: Env = process.env, options: { requireEntity?: boolean; actorId?: string; pool?: Pool } = {}): Promise<PaymentsAccess> {
+  return (await resolvePaymentsAccess([orgId], env, options)).get(orgId) ?? "closed";
 }
 
 /**

@@ -190,8 +190,9 @@ export class TargetExecutionWorker{
     const mode=this.mode();
     const charged=observation.status==="succeeded"?await chargeMeter(c,mode,{orgId:tenant.orgId,key:`unit:${claimed.input.caseUnitId}`,meter:questionMeter(claimed.config.kind),quantity:1,runId:claimed.input.runId,caseUnitId:claimed.input.caseUnitId}):null;
     await c.query("UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,observation.error?.code??null]);await event(c,tenant.orgId,claimed.step.workflow_id,observation.status==="succeeded"?"target_completed":"target_observation_incomplete",observation.error?.code);await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);
-    // Enforce mode charged what the balance covered: the answer is kept and the run pauses.
-    if(mode==="enforce"&&charged&&charged.shortfallUcr>BigInt(0))await pauseWorkflowForCredits(c,tenant.orgId,claimed.step.workflow_id,"credits_exhausted");});
+    // Enforce mode (the process's, or the workspace's override) charged what the
+    // balance covered: the answer is kept and the run pauses. Shadow never has a shortfall.
+    if(charged&&charged.shortfallUcr>BigInt(0))await pauseWorkflowForCredits(c,tenant.orgId,claimed.step.workflow_id,"credits_exhausted");});
   }catch(error){
    const failure=failureReason(error);
    const website=claimed.config.kind==="website";

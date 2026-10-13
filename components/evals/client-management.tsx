@@ -84,7 +84,9 @@ export function ClientManagement() {
   const planLabel = (id: string) => {
     const row = details.get(id);
     if (!row) return "—";
-    return row.kind === "snapshot" ? t("clientKindSnapshot") : row.plan === "free" ? t("clientPlanFree") : t("clientPlanManaged");
+    if (row.kind === "snapshot") return t("clientKindSnapshot");
+    // Plans v2 (launch L-14): pay as you go and partner workspaces list with the clients.
+    return row.plan === "free" ? t("clientPlanFree") : row.plan === "payg" ? t("clientPlanPayg") : row.plan === "partner" ? t("clientPlanPartner") : t("clientPlanManaged");
   };
 
   return (

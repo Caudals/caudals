@@ -159,8 +159,9 @@ export class InvocationWorker {
     await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
     await this.health(c,provider.id,'healthy');await event(c,tenant.orgId,step.workflow_id,'step_completed');await projectWorkflow(c,tenant.orgId,step.workflow_id);
     if(input.caseUnitId)await projectExecutionRun(c,tenant.orgId,current.workflow.run_id);
-    // Enforce mode charged what the balance covered: the work is kept, the workflow pauses.
-    if(shortfall&&mode==='enforce')await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,'credits_exhausted');
+    // Enforce mode (the process's, or the workspace's override) charged what the
+    // balance covered: the work is kept, the workflow pauses. Shadow never has a shortfall.
+    if(shortfall)await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,'credits_exhausted');
    });
   }catch(error){await this.finishFailure(tenant,step,attemptId,provider.id,amount,error,input);}
   finally{clearInterval(timer);secret?.fill(0);}

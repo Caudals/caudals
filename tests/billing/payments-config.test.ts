@@ -38,13 +38,18 @@ describe("payments access", () => {
     expect(paymentsAccess(ORG, env)).toBe("test_workspace");
     expect(paymentsAccess(OTHER, env)).toBe("closed");
   });
-  it("live mode opens to owners only with BILLING_CREDITS_ENABLED and the real company data", () => {
+  it("live mode opens to owners only with BILLING_CREDITS_ENABLED and the real company data, and before Gate B only to allowlisted workspaces (L-14)", () => {
     const live = { BILLING_STRIPE_MODE: "live", STRIPE_SECRET_KEY: "sk_live_x" };
-    expect(paymentsAccess(ORG, live)).toBe("closed");
-    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true" })).toBe("closed");
-    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true", ...ENTITY })).toBe("open");
-    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true", ...ENTITY, LEGAL_ENTITY_NIF: "B00000000" })).toBe("closed");
-    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true" }, { requireEntity: false })).toBe("open");
+    const listed = { liveAllowlisted: true };
+    expect(paymentsAccess(ORG, live, listed)).toBe("closed");
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true" }, listed)).toBe("closed");
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true", ...ENTITY }, listed)).toBe("open");
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true", ...ENTITY, LEGAL_ENTITY_NIF: "B00000000" }, listed)).toBe("closed");
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true" }, { requireEntity: false, ...listed })).toBe("open");
+    // Not allowlisted: closed until PLANS_V2_ENABLED (Gate B) opens live top-ups to every owner.
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true", ...ENTITY })).toBe("closed");
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "true", ...ENTITY, PLANS_V2_ENABLED: "true" })).toBe("open");
+    expect(paymentsAccess(ORG, { ...live, BILLING_CREDITS_ENABLED: "false", ...ENTITY, PLANS_V2_ENABLED: "true" }, listed)).toBe("closed");
   });
   it("closes when the key is missing or of the other mode", () => {
     expect(paymentsAccess(ORG, { BILLING_TEST_WORKSPACE_IDS: ORG })).toBe("closed");

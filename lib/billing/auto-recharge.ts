@@ -16,7 +16,7 @@ import type { Pool } from "pg";
 import type Stripe from "stripe";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { attachPaymentIntent, autoRechargeDue, claimAutoRecharge, getStripeCustomer, type TopUpOrder } from "./payments";
-import { paymentsAccess } from "./payments-config";
+import { paymentsAccessFor } from "./payments-config";
 import { settleFailure, settlePayment } from "./settlement";
 import { chargeOffSession, getStripe, isLivemode, offSessionPaymentMethod, outcomeOf, type OffSessionOutcome } from "./stripe";
 
@@ -45,7 +45,7 @@ async function apply(order: TopUpOrder, outcome: OffSessionOutcome, customerId: 
 }
 
 /** One pass over the workspaces whose auto-recharge has work to do. */
-export async function runAutoRecharge(actorId: string, deps: { stripe?: Stripe; pool?: Pool; limit?: number; allowed?: (orgId: string) => boolean } = {}): Promise<AutoRechargeTick> {
+export async function runAutoRecharge(actorId: string, deps: { stripe?: Stripe; pool?: Pool; limit?: number; allowed?: (orgId: string) => boolean | Promise<boolean> } = {}): Promise<AutoRechargeTick> {
   const tick: AutoRechargeTick = { workspaces: 0, charged: 0, succeeded: 0, failed: 0, pending: 0 };
   let stripe: Stripe;
   try { stripe = deps.stripe ?? getStripe(); } catch { return tick; }
@@ -53,7 +53,7 @@ export async function runAutoRecharge(actorId: string, deps: { stripe?: Stripe; 
   const due = await withTenant({ orgId: "", actorId }, db => autoRechargeDue(db, deps.limit ?? 50), deps.pool);
   for (const orgId of due) {
     // Defence in depth: a workspace taken off the test list (or payments closed) is never charged.
-    if (!(deps.allowed ?? (id => paymentsAccess(id, process.env, { requireEntity: false }) !== "closed"))(orgId)) continue;
+    if (!await (deps.allowed ?? (async id => await paymentsAccessFor(id, process.env, { requireEntity: false, actorId, pool: deps.pool }) !== "closed"))(orgId)) continue;
     tick.workspaces++;
     const scope = { orgId, actorId };
     try {

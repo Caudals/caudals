@@ -3,7 +3,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { PoolClient } from "pg";
-import { EvalError } from "../domain/errors";
+import { EvalError, PlanLimitError } from "../domain/errors";
+import { plansV2For } from "../../billing/overrides";
 import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import { targetConfigSchema, type TargetConfig } from "../contracts/connectors";
 import { caseSchema, rubricSchema, type CefCase } from "../contracts/cases";
@@ -23,7 +24,7 @@ import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { createRunnerJob } from "../private-runner/store";
 import { assertRunAllowance, lockRunQueue } from "./run-capacity";
-import { admitRun, engineBillingMode } from "../../billing/engine";
+import { admitRun, engineBillingMode, workspaceEngineMode } from "../../billing/engine";
 import { resumeCreditPausedWork } from "../queue/credit-pause";
 
 function required<T>(value: T | undefined): T {
@@ -606,6 +607,8 @@ export function createSelfServiceRunInTransaction(db: PoolClient, scope: Evidenc
       );
       const config = targetConfigSchema.parse(target.document);
       if (!limits.allowed_connection_types.includes(connectionType(config))) {
+        // Plans v2 (L-14): a typed limit that opens the upgrade dialog.
+        if (await plansV2For(db, scope.orgId)) throw new PlanLimitError("connection", scope.orgId, null, connectionType(config));
         throw new EvalError("SCOPE_DENIED", 403, "This connection type is not enabled for the workspace.");
       }
       if (config.kind === "website" && !config.recipe_revision_id) {
@@ -953,7 +956,8 @@ export async function controlRunInTransaction(db: PoolClient, scope: EvidenceSco
       await recordRunFinished(db, scope.orgId, runId);
       return { runId, action, status };
     }
-    const billingMode = engineBillingMode();
+    // The workspace's credit mode: BILLING_ENFORCE or its admin override (L-14).
+    const billingMode = await workspaceEngineMode(db, engineBillingMode(), scope.orgId);
     if (action === "resume" && billingMode === "enforce" && ["paused", "pause_requested"].includes(workflow.status)) {
       // §6.8 step 1 at resume (enforce mode): the p90 of the questions still to run.
       const run = (await db.query(`SELECT r.evaluation_id,r.suite_version_id,r.target_revision_id,

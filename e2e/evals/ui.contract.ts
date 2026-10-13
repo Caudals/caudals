@@ -3370,3 +3370,132 @@ test("top-up reads in Spanish and stays closed where payments are not open", asy
   await page.goto(`/workspace/billing/top-up?owner&closed&orgId=${id}`);
   await expect(page.getByRole("heading", { name: "La compra de créditos no está disponible en este espacio de trabajo." })).toBeVisible();
 });
+
+/* ---------------------------------------------------- L-14 plan limits --- */
+
+/** GET /billing/plan for a free workspace (lib/billing/plan-summary.ts). */
+const freePlan = (overrides: { role?: string; addCreditsUrl?: string | null } = {}) => ({
+  orgId: id, plan: "free", role: overrides.role ?? "owner",
+  limits: { systems: { used: 1, limit: 1 }, questionsPerSet: { limit: 50 }, runsPerMonth: { used: 3, limit: 3 }, activeRuns: { used: 0, limit: 1 },
+    members: { used: 1, pending: 0, limit: null }, connectionTypes: ["website", "openai_compatible", "https_json"], schedules: false, exports: true },
+  payg: { systems: 10, questionsPerSet: 500, runsPerMonth: null, activeRuns: 2, members: 10, connectionTypes: ["https_json", "imported_responses", "openai_compatible", "website"], schedules: true },
+  unlocks: { systems: "credits", runs: "credits", questions: "credits", connection: "credits", schedules: "credits", members: "credits" },
+  connectionUnlocks: { imported_responses: "credits", private_runner: "managed", provider_native: "managed" },
+  allowance: { monthlyCredits: 1000, period: "2026-10", granted: true, expiresAt: "2026-11-01T00:00:00.000Z" },
+  credits: { available: 1000, held: 0, billingMode: "free" },
+  actions: { addCreditsUrl: overrides.addCreditsUrl === undefined ? `/workspace/billing/top-up?orgId=${id}` : overrides.addCreditsUrl, talkToUsUrl: "https://cal.com/caudals/call" },
+});
+const freeSummary = () => ({ ...summaryFixture(), entitlement: { ...summaryFixture().entitlement, allowed_connection_types: ["website", "openai_compatible", "https_json"], can_schedule: false } });
+
+/** Routes a new evaluation whose system creation hits the free plan's one-system limit. */
+async function routeSystemsLimit(page: import("@playwright/test").Page, plan: unknown, status = 200) {
+  const projectId = "00000000-0000-4000-8000-000000000901", evaluationId = "00000000-0000-4000-8000-000000000902";
+  await page.route("**/api/evals/v1/**", route => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", route => route.fulfill({ json: { data: freeSummary(), meta: {} } }));
+  await page.route("**/api/evals/v1/billing/plan?**", route => status === 200
+    ? route.fulfill({ json: { data: plan, meta: {} } })
+    : route.fulfill({ status, json: { error: { code: "SCOPE_DENIED", message: "This action is not available.", field_errors: [], request_id: "req", retryable: false } } }));
+  await page.route("**/api/evals/v1/projects", route => route.fulfill({ json: { data: { id: projectId }, meta: {} } }));
+  await page.route("**/api/evals/v1/evaluations", route => route.fulfill({ json: { data: { id: evaluationId }, meta: {} } }));
+  await page.route(`**/api/evals/v1/projects/${projectId}/targets`, route => route.fulfill({ status: 403, json: { error: {
+    code: "PLAN_LIMIT_SYSTEMS", message: "This workspace has reached its plan's number of AI systems.", field_errors: [], request_id: "req-limit", retryable: false,
+    limit: { kind: "systems", limit: 1, connectionType: null } } } }));
+}
+async function createWebsiteEvaluation(page: import("@playwright/test").Page, labels = { name: "Name", purpose: "What should this system help people do?", url: "Website URL", create: "Create evaluation" }) {
+  await page.getByLabel(labels.name, { exact: true }).fill("Support bot");
+  await page.getByLabel(labels.purpose).fill("Answer customer questions");
+  await page.getByLabel(labels.url).fill("https://example.com/chat");
+  await page.getByRole("button", { name: labels.create }).click();
+}
+
+for (const width of [390, 768, 1440]) {
+  test(`plan limits: a typed limit opens the upgrade dialog with both ways forward (${width} px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await routeSystemsLimit(page, freePlan());
+    await page.goto(`/workspace/evaluations/new?orgId=${id}&owner`);
+    await createWebsiteEvaluation(page);
+    const dialog = page.getByRole("dialog", { name: "You’ve reached your plan’s AI systems" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Your plan: Free")).toBeVisible();
+    await expect(dialog.getByText("AI systems: 1 of 1")).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "With credits · pay as you go" })).toBeVisible();
+    await expect(dialog.getByText("Up to 10 AI systems.")).toBeVisible();
+    await expect(dialog.getByText(/Packs start at €20 \+ VAT for 2,000 credits/)).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "On a managed plan" })).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Add credits" })).toHaveAttribute("href", `/workspace/billing/top-up?orgId=${id}`);
+    await expect(dialog.getByRole("link", { name: "Talk to us" })).toHaveAttribute("href", "https://cal.com/caudals/call");
+    // The page names the limit too, instead of a generic error.
+    await expect(page.getByText("You’ve reached your plan’s AI systems").first()).toBeVisible();
+    // The dialog fits: no horizontal scroll, and both actions are on screen.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const box = await dialog.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    await expect(dialog.getByRole("link", { name: "Add credits" })).toBeInViewport();
+    await page.screenshot({ path: `/tmp/caudals-l14-limit-dialog-${width}.png` });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+}
+
+test("plan limits: disabled connection cards say what unlocks them, and stay as today while plans v2 is off", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await routeSystemsLimit(page, freePlan());
+  await page.goto(`/workspace/evaluations/new?orgId=${id}&owner`);
+  const upload = page.locator("label.p-choice", { hasText: "Upload answers" }), runner = page.locator("label.p-choice", { hasText: "Private system" });
+  await expect(upload).toContainText("Available with credits");
+  await expect(runner).toContainText("Available on a managed plan");
+  await expect(page.getByLabel("Upload answers", { exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "What unlocks more connections?" }).click();
+  const dialog = page.getByRole("dialog", { name: "This connection isn’t in your plan" });
+  await expect(dialog.getByText("Uploaded answers as well as website chatbots and APIs.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Plans v2 off for the workspace: the summary answers 404 and the cards keep today's wording.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await routeSystemsLimit(page, null, 404);
+  await page.goto(`/workspace/evaluations/new?orgId=${id}&owner`);
+  await expect(page.locator("label.p-choice", { hasText: "Upload answers" })).toContainText("Not enabled for this workspace.");
+  await expect(page.getByRole("button", { name: "What unlocks more connections?" })).toHaveCount(0);
+});
+
+test("plan limits: an editor is asked to have an owner add credits", async ({ page }) => {
+  await routeSystemsLimit(page, freePlan({ role: "editor", addCreditsUrl: null }));
+  await page.goto(`/workspace/evaluations/new?orgId=${id}&editor`);
+  await createWebsiteEvaluation(page);
+  const dialog = page.getByRole("dialog", { name: "You’ve reached your plan’s AI systems" });
+  await expect(dialog.getByText("Ask a workspace owner to add credits.")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Add credits" })).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "Talk to us" })).toBeVisible();
+});
+
+for (const width of [390, 1440]) {
+  test(`plan limits read in Spanish (${width} px)`, async ({ page }) => {
+    await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+    await page.setViewportSize({ width, height: 900 });
+    await routeSystemsLimit(page, freePlan());
+    await page.goto(`/workspace/evaluations/new?orgId=${id}&owner`);
+    await expect(page.locator("label.p-choice").filter({ hasText: "Disponible con créditos" })).toHaveCount(1);
+    await expect(page.locator("label.p-choice").filter({ hasText: "Disponible con un plan gestionado" })).toHaveCount(1);
+    await createWebsiteEvaluation(page, { name: "Nombre", purpose: "¿En qué debe ayudar este sistema a las personas?", url: "URL del sitio web", create: "Crear evaluación" });
+    const dialog = page.getByRole("dialog", { name: "Has llegado al límite de sistemas de IA de tu plan" });
+    await expect(dialog.getByText("Tu plan: Gratis")).toBeVisible();
+    await expect(dialog.getByText("Sistemas de IA: 1 de 1")).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Con créditos · pago por uso" })).toBeVisible();
+    await expect(dialog.getByText("Hasta 10 sistemas de IA.")).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Añadir créditos" })).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Habla con nosotros" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/caudals-l14-limit-dialog-es-${width}.png` });
+  });
+}
+
+test("plan limits: scheduling says what unlocks it", async ({ page }) => {
+  await page.route("**/api/evals/v1/**", route => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", route => route.fulfill({ json: { data: freeSummary(), meta: {} } }));
+  await page.route("**/api/evals/v1/billing/plan?**", route => route.fulfill({ json: { data: freePlan(), meta: {} } }));
+  await page.goto(`/workspace/settings?orgId=${id}&owner&tab=monitoring`);
+  await expect(page.getByText("Scheduling is not enabled in this workspace.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "See what unlocks it" }).click();
+  const dialog = page.getByRole("dialog", { name: "Scheduled monitoring isn’t in your plan" });
+  await expect(dialog.getByText("Scheduled monitoring, the CI API and uploaded answers.")).toBeVisible();
+});
