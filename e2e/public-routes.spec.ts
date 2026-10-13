@@ -396,8 +396,8 @@ test.describe("public site refresh (launch L-30)", () => {
       await expect(page.locator("#step-how").locator("xpath=..")).toContainText(locale === "en" ? "run the free test" : "haz la prueba gratuita");
       const cost = page.locator("#faq details").filter({ hasText: copy.cost });
       await expect(cost).toHaveCount(1);
-      await cost.locator("summary").click();
-      const answer = await cost.locator("p").innerText();
+      // textContent, not innerText: the answer is the same whether or not the <details> has opened yet.
+      const answer = (await cost.locator("p").textContent()) ?? "";
       expect(answer).toMatch(copy.payg);
       expect(answer).not.toMatch(/€|\bEUR\b|48/);
     });
