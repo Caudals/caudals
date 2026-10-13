@@ -34,8 +34,8 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 4 | L-15 | Billing and usage screens, run estimate dialog | L-10, L-11, L-12, L-14 | — | todo | | |
 | 4 | L-16 | Ops billing console and reconciliation | L-09, L-10, L-12, L-13 | 094 `billing_approvals` | todo | | |
 | 4 | L-17 | Report v2 and share page | L-02, L-04 | — | in progress | | |
-| 5 | L-29 | AI-disclosure check (Art. 50 evidence) | L-03 | — | todo | | |
-| 5 | L-30 | Public site refresh, DPA acceptance UI | L-01, L-04 | — | todo | | |
+| 5 | L-29 | AI-disclosure check (Art. 50 evidence) | L-03 | — | in progress | | |
+| 5 | L-30 | Public site refresh, DPA acceptance UI | L-01, L-04 | — | in progress | | |
 | 7 | L-18 | Schedules, re-run and compare, regression alerts | L-11, L-14, L-15, L-07 | 095 `evals_schedule_credits` | todo | | |
 | 7 | L-19 | Integrations: CI trigger, Slack/Teams/email | L-11, L-18 | 096 `evals_integrations_v2` | todo | | |
 | 7 | L-20 | Help centre, API reference, methodology page | — | — | in progress | | |
@@ -64,7 +64,7 @@ A phase is deployed when every package in it is `done`. Phase 6 (launch week) ha
 | 2 · Open the funnel (Gate A) | L-04, L-05, L-06, L-07, L-10, L-33 | in progress |
 | 3 · Billing build | L-11, L-21, L-12, L-13, L-14 | in progress |
 | 4 · Take money (Gate B) | L-15, L-16, L-17 | in progress |
-| 5 · Launch prep | L-29, L-30 | todo |
+| 5 · Launch prep | L-29, L-30 | in progress |
 | 7 · Build the rest | L-18…L-28, L-31, L-32, L-34, L-35, L-36 | in progress |
 
 ## 4. Implementation decisions (for questions the spec leaves to the build)
@@ -81,6 +81,8 @@ A phase is deployed when every package in it is `done`. Phase 6 (launch week) ha
 | I-8 | Time-based rollout steps | Steps that need calendar time or founder action (the billing shadow week, three clean reconciliation days, the €20 live purchase, design partners, lawyer review) are recorded under §5 rather than simulated |
 | I-9 | Flags | Each package switches its flag on after its production checks when the spec says so. Flags that expose money, send lifecycle email to real users, or depend on a founder action stay off and are listed in §5 |
 | I-10 | Front-door flag (L-04) | The spec names `NEXT_PUBLIC_DEMO_PUBLIC`, but the image build only receives `NEXT_PUBLIC_APP_URL`, so L-04 uses the server-read runtime flag `DEMO_PUBLIC` (default off, in the `set-app-credentials.sh` allowlist). It switches the header pill and "Sign in", the hero/sector/closing CTAs, the demo's indexing, its sitemap/`llms.txt`/agent-markdown entries and the report card's readout and share actions together. The public tree revalidates every 300 s and `/demo` renders per request, so a switch needs only `set-app-flag.sh` (no rebuild) |
+| I-11 | Per-workspace credit enforcement | `BILLING_ENFORCE` applies to every non-contract workspace and all internal workspaces are on contracts (L-11). L-14 adds a per-workspace enforcement override (ops-set, audited) so internal test workspaces can enforce first, and free workspaces get their monthly allowance before any global `enforce` |
+| I-12 | DB test isolation | Several real-schema suites (`analytics-growth-db`, `health-alerts-db`) fail only when run in parallel with others because they share fixture data; they pass on a fresh database. Packages run them in isolation; L-24 fixes the shared-state isolation |
 
 ## 5. Founder actions
 
@@ -129,3 +131,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | L-04, L-33 and L-07 done. Agents started for L-21, L-17 and L-20. Gate A waits only on L-06. |
 | 2026-10-12 | L-11 done (`84c7698`, migration 089): credit holds, captures, releases and meters on the engine path; app and workers deployed as one release. Shadow week started ~16:15 UTC (`BILLING_CREDITS_ENABLED=true`, `BILLING_ENFORCE=shadow`); the internal verification run on the DGX recorded shadow entries with zero drift and every check 0. Enforcement waits for a clean week and L-14's allowance (§5). |
 | 2026-10-12 | L-21 done (`d8f80b5`, fix `8f50fb7`, migration 090): `/ops/prospects` snapshots (sandbox, basis record, daily cap, policy triggers, 30-day "external snapshot" links, EN/ES outreach, CRM drafts on click), growth v2 columns, Overview KPIs and demo health, Clients plan/credits/domain filters, Review SLA and bulk approve, Monday 08:00 Madrid digest. Production snapshot of our own fixture verified end to end; one digest delivered to the internal address. Both flags on. |
+| 2026-10-12 | Usage limit hit again ~16:00 UTC; agents resumed 20:11. L-11 done (shadow mode live, shadow week started ~16:15 UTC). L-21 done. Agents started for L-29 and L-30. |
