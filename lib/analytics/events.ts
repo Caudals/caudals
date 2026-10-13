@@ -1,6 +1,6 @@
 /** Canonical v2 catalogue. A name has one ingestion source, never both. */
 export const CLIENT_EVENT_NAMES = ["page_view", "demo_viewed", "pilot_requested", "readout_link_clicked", "expert_review_requested", "example_viewed"] as const;
-export const SERVER_EVENT_NAMES = ["demo_started", "demo_finished", "demo_signup_requested", "demo_report_shared", "account_created", "evaluation_created", "test_set_ready", "run_started", "run_finished", "report_viewed", "report_shared", "export_downloaded", "limit_hit", "schedule_created", "api_token_created", "webhook_created", "sources_added", "scan_detected", "context_confirmed", "readout_presented", "readout_exported", "report_question_asked"] as const;
+export const SERVER_EVENT_NAMES = ["demo_started", "demo_finished", "demo_signup_requested", "demo_report_shared", "account_created", "evaluation_created", "test_set_ready", "run_started", "run_finished", "report_viewed", "report_shared", "export_downloaded", "limit_hit", "schedule_created", "api_token_created", "webhook_created", "sources_added", "scan_detected", "context_confirmed", "readout_presented", "readout_exported", "report_question_asked", "top_up_started", "top_up_paid", "auto_recharge_paid", "auto_recharge_failed"] as const;
 export type ClientEventName = typeof CLIENT_EVENT_NAMES[number];
 export type ServerEventName = typeof SERVER_EVENT_NAMES[number];
 export type ProductEventName = ClientEventName | ServerEventName;
@@ -18,6 +18,8 @@ const properties: Record<ProductEventName, readonly string[]> = {
   schedule_created: ["destination_type"], api_token_created: ["destination_type"], webhook_created: ["destination_type"],
   sources_added: ["source_kind", "count"], scan_detected: ["source_kind", "count"], context_confirmed: ["count", "edited_fields"],
   readout_presented: ["revision_hash", "slide_count"], readout_exported: ["revision_hash", "slide_count"], report_question_asked: ["outcome", "credits"],
+  top_up_started: ["pack", "net_amount", "first_purchase"], top_up_paid: ["pack", "net_amount", "first_purchase"],
+  auto_recharge_paid: ["pack", "net_amount", "first_purchase"], auto_recharge_failed: ["pack", "net_amount", "reason"],
 };
 export const ATTRIBUTION_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "ref", "partner", "attribution_parent_event_id", "attribution_visitor_id", "attribution_short_code"] as const;
 export type Attribution = Partial<Record<typeof ATTRIBUTION_KEYS[number], string>>;

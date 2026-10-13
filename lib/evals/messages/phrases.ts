@@ -95,6 +95,21 @@ const SERVER_ES: Record<string, string> = {
   "This account has no published report yet.": "Esta cuenta aún no tiene un informe publicado.",
   "A prospect snapshot runs only ordinary questions on a website chat, within its traffic limits and question count.": "Una prueba externa solo hace preguntas normales a un chat web, dentro de sus límites de tráfico y de número de preguntas.",
   "The link could not be labelled as an external snapshot.": "No se ha podido etiquetar el enlace como prueba externa.",
+  "Add your billing details before buying credits.": "Añade tus datos de facturación antes de comprar créditos.",
+  "We could not confirm your VAT number with VIES yet. Save your billing details again in a few minutes, or write to hello@caudals.com.": "Aún no hemos podido confirmar tu número de IVA en VIES. Vuelve a guardar tus datos de facturación dentro de unos minutos o escríbenos a hello@caudals.com.",
+  "Billing addresses in the Canary Islands, Ceuta and Melilla need a manual review. Write to hello@caudals.com.": "Las direcciones de facturación en Canarias, Ceuta y Melilla necesitan una revisión manual. Escríbenos a hello@caudals.com.",
+  "New accounts can buy up to €100 of credits in their first 30 days. Write to hello@caudals.com to raise the limit.": "Las cuentas nuevas pueden comprar hasta 100 € en créditos durante sus primeros 30 días. Escríbenos a hello@caudals.com para ampliar el límite.",
+  "New accounts can start up to 3 top-ups a day. Try again tomorrow.": "Las cuentas nuevas pueden iniciar hasta 3 recargas al día. Vuelve a intentarlo mañana.",
+  "Payments are paused for this workspace. Write to hello@caudals.com.": "Los pagos están en pausa en este espacio de trabajo. Escríbenos a hello@caudals.com.",
+  "This request was already used for a different top-up. Start again.": "Esta petición ya se usó para otra recarga. Empieza de nuevo.",
+  "This checkout has ended. Start a new top-up.": "Este pago ha terminado. Empieza una nueva recarga.",
+  "Check the tax ID: a Spanish NIF, an EU VAT number or your company's tax registration number.": "Revisa la identificación fiscal: un NIF español, un número de IVA de la UE o el número de registro fiscal de tu empresa.",
+  "Choose the country of your billing address.": "Elige el país de tu dirección de facturación.",
+  "Buy credits once with a card first. Auto-recharge uses the card saved at that purchase.": "Compra créditos una vez con tarjeta primero. La recarga automática usa la tarjeta guardada en esa compra.",
+  "Only an unused purchase can be refunded, within 14 days of payment.": "Solo se puede reembolsar una compra sin usar, en los 14 días siguientes al pago.",
+  "Payments are temporarily unavailable. Nothing was charged. Try again in a few minutes.": "Los pagos no están disponibles en este momento. No se ha cobrado nada. Vuelve a intentarlo dentro de unos minutos.",
+  "Payments are temporarily unavailable. Try again in a few minutes.": "Los pagos no están disponibles en este momento. Vuelve a intentarlo dentro de unos minutos.",
+  "The monthly limit must cover at least one recharge.": "El límite mensual debe cubrir al menos una recarga.",
 };
 
 /** Translate a curated server sentence; evaluation- or model-specific details keep their wording. */

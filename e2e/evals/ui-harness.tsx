@@ -1,4 +1,5 @@
 import { OpsGrowth } from "../../components/evals/ops-growth";
+import { BillingTopUp, TopUpReturn } from "../../components/evals/billing-top-up";
 import { FunnelVisitTracker } from "../../components/analytics/funnel-visit-tracker";
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -159,6 +160,12 @@ const content =
     </LocaleProvider>
   ) : location.pathname === "/workspace/web-app-fixture" ? (
     <WebAppConnector orgId="00000000-0000-4000-8000-000000000001" targetId="00000000-0000-4000-8000-000000000201" />
+  ) :
+  location.pathname === "/workspace/billing/top-up" ? (
+    <BillingTopUp allowedOrgIds={params.has("closed") ? [] : ["00000000-0000-4000-8000-000000000001"]} />
+  ) : location.pathname.startsWith("/workspace/billing/top-ups/") ? (
+    <TopUpReturn orderId={location.pathname.split("/").at(-1)!} orgId="00000000-0000-4000-8000-000000000001"
+      checkout={params.get("checkout") === "canceled" ? "canceled" : params.get("checkout") === "success" ? "success" : null} />
   ) :
   location.pathname === "/workspace/sign-in" ? (
     <EvaluationSignIn next={params.get("next") ?? undefined} directSignup={params.has("direct")} />

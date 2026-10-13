@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { proxy } from "@/proxy";
 
+const STRIPE_WEBHOOK_PATH = "/api/evals/v1/billing/stripe/webhook";
+
 function request(path: string, cookie?: string) {
   return new NextRequest(`https://app.caudals.com${path}`, {
     headers: {
@@ -27,6 +29,15 @@ describe("proxy", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("passes the Stripe webhook through on the app host with no session, and hides it on the marketing host", async () => {
+    const post = (host: string) => new NextRequest(`https://${host}${STRIPE_WEBHOOK_PATH}`, { method: "POST", headers: { "stripe-signature": "t=1,v1=x" } });
+    const app = await proxy(post("app.caudals.com"));
+    expect(app.status).toBe(200);
+    expect(app.headers.get("location")).toBeNull();
+    expect(app.headers.get("x-middleware-next")).toBe("1");
+    expect((await proxy(post("caudals.com"))).status).toBe(404);
   });
 
   it("returns 404 for every legacy dashboard entry with or without a session", async () => {

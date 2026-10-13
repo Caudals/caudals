@@ -13,7 +13,8 @@ const sentrySourceMapUploadEnabled =
 const cspDirectives = [
   "default-src 'self'",
   "base-uri 'self'",
-  "form-action 'self'",
+  // Stripe-hosted Checkout and Customer Portal (launch L-12) when a form post redirects there.
+  "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "img-src 'self' data: blob: https:",

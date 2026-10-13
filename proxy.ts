@@ -123,6 +123,14 @@ function isEvalsPath(pathname: string) {
   return EVALS_PREFIXES.some(p => pathname === p || pathname.startsWith(p + "/")) || pathname.startsWith("/api/evals/");
 }
 
+/**
+ * Stripe's signed webhook (launch L-12). Like every /api/evals route it is
+ * served on the app host only (404 on the marketing host) and passes through
+ * here with no session or locale handling: the route authenticates Stripe by
+ * the endpoint's signing secret.
+ */
+const STRIPE_WEBHOOK_PATH = "/api/evals/v1/billing/stripe/webhook";
+
 export async function proxy(request: NextRequest) {
   const hostname = extractHostname(request);
   const pathname = request.nextUrl.pathname;
@@ -149,6 +157,10 @@ export async function proxy(request: NextRequest) {
 
   if (isMarketingHost && isEvalsPath(pathname)) {
     return new NextResponse("Not Found", { status: 404 });
+  }
+
+  if (isAppHost && pathname === STRIPE_WEBHOOK_PATH) {
+    return NextResponse.next();
   }
 
   // A link can choose the reader's language, e.g. a shared report sent by

@@ -32,7 +32,8 @@ for line in open(sys.argv[2]):
 # Secrets are immutable, so each is named by a hash of its value; a changed
 # credential gets a new secret and the stack switches to it on deploy.
 # The weekly ops digest (launch L-21) goes only to the internal collaboration address.
-for pair in "RESEND_API_KEY:caudals_evals_resend_api_key:EVALS_RESEND_API_KEY_SECRET" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email:EVALS_RESEND_FROM_EMAIL_SECRET" "COLLABORATION_NOTIFICATION_EMAIL:caudals_evals_digest_to:EVALS_DIGEST_TO_SECRET"; do
+# The Stripe key (L-12 auto-recharge) follows the same pattern.
+for pair in "RESEND_API_KEY:caudals_evals_resend_api_key:EVALS_RESEND_API_KEY_SECRET" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email:EVALS_RESEND_FROM_EMAIL_SECRET" "COLLABORATION_NOTIFICATION_EMAIL:caudals_evals_digest_to:EVALS_DIGEST_TO_SECRET" "STRIPE_SECRET_KEY:caudals_evals_stripe_secret_key:EVALS_STRIPE_SECRET_KEY_SECRET"; do
   IFS=: read -r key base variable <<<"$pair"
   value=$(credential "$key")
   [[ -n $value ]] || { echo "Missing $key in $app_credentials" >&2; exit 1; }
@@ -68,6 +69,17 @@ GROWTH_TARGET_STAGE=$(credential GROWTH_TARGET_STAGE)
 GROWTH_TARGET_STAGE=${GROWTH_TARGET_STAGE:-gate_a}
 [[ $GROWTH_TARGET_STAGE =~ ^(gate_a|gate_b|launch_4w|launch_12w)$ ]] || { echo 'GROWTH_TARGET_STAGE must be gate_a, gate_b, launch_4w or launch_12w' >&2; exit 1; }
 export OPS_DIGEST_ENABLED OPS_DIGEST_LOCALE GROWTH_TARGET_STAGE
+# Stripe mode and the test-mode workspace allowlist (L-12). The key must match
+# the mode by its prefix; the value itself is never printed.
+BILLING_STRIPE_MODE=$(credential BILLING_STRIPE_MODE)
+BILLING_STRIPE_MODE=${BILLING_STRIPE_MODE:-test}
+[[ $BILLING_STRIPE_MODE == test || $BILLING_STRIPE_MODE == live ]] || { echo 'BILLING_STRIPE_MODE must be test or live' >&2; exit 1; }
+stripe_prefix=$(credential STRIPE_SECRET_KEY | cut -c1-8)
+[[ $stripe_prefix == "sk_${BILLING_STRIPE_MODE}_"* || $stripe_prefix == "rk_${BILLING_STRIPE_MODE}_"* ]] || { echo "STRIPE_SECRET_KEY is not a $BILLING_STRIPE_MODE-mode key" >&2; exit 1; }
+unset stripe_prefix
+BILLING_TEST_WORKSPACE_IDS=$(credential BILLING_TEST_WORKSPACE_IDS)
+[[ -z $BILLING_TEST_WORKSPACE_IDS || $BILLING_TEST_WORKSPACE_IDS =~ ^[0-9a-f-]{36}(,[0-9a-f-]{36})*$ ]] || { echo 'BILLING_TEST_WORKSPACE_IDS must be comma-separated workspace ids' >&2; exit 1; }
+export BILLING_STRIPE_MODE BILLING_TEST_WORKSPACE_IDS
 
 # Email flags (launch L-07) from the same app credentials, so web and scheduler
 # send the same templates. Lifecycle mail stays off until the founder switches it.

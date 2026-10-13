@@ -3152,3 +3152,103 @@ test("onboarding: ops growth shows the welcome answers, the 30-minute activation
   await expect(help.getByText("Resolved", { exact: true })).toBeVisible();
   expect(resolved).toEqual([expect.stringContaining("/api/evals/v1/onboarding/help/00000000-0000-4000-8000-000000000901")]);
 });
+
+/* ------------------------------------------------------------ L-12 top-ups --- */
+
+const topUpOrder = "00000000-0000-4000-8000-0000000012a1";
+const overview = (profile: Record<string, unknown> | null) => ({
+  access: "test_workspace", mode: "test", firstTopUp: true, limits: { isNew: true, windowNetCents: 0, recentCount: 0, lifted: false },
+  balance: { availableCredits: 0, heldCredits: 0, frozen: false }, card: null, autoRecharge: { enabled: false },
+  legal: { termsUrl: "https://caudals.com/en/legal/terms", privacyUrl: "https://caudals.com/en/legal/privacy" },
+  profile,
+  packs: [
+    { id: "eur_20", netCents: 2000, vatCents: 420, grossCents: 2420, credits: 2000, bonusCredits: 400, bonusKind: "first_top_up", blocked: null },
+    { id: "eur_50", netCents: 5000, vatCents: 1050, grossCents: 6050, credits: 5000, bonusCredits: 1000, bonusKind: "first_top_up", blocked: null },
+    { id: "eur_100", netCents: 10000, vatCents: 2100, grossCents: 12100, credits: 10000, bonusCredits: 2000, bonusKind: "first_top_up", blocked: null },
+    { id: "eur_250", netCents: 25000, vatCents: 5250, grossCents: 30250, credits: 25000, bonusCredits: 5000, bonusKind: "first_top_up", blocked: "PURCHASE_LIMIT" },
+    { id: "eur_500", netCents: 50000, vatCents: 10500, grossCents: 60500, credits: 50000, bonusCredits: 10000, bonusKind: "first_top_up", blocked: "PURCHASE_LIMIT" },
+  ],
+});
+const spanishProfile = { legalName: "Acme Software SL", country: "ES", taxId: "B12345674", taxIdKind: "es_nif", viesStatus: "not_required", taxTreatment: "es_vat",
+  taxReviewReason: null, addressLine1: "Calle Mayor 1", addressLine2: null, postalCode: "47001", city: "Valladolid", region: null, billingEmail: "billing@acme.example" };
+
+test("top-up: terms are required, then the owner is redirected to Stripe Checkout (test mode)", async ({ page }) => {
+  let posted: { body: Record<string, unknown>; key: string | null } | null = null;
+  await page.route("**/api/evals/v1/**", route => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/billing/packs**", route => route.fulfill({ json: { data: overview(spanishProfile), meta: {} } }));
+  await page.route("**/api/evals/v1/billing/top-ups", route => {
+    posted = { body: route.request().postDataJSON(), key: route.request().headers()["idempotency-key"] ?? null };
+    return route.fulfill({ json: { data: { order: { id: topUpOrder, status: "pending" }, checkoutUrl: "https://checkout.stripe.com/c/pay/cs_test_harness" }, meta: {} } });
+  });
+  await page.route("https://checkout.stripe.com/**", route => route.fulfill({ contentType: "text/html", body: "<title>Stripe Checkout</title><h1>Test mode checkout</h1>" }));
+  await page.goto(`/workspace/billing/top-up?owner&orgId=${id}`);
+  await expect(page.getByRole("heading", { name: "Buy credits" })).toBeVisible();
+  await expect(page.getByText("Test mode: no real card is charged.")).toBeVisible();
+  await expect(page.getByText("+20 % on your first top-up")).toBeVisible();
+  await expect(page.getByText("Spanish VAT (IVA) at 21 % is added to the price.")).toBeVisible();
+  await expect(page.getByText("Total €24.20")).toBeVisible();
+  await expect(page.getByRole("radio", { name: /25,000 credits/ })).toBeDisabled();
+  const pay = page.getByTestId("billing-pay");
+  await expect(pay).toBeDisabled();
+  await page.getByRole("checkbox", { name: /I accept the Terms of Service and the Privacy Policy/ }).check();
+  await expect(page.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "https://caudals.com/en/legal/terms");
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 768, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await pay.click();
+  await page.waitForURL("https://checkout.stripe.com/c/pay/cs_test_harness");
+  await expect(page.getByRole("heading", { name: "Test mode checkout" })).toBeVisible();
+  expect(posted).toMatchObject({ body: { orgId: id, pack: "eur_20", acceptTerms: true, locale: "en" } });
+  expect(posted!.key).toMatch(/^[0-9a-f-]{36}$/);
+});
+
+test("top-up: billing details are asked first, for businesses only", async ({ page }) => {
+  let saved: Record<string, unknown> | null = null;
+  await page.route("**/api/evals/v1/**", route => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/billing/packs**", route => route.fulfill({ json: { data: overview(saved ? spanishProfile : null), meta: {} } }));
+  await page.route("**/api/evals/v1/billing/profile", route => { saved = route.request().postDataJSON(); return route.fulfill({ json: { data: spanishProfile, meta: {} } }); });
+  await page.goto(`/workspace/billing/top-up?owner&orgId=${id}`);
+  await expect(page.getByTestId("billing-pay")).toHaveCount(0);
+  await page.getByLabel("Legal name").fill("Acme Software SL");
+  await page.getByLabel("Tax ID").fill("B12345674");
+  await page.getByLabel("Billing email").fill("billing@acme.example");
+  await page.getByLabel("Address", { exact: true }).fill("Calle Mayor 1");
+  await page.getByLabel("Postal code").fill("47001");
+  await page.getByLabel("City").fill("Valladolid");
+  await page.getByRole("checkbox", { name: "I am buying for a business, not as a consumer." }).check();
+  await page.getByRole("button", { name: "Save billing details" }).click();
+  await expect(page.getByText("Billing details saved.")).toBeVisible();
+  expect(saved).toMatchObject({ orgId: id, country: "ES", taxId: "B12345674", businessDeclaration: true, addressLine2: null });
+  await expect(page.getByTestId("billing-pay")).toBeVisible();
+});
+
+test("top-up: the return page follows the order until Stripe confirms it, and a cancel closes it", async ({ page }) => {
+  let polls = 0;
+  await page.route("**/api/evals/v1/**", route => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route(`**/api/evals/v1/billing/top-ups/${topUpOrder}**`, route => {
+    if (route.request().method() === "POST") return route.fulfill({ json: { data: { id: topUpOrder, status: "canceled", grossCents: 2420, credits: 2000, bonusCredits: 400 }, meta: {} } });
+    polls++;
+    return route.fulfill({ json: { data: { id: topUpOrder, status: polls < 2 ? "pending" : "paid", netCents: 2000, vatCents: 420, grossCents: 2420, credits: 2000, bonusCredits: 400, bonusKind: "first_top_up", taxMention: null }, meta: {} } });
+  });
+  await page.goto(`/workspace/billing/top-ups/${topUpOrder}?owner&checkout=success`);
+  await expect(page.getByText("Confirming your payment with Stripe…")).toBeVisible();
+  await expect(page.getByText("Payment received. 2,000 credits and 400 bonus credits were added to your workspace.")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("€24.20")).toBeVisible();
+  await page.goto(`/workspace/billing/top-ups/${topUpOrder}?owner&checkout=canceled`);
+  await expect(page.getByText("Payment canceled. Nothing was charged.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Buy credits" })).toBeVisible();
+});
+
+test("top-up reads in Spanish and stays closed where payments are not open", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.route("**/api/evals/v1/**", route => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/billing/packs**", route => route.fulfill({ json: { data: overview(spanishProfile), meta: {} } }));
+  await page.goto(`/workspace/billing/top-up?owner&orgId=${id}`);
+  await expect(page.getByRole("heading", { name: "Comprar créditos" })).toBeVisible();
+  await expect(page.getByText("Al precio se le suma el IVA español del 21 %.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continuar al pago seguro" })).toBeDisabled();
+  await page.goto(`/workspace/billing/top-up?owner&closed&orgId=${id}`);
+  await expect(page.getByRole("heading", { name: "La compra de créditos no está disponible en este espacio de trabajo." })).toBeVisible();
+});

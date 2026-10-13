@@ -35,7 +35,11 @@ export type TemplateProps = {
   first_report: { reportsUrl: string; callUrl: string; unsubscribe: Unsubscribe };
   d21_rerun: { workspaceUrl: string; unsubscribe: Unsubscribe };
   d30_winback: { workspace: string; workspaceUrl: string; callUrl: string; unsubscribe: Unsubscribe };
-  payment_receipt: { workspace: string; amountCents: number; currency: string; credits: number; paidAt: string; reference?: string | null; billingUrl: string };
+  payment_receipt: {
+    workspace: string; amountCents: number; currency: string; credits: number; paidAt: string; reference?: string | null; billingUrl: string;
+    /** Fiscal lines of a credit top-up (L-12): bonus included in `credits`, net, IVA or the legal mention, and the card. */
+    bonusCredits?: number; netCents?: number; vatCents?: number; taxMention?: string | null; card?: { brand: string; last4: string } | null;
+  };
   low_balance: { workspace: string; balance: number; threshold: number; topUpUrl: string; settingsUrl: string };
   auto_recharge_succeeded: { workspace: string; amountCents: number; currency: string; credits: number; threshold: number; balance: number; billingUrl: string; settingsUrl: string };
   auto_recharge_failed: { workspace: string; amountCents: number; currency: string; billingUrl: string; settingsUrl: string };
@@ -237,11 +241,18 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
         [c.paymentReceipt.credits, credits],
         [c.paymentReceipt.date, date(locale, props.paidAt)],
       ];
+      if (props.bonusCredits) rows.push([c.paymentReceipt.bonus, number(locale, props.bonusCredits)]);
+      if (props.netCents !== undefined) {
+        rows.push([c.paymentReceipt.net, money(locale, props.netCents, props.currency)]);
+        rows.push(props.vatCents ? [c.paymentReceipt.vat, money(locale, props.vatCents, props.currency)] : [c.paymentReceipt.taxMention, props.taxMention ?? "—"]);
+      }
+      if (props.card) rows.push([c.paymentReceipt.paidWith, fill(c.paymentReceipt.card, props.card)]);
       if (props.reference) rows.push([c.paymentReceipt.reference, props.reference]);
       return {
         subject: c.paymentReceipt.subject, preview: fill(c.paymentReceipt.preview, { credits, workspace: props.workspace }), heading: c.paymentReceipt.heading,
         blocks: [
           { kind: "text", text: fill(c.paymentReceipt.body, { credits, workspace: props.workspace }) }, { kind: "facts", rows },
+          ...(props.netCents !== undefined ? [{ kind: "text" as const, tone: "muted" as const, text: c.paymentReceipt.validity }] : []),
           { kind: "text", tone: "muted", text: c.paymentReceipt.note }, { kind: "action", label: c.paymentReceipt.action, url: props.billingUrl },
         ],
         footer: [fill(c.footer.receipt, { workspace: props.workspace })],

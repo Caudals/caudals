@@ -48,7 +48,7 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
   afterAll(async () => {
     await owner.query("DELETE FROM demo.run WHERE id = ANY($1::uuid[])", [ids]);
     await owner.query("DROP SCHEMA IF EXISTS alerts_fixture_boss CASCADE");
-    await owner.query("DROP TABLE IF EXISTS billing.stripe_event");
+    await owner.query("DELETE FROM billing.stripe_event WHERE id = 'evt_alertsfixture'");
     await owner.end();
     server.close();
     rmSync(dir, { recursive: true, force: true });
@@ -113,9 +113,9 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
     // A demo waiting 20 minutes, and an engine job waiting 16.
     await demo("reading", null, null, 20);
     await owner.query("INSERT INTO alerts_fixture_boss.job(state,start_after) VALUES('created', now()-interval '16 minutes')");
-    // A failed payment webhook (the table L-12 adds) and a hold open for 25 hours.
-    await owner.query("CREATE TABLE IF NOT EXISTS billing.stripe_event (id text PRIMARY KEY, status text NOT NULL, received_at timestamptz NOT NULL)");
-    await owner.query("INSERT INTO billing.stripe_event VALUES('evt_fixture','failed', now()-interval '5 minutes')");
+    // A failed payment webhook (billing.stripe_event, L-12) and a hold open for 25 hours.
+    await owner.query(`INSERT INTO billing.stripe_event(id,type,livemode,payload_sha256,stripe_created_at,status,outcome,received_at,last_received_at)
+      VALUES('evt_alertsfixture','payment_intent.succeeded',false,repeat('0',64),now(),'failed','processing_error',now()-interval '5 minutes',now()-interval '5 minutes')`);
     const holdId = (await replica(
         `INSERT INTO billing.credit_hold(org_id,hold_key,amount_ucr,state,lot_allocations,request_fingerprint,expires_at,created_at)
          VALUES($1,$2,1,'held','[]'::jsonb,$3,now()+interval '1 hour',now()-interval '25 hours') RETURNING id`,
@@ -146,7 +146,7 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
     // Clear every condition: one email resolves all five.
     await owner.query("DELETE FROM demo.run WHERE id = ANY($1::uuid[])", [ids]);
     await owner.query("DELETE FROM alerts_fixture_boss.job");
-    await owner.query("DROP TABLE billing.stripe_event");
+    await owner.query("DELETE FROM billing.stripe_event WHERE id = 'evt_alertsfixture'");
     await replica("DELETE FROM billing.credit_hold WHERE id=$1", [holdId]);
     expect(await check()).toContain("alerts_sent=5");
     expect(sent.at(-1)!.text).toMatch(/RESOLVED demo failure rate[\s\S]*RESOLVED holds stale/);

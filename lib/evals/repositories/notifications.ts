@@ -15,6 +15,7 @@ export const NOTICE_CATEGORY: Record<string, "completion" | "required_input" | "
   input_required: "required_input", generation_paused: "required_input", run_paused: "required_input",
   run_failed: "failure", generation_failed: "failure", website_failed: "failure", document_failed: "failure",
   export_failed: "failure", monitor_regression: "failure", monitor_inconclusive: "failure", run_canceled: "failure",
+  auto_recharge_failed: "failure",
   website_started: "progress", generation_started: "progress", run_started: "progress",
 };
 

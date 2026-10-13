@@ -1,0 +1,73 @@
+/**
+ * Payment configuration and who may pay (launch spec v2 §6.18; decisions I-3
+ * and I-9). Read on the server at request time; never NEXT_PUBLIC_*.
+ *
+ * - BILLING_STRIPE_MODE: "live" or "test" (anything else is test). The Stripe
+ *   key must match the mode by its prefix; a mismatch closes payments.
+ * - Test mode never serves customers: only the workspaces listed in
+ *   BILLING_TEST_WORKSPACE_IDS (internal verification) can top up, whatever
+ *   BILLING_CREDITS_ENABLED says, so no one can obtain credits with a test card.
+ * - Live mode opens top-ups to workspace owners when BILLING_CREDITS_ENABLED
+ *   is true and the company's legal data are configured (D-01, §3.2).
+ * - Webhook signing secrets are per mode: STRIPE_TEST_WEBHOOK_SECRET and
+ *   STRIPE_LIVE_WEBHOOK_SECRET.
+ */
+import { getSecretEnvValue } from "@/lib/env/secrets";
+import { getLegalEntity } from "@/lib/legal/entity";
+import { billingCreditsEnabled } from "./config";
+
+type Env = Record<string, string | undefined>;
+export type StripeMode = "test" | "live";
+
+export function stripeMode(env: Env = process.env): StripeMode {
+  return env.BILLING_STRIPE_MODE?.trim() === "live" ? "live" : "test";
+}
+
+export class PaymentsConfigError extends Error {
+  constructor(readonly code: "STRIPE_KEY_MISSING" | "STRIPE_MODE_MISMATCH" | "WEBHOOK_SECRET_MISSING") { super(code); this.name = "PaymentsConfigError"; }
+}
+
+/** True when a Stripe secret or restricted key belongs to the mode, judged by its prefix only. */
+export function keyMatchesMode(key: string, mode: StripeMode) {
+  return mode === "live" ? /^(sk|rk)_live_/.test(key) : /^(sk|rk)_test_/.test(key);
+}
+
+/** The Stripe secret key for the configured mode. Throws when missing or of the other mode (never returns a live key in test mode). */
+export function stripeSecretKey(env: Env = process.env): string {
+  const key = getSecretEnvValue("STRIPE_SECRET_KEY", { env });
+  if (!key) throw new PaymentsConfigError("STRIPE_KEY_MISSING");
+  if (!keyMatchesMode(key, stripeMode(env))) throw new PaymentsConfigError("STRIPE_MODE_MISMATCH");
+  return key;
+}
+
+/** The signing secret of this mode's webhook endpoint. */
+export function stripeWebhookSecret(env: Env = process.env): string {
+  const name = stripeMode(env) === "live" ? "STRIPE_LIVE_WEBHOOK_SECRET" : "STRIPE_TEST_WEBHOOK_SECRET";
+  const secret = getSecretEnvValue(name, { env });
+  if (!secret || !secret.startsWith("whsec_")) throw new PaymentsConfigError("WEBHOOK_SECRET_MISSING");
+  return secret;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** BILLING_TEST_WORKSPACE_IDS: internal workspaces that may top up in test mode. */
+export function testWorkspaceIds(env: Env = process.env): Set<string> {
+  return new Set((env.BILLING_TEST_WORKSPACE_IDS ?? "").split(",").map(id => id.trim().toLowerCase()).filter(id => UUID.test(id)));
+}
+
+export type PaymentsAccess = "open" | "test_workspace" | "closed";
+
+/**
+ * Whether this workspace may use top-ups, auto-recharge and the portal now.
+ * The scheduler, which has no legal-entity settings, passes requireEntity
+ * false: auto-recharge can only have been switched on through this check.
+ */
+export function paymentsAccess(orgId: string, env: Env = process.env, options: { requireEntity?: boolean } = {}): PaymentsAccess {
+  try { stripeSecretKey(env); } catch { return "closed"; }
+  if (stripeMode(env) === "test") return testWorkspaceIds(env).has(orgId.toLowerCase()) ? "test_workspace" : "closed";
+  return billingCreditsEnabled(env) && (options.requireEntity === false || getLegalEntity(env)) ? "open" : "closed";
+}
+
+/** Base URL of the app for Stripe return links. */
+export function appBaseUrl(env: Env = process.env) {
+  return (env.EVALS_APP_URL ?? env.NEXT_PUBLIC_APP_URL ?? "https://app.caudals.com").replace(/\/$/, "");
+}

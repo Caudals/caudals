@@ -649,14 +649,14 @@ more afterwards, because what remains is in use and needs a person.
 
 ## Stripe CLI Usage Pattern
 
-1. Use only for local/test webhook simulation.
-2. Forward webhooks:
-   - `stripe listen --forward-to http://127.0.0.1:3000/api/webhooks/stripe`
-3. Set emitted `whsec_...` secret in local env.
-4. Trigger deterministic events:
-   - `stripe trigger payment_intent.succeeded`
+1. Use only for local/test webhook simulation; the CLI is not installed on `atlantic`.
+2. Forward webhooks to the credit top-up endpoint (launch L-12):
+   - `stripe listen --forward-to http://127.0.0.1:3000/api/evals/v1/billing/stripe/webhook`
+3. Set the emitted `whsec_...` secret as `STRIPE_TEST_WEBHOOK_SECRET` in the local env (`BILLING_STRIPE_MODE=test`).
+4. Trigger deterministic events (they carry no Caudals order, so the endpoint records and ignores them; real orders come from a Checkout opened by the app):
+   - `stripe trigger checkout.session.completed`
    - `stripe trigger payment_intent.payment_failed`
-   - `stripe trigger transfer.created` / `transfer.failed` (frozen supplier-payout paths only)
+   - `stripe trigger charge.dispute.created`
 
 Hard rules:
 
@@ -995,6 +995,23 @@ Operational env controls:
 - "Get help" requests reach the ops inbox (`COLLABORATION_NOTIFICATION_EMAIL`) and Ops → Growth → Help requests; resolve them there once the customer is unblocked. Open requests: `SELECT reason_code, count(*) FROM evals.onboarding_help_request WHERE status='open' GROUP BY 1`.
 - Welcome answers per new account and the weekly share of demo sign-ups reaching "test set ready" within 30 minutes (target 60 %) are in Ops → Growth.
 
+## Stripe Credit Top-ups
+
+Launch L-12 (spec v2 §6.6, §6.14–§6.16). Stripe **test mode only** until the founder switches to live at Gate B (decision I-3).
+
+- Flags and keys (app `credentials.env`, allow-listed in `scripts/set-app-credentials.sh`; the evals deploy copies the mode, the test list and the key to the scheduler for auto-recharge):
+  - `BILLING_STRIPE_MODE` = `test` (default) or `live`. `STRIPE_SECRET_KEY` must be a key of that mode, judged by its prefix (`sk_test_`/`rk_test_` or `sk_live_`/`rk_live_`); otherwise payments close and the evals deploy refuses to run. Check without printing: `sudo grep -c '^STRIPE_SECRET_KEY=.sk_test_' /root/.caudals/app/credentials.env`.
+  - `STRIPE_TEST_WEBHOOK_SECRET` / `STRIPE_LIVE_WEBHOOK_SECRET`: the signing secret of each mode's endpoint. The legacy `STRIPE_WEBHOOK_SECRET` is not used.
+  - `BILLING_TEST_WORKSPACE_IDS`: comma-separated internal workspaces that may top up in test mode. Test mode serves nobody else, whatever `BILLING_CREDITS_ENABLED` says. In live mode, owners can top up only with `BILLING_CREDITS_ENABLED=true` and the real `LEGAL_ENTITY_*` data.
+- Webhook endpoint: `https://app.caudals.com/api/evals/v1/billing/stripe/webhook`, created through the API with `scripts/billing/stripe-webhook-endpoint.ts`, which stores the signing secret straight into the credentials (never printed). From a checkout of the deployed commit:
+  `scripts/billing/with-app-credentials.sh STRIPE_SECRET_KEY -- node --conditions=react-server --import tsx scripts/billing/stripe-webhook-endpoint.ts --mode test`
+  then redeploy the app (`scripts/launch/set-app-flag.sh` does it). It keeps an existing endpoint; `--replace` recreates it with a new secret.
+- Owner pages (only where payments are open): `app.caudals.com/workspace/billing/top-up?orgId=…` (billing details with the VIES check, packs with the VAT preview, Terms and Privacy acceptance, Stripe Checkout, Customer Portal) and the return page `/workspace/billing/top-ups/<order>?orgId=…`. Test cards: `4242 4242 4242 4242`, any future date and CVC; `4000 0027 6000 3184` asks for authentication; `4000 0000 0000 9995` is declined.
+- What happened to a payment (as `postgres`, aggregates or one order): `SELECT status, kind, livemode, count(*), sum(net_cents)/100 AS net_eur FROM billing.top_up_order GROUP BY 1,2,3`; one order: `SELECT status, net_cents, vat_cents, gross_cents, tax_treatment, bonus_kind, bonus_ucr/1000000 AS bonus_credits, risk_flags, paid_at, refunded_at FROM billing.top_up_order WHERE id='…'`; its events: `SELECT type, status, outcome, deliveries, received_at, processed_at FROM billing.stripe_event WHERE order_id='…' ORDER BY received_at`; ledger: `SELECT entry_type, amount_ucr/1000000 AS credits, idempotency_key FROM billing.ledger_entry WHERE ref_id='…' ORDER BY account_version`; drift: `SELECT * FROM billing.verify_account('<org>')` with a service scope, or the nightly `billing.verification_run`.
+- Refunds (D-10: an untouched purchase within 14 days): `POST /api/evals/v1/billing/admin/refunds {orgId, orderId, reason}` with an `Idempotency-Key`, as a platform admin signed in within 15 minutes. It removes the credits with audited `refund` entries, then refunds in Stripe (`refund:<order>`); a Stripe failure leaves the order `refund_pending` and a retry finishes it. Above €100 net it answers `SECOND_APPROVER_REQUIRED` until L-16.
+- Disputes freeze the account (`credit_account.frozen_reason = 'dispute:<id>'`); a won dispute lifts it; a lost one writes a `chargeback` entry and leaves `chargeback:<id>` for ops. New-account limits (€100 and 3 top-ups a day for 30 days) are lifted per workspace with `SELECT billing.lift_purchase_limits('<org>', '<reason>')` in a platform-admin or service scope (audited).
+- Auto-recharge runs every minute in the evals scheduler (`billing_auto_recharge` log lines). Settings: `PUT /api/evals/v1/billing/auto-recharge`. State: `SELECT enabled, threshold_ucr/1000000 AS threshold, pack_cents, armed, crossing_seq, in_flight_order_id, failures, retry_after, disabled_reason FROM billing.auto_recharge WHERE org_id='…'`.
+
 ## Troubleshooting Quick Hits
 
 - `permission denied for table ...`:
@@ -1016,6 +1033,7 @@ Operational env controls:
 - Sentry/Turbopack warns about nested `import-in-the-middle` versions:
   - confirm the build still reaches `Compiled successfully` and finishes the route table,
   - keep `@opentelemetry/instrumentation` explicit unless Sentry changes its peer packaging.
-- Stripe webhook failures:
-  - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
-  - inspect the `stripe_webhook_event` replay/idempotency table.
+- Stripe webhook failures (credit top-ups, launch L-12):
+  - the key must match `BILLING_STRIPE_MODE` by prefix and the mode's signing secret (`STRIPE_TEST_WEBHOOK_SECRET` or `STRIPE_LIVE_WEBHOOK_SECRET`) must be set; the app logs `billing_webhook_unconfigured` or `billing_webhook_signature_failed` otherwise,
+  - inspect `billing.stripe_event` (status `failed` with an `outcome`, or deliveries still `received`); Stripe redelivers on 503,
+  - `billing_webhook_lagging` in the app log means the return page recorded a payment the webhook had not: check the endpoint in the Stripe dashboard.

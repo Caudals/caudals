@@ -39,6 +39,7 @@ const KIND_LABEL: Record<string, MessageKey> = {
   run_paused: "noticeRunPaused", run_failed: "noticeRunFailed", generation_failed: "noticeGenerationFailed", website_failed: "noticeWebsiteFailed",
   document_failed: "noticeDocumentFailed", export_failed: "noticeExportFailed", monitor_regression: "noticeMonitorRegression", monitor_inconclusive: "noticeMonitorInconclusive",
   run_canceled: "noticeRunCanceled", website_started: "noticeWebsiteStarted", generation_started: "noticeGenerationStarted", run_started: "noticeRunStarted",
+  auto_recharge_failed: "noticeAutoRechargeFailed",
 };
 const JOB_LABEL: Record<Job["type"], MessageKey> = { website: "jobWebsite", document: "jobDocument", generation: "jobGeneration", run: "jobRun", export: "jobExport" };
 export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["payload"] }) {

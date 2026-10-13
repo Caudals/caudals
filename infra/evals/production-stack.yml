@@ -72,6 +72,11 @@ services:
       # scripts/deploy-evals-production.sh so web and workers always agree.
       BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
       BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
+      # Stripe auto-recharge (L-12): the mode, the test-mode workspace allowlist
+      # and the secret key of that mode, from the app credentials.
+      BILLING_STRIPE_MODE: "${BILLING_STRIPE_MODE:-test}"
+      BILLING_TEST_WORKSPACE_IDS: "${BILLING_TEST_WORKSPACE_IDS:-}"
+      STRIPE_SECRET_KEY_FILE: /run/secrets/evals_stripe_secret_key
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1
@@ -104,7 +109,7 @@ services:
       SENTRY_ENVIRONMENT: production
       SENTRY_RELEASE: "${SENTRY_RELEASE:-}"
       SENTRY_SERVICE: evals-scheduler
-    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email,evals_digest_to,sentry_dsn]
+    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email,evals_digest_to,sentry_dsn,evals_stripe_secret_key]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-scheduler-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
       interval: 30s
@@ -299,6 +304,7 @@ secrets:
   evals_master_keyring: {external: true, name: caudals_evals_master_keyring}
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
   evals_resend_api_key: {external: true, name: "${EVALS_RESEND_API_KEY_SECRET:?Versioned Resend key secret is required}"}
+  evals_stripe_secret_key: {external: true, name: "${EVALS_STRIPE_SECRET_KEY_SECRET:?Versioned Stripe key secret is required}"}
   evals_resend_from_email: {external: true, name: "${EVALS_RESEND_FROM_EMAIL_SECRET:?Versioned Resend sender secret is required}"}
   evals_digest_to: {external: true, name: "${EVALS_DIGEST_TO_SECRET:?Versioned digest recipient secret is required}"}
   # The browser executor has no direct egress by design, so it does not report to Sentry.

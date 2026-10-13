@@ -1,6 +1,8 @@
 import "server-only";
 import { getEvalsPool } from "@/lib/evals/repositories/db";
 import { loadKeyring } from "@/lib/evals/security/envelope";
+import { withTenant } from "@/lib/evals/repositories/db";
+import { stripeSecretKey, stripeWebhookSecret } from "@/lib/billing/payments-config";
 
 /**
  * Webhook health for the external uptime check (launch L-08, spec P-48):
@@ -25,6 +27,20 @@ export const WEBHOOK_HEALTH_CHECKS: WebhookHealthCheck[] = [
       const file = process.env.EVALS_WEBHOOK_KEYRING_FILE;
       const version = process.env.EVALS_WEBHOOK_KEY_VERSION;
       return !!file && !!version && loadKeyring(file).has(version);
+    },
+  },
+  // Stripe payments (launch L-12): once a Stripe key is configured, it must match
+  // BILLING_STRIPE_MODE, that mode's signing secret must be set, and no
+  // received event may be left unprocessed for 15 minutes.
+  {
+    name: "stripe",
+    run: async () => {
+      if (!process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY_FILE) return true;
+      stripeSecretKey();
+      stripeWebhookSecret();
+      const backlog = await withTenant({ orgId: "", actorId: "system:webhook-health" },
+        async (db) => (await db.query("SELECT billing.stripe_webhook_backlog(15) AS n")).rows[0]?.n as number);
+      return backlog === 0;
     },
   },
 ];

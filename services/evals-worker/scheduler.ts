@@ -24,6 +24,7 @@ import {
 import { digestLocale, digestRecipient, digestSender, digestWeek, opsDigestEnabled, runOpsDigest } from "../../lib/evals/operations/ops-digest";
 import { captureServerError, flushErrors } from "../../lib/observability/capture";
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
+import { runAutoRecharge } from "../../lib/billing/auto-recharge";
 
 async function main() {
   initWorkerSentry("evals-scheduler");
@@ -227,6 +228,15 @@ async function main() {
             console.error(JSON.stringify({ event: "ops_digest_failed", reason: error instanceof Error && /^[a-z_]{1,40}$/.test(error.message) ? error.message : "unknown" }));
             captureServerError(error, { service: "evals-scheduler", event: "ops_digest_failed" });
           }
+        }
+        // Auto-recharge (spec §6.6, L-12): off-session charges for workspaces whose
+        // balance crossed their threshold. Without a Stripe key of the configured
+        // mode it does nothing; failures are logged, never a scheduler failure.
+        try {
+          const recharge = await runAutoRecharge(actorId);
+          if (recharge.workspaces) console.info(JSON.stringify({ event: "billing_auto_recharge", ...recharge }));
+        } catch {
+          console.error(JSON.stringify({ event: "billing_auto_recharge_tick_failed" }));
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));
       }
