@@ -42,8 +42,15 @@ import { HelpArticlePage, HelpCentre } from "../../components/evals/help-pages";
 import helpEn from "../../lib/evals/help/generated/en.json";
 import helpEs from "../../lib/evals/help/generated/es.json";
 import type { HelpIndex } from "../../lib/evals/help/articles";
+import { ExampleReadout, ReportReadout } from "../../components/evals/readout/readout-present";
+import type { ReadoutMode } from "../../lib/evals/readout/access";
 import "../../components/landing/landing.css";
 const params = new URLSearchParams(location.search);
+/**
+ * Launch L-35: READOUT_MODE_ENABLED as the server would pass it (`?mode=operators|all`). Readout pages
+ * default to "operators", because the presenter window opens without the harness-only parameter.
+ */
+const readoutMode = (["operators", "all", "off"].includes(params.get("mode") ?? "") ? params.get("mode") : location.pathname.endsWith("/present") ? "operators" : "off") as ReadoutMode;
 /** Launch L-29: the AI-disclosure check on a product report (Spanish chat, claimed to be a person). */
 function disclosureFixture() {
   return {
@@ -151,6 +158,8 @@ const opsKpis = { stage: "gate_a" as const, targets: { sessions: 150, demoStarts
   demo: { starts: 9, finished: 9, succeeded: 7, successRate: 7 / 9, p50Seconds: 192, failures: [{ reason: "site_thin", count: 2 }], queue: 1, primaryDown: false, fallbackDown: false } };
 const content =
   location.pathname === "/analytics-fixture" ? <FunnelVisitTracker /> :
+  location.pathname.startsWith("/workspace/reports/") && location.pathname.endsWith("/present") ? <ReportReadout reportId={location.pathname.split("/").at(-2)!} mode={readoutMode} /> :
+  location.pathname === "/workspace/example/present" ? <ExampleReadout snapshot={exampleView(getLocale()).report} mode={readoutMode} /> :
   sharePage ? (
     <PublicFrame contextKey="sharedPrivately">
       <FunnelVisitTracker />
@@ -185,7 +194,7 @@ const content =
       </FrontDoorProvider>
     </LocaleProvider>
   ) : location.pathname === "/workspace/example" ? (
-    <ExampleEvaluation view={exampleView(getLocale())} pdfHref={samplePdfHref(getLocale())} />
+    <ExampleEvaluation view={exampleView(getLocale())} pdfHref={samplePdfHref(getLocale())} readoutMode={readoutMode} />
   ) : demoPage ? (
     // The public demo, in the landing's Paper frame (its API is routed by each test).
     // `?public` renders it as the public front door (DEMO_PUBLIC, launch L-04).
@@ -254,7 +263,7 @@ const content =
   ) : location.pathname === "/ops/review" ? (
     <ReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (
-    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" />
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} />
   ) : location.pathname === "/workspace/reports/fixture-v2" ? (
     <ReportView initialTab={params.get("tab")} initialResult={params.get("result")} report={params.has("disclosure") ? { ...gradingV2Fixture(), ai_disclosure: disclosureFixture() } : gradingV2Fixture()} />
   ) : location.pathname === "/workspace/reports/fixture" ? (

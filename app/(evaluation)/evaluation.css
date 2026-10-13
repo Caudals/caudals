@@ -63,3 +63,223 @@
 .eval-dialog > * + * {
   margin-top: 12px;
 }
+
+/* Readout mode (launch L-35): the slides fill the window on the action
+   colour; the slides themselves are a document (READOUT_CSS in
+   lib/evals/reports/readout-document.ts, shared with the 16:9 PDF). The
+   presenter view sits on the chrome plane: current and next slide, notes,
+   timer. Portalled to <body>, above the shell and below dialogs. */
+.p-readout {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-text);
+  color: var(--p-text-inverse);
+}
+.p-readout:focus {
+  outline: none;
+}
+.p-readout[data-view="presenter"] {
+  background: var(--p-chrome);
+  color: var(--p-text);
+}
+.p-readout-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: hidden;
+  container-type: size;
+}
+.p-readout-stage > .rd-frame {
+  width: min(100cqw, calc(100cqh * 16 / 9));
+}
+.p-readout-slide {
+  animation: p-readout-enter var(--p-dur-modal) var(--p-ease-out);
+}
+@keyframes p-readout-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes p-readout-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.p-readout-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-height: 56px;
+  padding: 8px 16px;
+}
+.p-readout-group,
+.p-readout-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.p-readout-count {
+  min-width: 64px;
+  text-align: center;
+  font-size: var(--p-text-label);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.p-readout[data-view="audience"] .p-btn[data-variant="ghost"] {
+  color: var(--p-text-inverse);
+}
+@media (hover: hover) and (pointer: fine) {
+  .p-readout[data-view="audience"] .p-btn[data-variant="ghost"]:hover:not(:disabled) {
+    background: rgb(255 255 255 / 12%);
+  }
+}
+.p-readout-notice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: min(560px, calc(100% - 32px));
+  transform: translateX(-50%);
+}
+.p-readout-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--p-border);
+}
+.p-readout-title {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.p-readout-meta,
+.p-readout-hint {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.p-readout-hint {
+  flex: 1 1 280px;
+}
+.p-readout-timer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.p-readout-timer > span:first-child {
+  font-size: var(--p-text-title);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.p-readout-presenter {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  gap: 20px;
+  padding: 20px;
+  overflow: auto;
+}
+.p-readout-side {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+.p-readout-pane {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.p-readout-pane-title {
+  font-size: var(--p-text-label);
+  font-weight: 500;
+  color: var(--p-text-secondary);
+}
+.p-readout-thumb {
+  border-radius: var(--p-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--p-shadow-border);
+}
+.p-readout-end {
+  padding: 24px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface-2);
+  color: var(--p-text-secondary);
+}
+.p-readout-notes {
+  padding: 16px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+  font-size: var(--p-text-subtitle);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.p-readout-fieldset {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.p-readout-fieldset > legend {
+  margin-bottom: 4px;
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+}
+.p-readout-pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.p-readout-pick select {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.p-readout-note {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.p-readout-note > .p-field {
+  width: 100%;
+}
+.p-readout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 899px) {
+  .p-readout-presenter {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 699px) {
+  .p-readout-stage {
+    place-items: start center;
+    overflow: auto;
+    padding: 8px;
+    container-type: normal;
+  }
+  .p-readout-stage > .rd-frame {
+    width: 100%;
+  }
+  .p-readout-bar {
+    justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .p-readout-slide {
+    animation-name: p-readout-fade;
+  }
+}

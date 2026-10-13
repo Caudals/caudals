@@ -252,6 +252,8 @@ The evaluation detail page exposes **AI models** in a compact, keyboard-accessib
 
 **Example evaluation** (`/workspace/example`) — the standard report page with an "Example" pill (`Badge` tone `strong`) first in the heading meta, an info `Status` with the synthetic-data line above the report on every tab, and the three-run trend and comparison at the top of Overview (`.p-report-intro`). Page headings keep at least 10rem for the title; actions that leave less drop below it.
 
+**Readout mode** (launch L-35) — the one full-window surface: `.p-readout` is portalled over the shell on the action colour (`--p-text`) with the slide centred at 16:9 and a quiet control bar below it (ghost buttons in `--p-text-inverse`: Exit, previous / "n / N" / next, Notes and transcripts or Next step, Presenter view, full screen, Export PDF). Slides are a document, not platform UI: one HTML template shared with the 16:9 PDF (`READOUT_CSS`, `.rd-*`), sized in slide units so the projector, the laptop and the PDF show the same layout; body text is 24 units (36 px at 1920 × 1080), labels 18, the verdict score 150. Colour on a slide is still a verdict (result and severity chips, failure bars). The presenter view sits on the chrome plane: current slide large, next slide and the notes beside it, the timer with its §7.5 segment in the header. Below 700 px a slide becomes a scrolling card at readable sizes. Slide changes fade and shift 8 px over `--p-dur-modal`; reduced motion keeps the fade only.
+
 ## 10. Motion
 
 Exact values. `cubic-bezier(0.23, 1, 0.32, 1)` is not `cubic-bezier(0.4, 0, 0.2, 1)`.

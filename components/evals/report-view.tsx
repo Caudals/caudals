@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Copy, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, RotateCcw, Share2, UserCheck, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Copy, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, Presentation, RotateCcw, Share2, UserCheck, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { buildExecutiveSummary, type ExecutiveSummary } from "@/lib/evals/reports/summary";
 import { answerCount, failingCsv, fixesCsv, fixesMarkdown, isFailing, type Fix } from "@/lib/evals/reports/fixes";
@@ -24,6 +24,7 @@ import { evalRequest } from "./api";
 import {
   Action,
   ActionAnchor,
+  ActionLink,
   DataTable,
   DefinitionList,
   EmptyState,
@@ -54,6 +55,8 @@ import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, causeBreak
 import { getLocale } from "@/lib/evals/messages/en";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
 import { methodologyUrl } from "@/lib/evals/public-links";
+import { readoutCopy } from "@/lib/evals/reports/readout-copy";
+import { readoutAccess, type ReadoutMode } from "@/lib/evals/readout/access";
 /** Sentences Caudals generated from templates, shown in the interface language. */
 const gen = (text: string) => localizeReportText(text, getLocale());
 
@@ -1070,12 +1073,15 @@ export function AuthenticatedReport({
   reportId,
   readoutUrl,
   marketingOrigin,
+  readoutMode = "off",
 }: {
   reportId: string;
   /** The booking page (`CALCOM_LINK`, read on the server); its link carries a hashed workspace id. */
   readoutUrl?: string | null;
   /** caudals.com, for the expert-review request until the in-app request exists (L-26). */
   marketingOrigin?: string | null;
+  /** READOUT_MODE_ENABLED, read on the server: who sees "Present" (launch L-35). */
+  readoutMode?: ReadoutMode;
 }) {
   const { orgId, role, operator, withOrg } = useWorkspace();
   const params = useSearchParams();
@@ -1173,6 +1179,13 @@ export function AuthenticatedReport({
         onResultChange={setResult}
         cta={cta}
         actions={
+          <>
+          {readoutAccess(readoutMode, role, operator).present && (
+            <ActionLink variant="secondary" href={withOrg(`/workspace/reports/${reportId}/present?revision=${revision.id}`)} title={readoutCopy(getLocale()).presentHelp}>
+              <Presentation aria-hidden="true" />
+              {readoutCopy(getLocale()).present}
+            </ActionLink>
+          )}
           <ReportActions
             commands={commands}
             onPreparingChange={setPreparing}
@@ -1191,6 +1204,7 @@ export function AuthenticatedReport({
             autoExport={params.get("export") === "pdf"}
             onDeleted={() => router.push(withOrg("/workspace/reports"))}
           />
+          </>
         }
       />
     </>

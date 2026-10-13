@@ -7,6 +7,7 @@ import { exampleEvaluationEnabled } from "@/lib/evals/example/flags";
 import { samplePdfHref } from "@/lib/evals/example/public";
 import { resolveInterfaceLocale } from "@/lib/evals/interface-locale";
 import { LOCALE_COOKIE } from "@/lib/evals/messages/en";
+import { readoutMode } from "@/lib/evals/readout/flags";
 
 /**
  * The read-only example evaluation (launch L-33). It is rendered from the
@@ -17,5 +18,5 @@ export default async function ExampleEvaluationPage() {
   await requirePageIdentity("/workspace/example");
   if (!exampleEvaluationEnabled()) notFound();
   const locale = resolveInterfaceLocale((await cookies()).get(LOCALE_COOKIE)?.value, (await headers()).get("accept-language"));
-  return <ExampleEvaluation view={exampleView(locale)} pdfHref={samplePdfHref(locale)} />;
+  return <ExampleEvaluation view={exampleView(locale)} pdfHref={samplePdfHref(locale)} readoutMode={readoutMode()} />;
 }

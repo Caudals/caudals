@@ -33,6 +33,7 @@ const imports = (path: string) => exampleImports(path).some((specifier) => !FLAG
 /** Every file allowed to read the example fixtures: the pages that show it and the tooling around it. */
 const READERS = new Set([
   "app/(evaluation)/(authenticated)/workspace/example/page.tsx",
+  "app/(evaluation)/(authenticated)/workspace/example/present/page.tsx",
   "app/[locale]/sample-report/page.tsx",
   "app/sample-report/[file]/route.ts",
   "app/page-sitemap.xml/route.ts",

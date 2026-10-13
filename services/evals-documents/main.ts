@@ -10,6 +10,7 @@ import { sha256 } from "../../lib/evals/contracts/hashing";
 import { completeSourceIngestion, createWebsiteCaptureArtifact, failSourceIngestion, failWebsitePersistence, queueWebsiteSourceExtraction } from "../../lib/evals/repositories/evidence";
 import { extractText } from "../../lib/evals/storage/text";
 import { processSourceOne } from "./source-ingestion";
+import { processReadoutOne } from "./readout";
 import { deletePrivateObject, objectKey, readVerified, sealObject, writeUpload } from "../../lib/evals/storage/private";
 
 type Claimed={id:string;report_revision_id:string;locale:string;snapshot:unknown;project_id:string;share_id:string|null;permitted_fields:string[]|null};
@@ -47,5 +48,7 @@ async function processOne(orgId:string,actorId:string){const job=await claim(org
 import { workerWorkspaces } from "../../lib/evals/queue/workspaces";
 import { captureServerError, flushErrors } from "../../lib/observability/capture";
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
-async function main(){initWorkerSentry("evals-documents");if(process.env.EVALS_DOCUMENTS_ENABLED!=="true")throw new Error("documents_disabled");const orgIds=workerWorkspaces(process.env.EVALS_DOCUMENT_ORG_IDS),actorId=z.string().min(1).parse(process.env.EVALS_DOCUMENT_ACTOR_ID);let stopping=false;const stop=()=>{stopping=true;};process.once("SIGTERM",stop);process.once("SIGINT",stop);console.info(JSON.stringify({event:"document_worker_ready",environment:process.env.EVALS_ENV}));try{while(!stopping){let worked=false;for(const orgId of await orgIds.refresh()){worked=await processCapturedWebsiteOne(orgId,actorId)||worked;worked=await processSourceOne(orgId,actorId)||worked;worked=await processOne(orgId,actorId)||worked;}if(!worked)await new Promise(resolve=>setTimeout(resolve,1000));}}finally{await getEvalsPool().end();}}
+/** A fresh headless Chromium page per document, closed with its browser (as for report PDFs). */
+async function newPage(){const browser=await chromium.launch({headless:true});const page=await browser.newPage();return {page,close:()=>browser.close()};}
+async function main(){initWorkerSentry("evals-documents");if(process.env.EVALS_DOCUMENTS_ENABLED!=="true")throw new Error("documents_disabled");const orgIds=workerWorkspaces(process.env.EVALS_DOCUMENT_ORG_IDS),actorId=z.string().min(1).parse(process.env.EVALS_DOCUMENT_ACTOR_ID);let stopping=false;const stop=()=>{stopping=true;};process.once("SIGTERM",stop);process.once("SIGINT",stop);console.info(JSON.stringify({event:"document_worker_ready",environment:process.env.EVALS_ENV}));try{while(!stopping){let worked=false;for(const orgId of await orgIds.refresh()){worked=await processCapturedWebsiteOne(orgId,actorId)||worked;worked=await processSourceOne(orgId,actorId)||worked;worked=await processOne(orgId,actorId)||worked;worked=await processReadoutOne(orgId,actorId,newPage)||worked;}if(!worked)await new Promise(resolve=>setTimeout(resolve,1000));}}finally{await getEvalsPool().end();}}
 main().catch(async(error:unknown)=>{console.error(JSON.stringify({event:"document_worker_stopped",reason:"configuration_or_runtime_failure"}));captureServerError(error,{service:"evals-documents",event:"document_worker_stopped"});await flushErrors();process.exitCode=1;});

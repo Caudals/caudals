@@ -1,0 +1,271 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`readout deck from a report snapshot > example-en (en) matches its snapshot 1`] = `
+[
+  {
+    "key": "cover",
+    "text": "Evaluation readout Example Synthetic data about a fictitious company. Hogarel home-policy assistant Answers policyholders' questions about the Hogar Completo home policy on the Hogarel website: cover, exclusions, excesses, claims, payments and changes. Evaluated 5 October 2026 Scope 48 questions from your sources · English Review status Reviewed Simulated in this example: it shows how a report reads after a person checks the grades. Complete Every critical question and enough of the rest were scored for the score to stand. Caudals · Evidence, not a certification · Hogarel home-policy assistant 1 / 10",
+  },
+  {
+    "key": "verdict",
+    "text": "Verdict Example Synthetic data about a fictitious company. 76% of scored answers matched the sources 35 / 46 35 of 46 answers matched your sources (76%). 5 more were partly right. The main problems are incomplete answers (5) and wrong information (4). Start with: Make answers use “Table of limits and excesses (2026)” (2 answers, 1 critical). Sample: 46 scored answers out of 48 questions. Caudals · Evidence, not a certification · Hogarel home-policy assistant 2 / 10",
+  },
+  {
+    "key": "causes",
+    "text": "Why answers failed Example Synthetic data about a fictitious company. Failed and partly correct answers, out of 46 scored answers. Likely causes (hypotheses) Wrong source 5 of 46 1 critical Outdated document 3 of 46 Knowledge gap 2 of 46 Invented answer 1 of 46 1 critical What went wrong Incomplete 5 of 46 Wrong information 4 of 46 2 critical Did not answer 2 of 46 Causes are hypotheses drawn from the evidence, not verified. Your system's logs can confirm them. Caudals · Evidence, not a certification · Hogarel home-policy assistant 3 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c10",
+    "text": "Transcript 1 of 5 Example Synthetic data about a fictitious company. Jewellery kept outside a safe Incorrect Critical Result T1 example-2026-10-assessment-c10 Likely cause (hypothesis): wrong source Question I keep my jewellery in a drawer, not a safe. It's worth about €4,000. Is it covered if it's stolen from the house? The assistant's answer Yes, jewellery is covered wherever you keep it in your home, up to €3,000 per claim, so you'd receive €3,000 of the €4,000. From the source Table of limits and excesses (2026) Jewellery and watches: up to €3,000 per claim. (1) If the jewellery stolen from the home is worth more than €1,500 in total, it is covered only if it was kept in a locked safe. Why Says jewellery is covered wherever it is kept. The limits table covers jewellery over €1,500 only in a locked safe, so this theft would not be paid. Caudals · Evidence, not a certification · Hogarel home-policy assistant 4 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c04",
+    "text": "Transcript 2 of 5 Example Synthetic data about a fictitious company. Excess for water damage Incorrect High Result T3 example-2026-10-assessment-c04 Likely cause (hypothesis): outdated document Question How much do I pay myself if I claim for water damage? The assistant's answer Water-damage claims have an excess of €150 per claim, which is deducted from the amount we pay. Other claims have no excess. From the source Hogar Completo general conditions (2026 edition) 4. Excess. Claims have no excess, except water-damage claims, which have an excess of €200 per claim. The excess also applies to the repair of the pipe that caused the damage. Why Gives a €150 excess. The 2026 general conditions (article 4) set it at €200; €150 was the amount in the previous edition. Caudals · Evidence, not a certification · Hogarel home-policy assistant 5 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c14",
+    "text": "Transcript 3 of 5 Example Synthetic data about a fictitious company. Damp and mould from a slow leak Incorrect Critical Result T2 example-2026-10-assessment-c14 Likely cause (hypothesis): invented answer (shortened; full text in the report) Question There's damp and black mould on my bedroom wall from a slow leak inside the wall. Can I claim for the repairs? The assistant's answer Yes, water damage is covered, including damp and mould caused by leaks. Report it in the app with photos and we'll send an adjuster. From the source Hogar Completo general conditions (2026 edition) 3. Exclusions. We do not cover: (a) wear, lack of maintenance or defects the policyholder knew about; (b) damp, condensation, mould and leaks that develop gradually over time; (c) floods… Why Says damp and mould from a slow leak are covered. Article 3(b) excludes damp, mould and leaks that develop gradually. A customer could start repairs… Caudals · Evidence, not a certification · Hogarel home-policy assistant 6 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c24",
+    "text": "Transcript 4 of 5 Example Synthetic data about a fictitious company. Switching to annual payment No answer Medium Result T5 example-2026-10-assessment-c24 Likely cause (hypothesis): knowledge gap Question I pay monthly. Can I switch to paying once a year, and when does it take effect? The assistant's answer Sorry, I can't help with that right now. Please try again later or choose an option. From the source Home insurance FAQ (2026) You can change how you split the premium (monthly, quarterly, half-yearly or annual) in the app. The change applies from the next renewal. Why The assistant did not answer and showed a fallback menu. The FAQ explains that the payment split can be changed in the app from the next renewal. Caudals · Evidence, not a certification · Hogarel home-policy assistant 7 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c06",
+    "text": "Transcript 5 of 5 Example Synthetic data about a fictitious company. Excess when water damages a neighbour Incorrect High Result T4 example-2026-10-assessment-c06 Likely cause (hypothesis): outdated document Question Water from my bathroom leaked into the flat below. Do I pay an excess for the neighbour's damage and for mine? The assistant's answer Both are covered. A €150 excess applies to the claim, and it covers your neighbour's repairs and your own. From the source Home insurance FAQ (2026) If water from your home damages a neighbour's flat, the neighbour's damage is paid under family liability, with no excess. Damage inside your own home is paid under water damage, with the €200 excess. Why Applies a €150 excess to both. The neighbour's damage is paid under liability without an excess, and the water-damage excess is €200 in 2026. Caudals · Evidence, not a certification · Hogarel home-policy assistant 8 / 10",
+  },
+  {
+    "key": "fixes",
+    "text": "What to fix first Example Synthetic data about a fictitious company. Grouped by likely cause and source page, most severe first. Causes are hypotheses. 1 Make answers use “Table of limits and excesses (2026)” 2 answers · 1 critical · Likely cause (hypothesis): wrong source 2 Make answers use “Hogar Completo general conditions (2026 edition)” 3 answers · Likely cause (hypothesis): wrong source 3 Update the outdated content behind “Hogar Completo general conditions (2026 edition)” 2 answers · Likely cause (hypothesis): outdated document 4 Stop invented details about “Hogar Completo general conditions (2026 edition)” 1 answer · 1 critical · Likely cause (hypothesis): invented answer 5 Update the outdated content behind “Home insurance FAQ (2026)” 1 answer · Likely cause (hypothesis): outdated document Caudals · Evidence, not a certification · Hogarel home-policy assistant 9 / 10",
+  },
+  {
+    "key": "next",
+    "text": "Next step Example Synthetic data about a fictitious company. A pilot with expert-reviewed answers Domain experts review the test set and every grade. Questions from your own documents, including the cases this readout showed. A scored report and a live readout in 10 working days. What we ask today Agree the scope and a start date. Caudals · Evidence, not a certification · Hogarel home-policy assistant 10 / 10",
+  },
+]
+`;
+
+exports[`readout deck from a report snapshot > example-en (es) matches its snapshot 1`] = `
+[
+  {
+    "key": "cover",
+    "text": "Presentación de la evaluación Ejemplo Datos sintéticos sobre una empresa ficticia. Hogarel home-policy assistant Answers policyholders' questions about the Hogar Completo home policy on the Hogarel website: cover, exclusions, excesses, claims, payments and changes. Evaluado 5 de octubre de 2026 Alcance 48 preguntas a partir de tus fuentes · Inglés Estado de revisión Revisado Simulado en este ejemplo: muestra cómo se lee un informe después de que una persona compruebe las calificaciones. Completo Se puntuaron todas las preguntas críticas y suficientes de las demás para que la puntuación sea válida. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 1 / 10",
+  },
+  {
+    "key": "verdict",
+    "text": "Veredicto Ejemplo Datos sintéticos sobre una empresa ficticia. 76 % de las respuestas puntuadas coincidieron con las fuentes 35 / 46 35 de 46 respuestas coincidieron con tus fuentes (76 %). Otras 5 fueron parcialmente correctas. Los principales problemas son las respuestas incompletas (5) y la información incorrecta (4). Empieza por: Haz que las respuestas usen «Table of limits and excesses (2026)» (2 respuestas, 1 crítica). Muestra: 46 respuestas puntuadas de 48 preguntas. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 2 / 10",
+  },
+  {
+    "key": "causes",
+    "text": "Por qué fallaron las respuestas Ejemplo Datos sintéticos sobre una empresa ficticia. Respuestas incorrectas o parcialmente correctas, sobre 46 respuestas puntuadas. Causas probables (hipótesis) Fuente equivocada 5 de 46 1 crítica Documento desactualizado 3 de 46 Laguna de conocimiento 2 de 46 Respuesta inventada 1 de 46 1 crítica Qué falló Incompleta 5 de 46 Información incorrecta 4 de 46 2 críticas No respondió 2 de 46 Las causas son hipótesis a partir de la evidencia, no están verificadas. Los registros de tu sistema pueden confirmarlas. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 3 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c10",
+    "text": "Transcripción 1 de 5 Ejemplo Datos sintéticos sobre una empresa ficticia. Jewellery kept outside a safe Incorrecta Crítica Resultado T1 example-2026-10-assessment-c10 Causa probable (hipótesis): fuente equivocada Pregunta I keep my jewellery in a drawer, not a safe. It's worth about €4,000. Is it covered if it's stolen from the house? Respuesta del asistente Yes, jewellery is covered wherever you keep it in your home, up to €3,000 per claim, so you'd receive €3,000 of the €4,000. De la fuente Table of limits and excesses (2026) Jewellery and watches: up to €3,000 per claim. (1) If the jewellery stolen from the home is worth more than €1,500 in total, it is covered only if it was kept in a locked safe. Por qué Says jewellery is covered wherever it is kept. The limits table covers jewellery over €1,500 only in a locked safe, so this theft would not be paid. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 4 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c04",
+    "text": "Transcripción 2 de 5 Ejemplo Datos sintéticos sobre una empresa ficticia. Excess for water damage Incorrecta Alta Resultado T3 example-2026-10-assessment-c04 Causa probable (hipótesis): documento desactualizado Pregunta How much do I pay myself if I claim for water damage? Respuesta del asistente Water-damage claims have an excess of €150 per claim, which is deducted from the amount we pay. Other claims have no excess. De la fuente Hogar Completo general conditions (2026 edition) 4. Excess. Claims have no excess, except water-damage claims, which have an excess of €200 per claim. The excess also applies to the repair of the pipe that caused the damage. Por qué Gives a €150 excess. The 2026 general conditions (article 4) set it at €200; €150 was the amount in the previous edition. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 5 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c14",
+    "text": "Transcripción 3 de 5 Ejemplo Datos sintéticos sobre una empresa ficticia. Damp and mould from a slow leak Incorrecta Crítica Resultado T2 example-2026-10-assessment-c14 Causa probable (hipótesis): respuesta inventada (abreviado; texto completo en el informe) Pregunta There's damp and black mould on my bedroom wall from a slow leak inside the wall. Can I claim for the repairs? Respuesta del asistente Yes, water damage is covered, including damp and mould caused by leaks. Report it in the app with photos and we'll send an adjuster. De la fuente Hogar Completo general conditions (2026 edition) 3. Exclusions. We do not cover: (a) wear, lack of maintenance or defects the policyholder knew about; (b) damp, condensation, mould and leaks that develop gradually over time; (c) floods… Por qué Says damp and mould from a slow leak are covered. Article 3(b) excludes damp, mould and leaks that develop gradually. A customer could start repairs… Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 6 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c24",
+    "text": "Transcripción 4 de 5 Ejemplo Datos sintéticos sobre una empresa ficticia. Switching to annual payment Sin respuesta Media Resultado T5 example-2026-10-assessment-c24 Causa probable (hipótesis): laguna de conocimiento Pregunta I pay monthly. Can I switch to paying once a year, and when does it take effect? Respuesta del asistente Sorry, I can't help with that right now. Please try again later or choose an option. De la fuente Home insurance FAQ (2026) You can change how you split the premium (monthly, quarterly, half-yearly or annual) in the app. The change applies from the next renewal. Por qué The assistant did not answer and showed a fallback menu. The FAQ explains that the payment split can be changed in the app from the next renewal. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 7 / 10",
+  },
+  {
+    "key": "transcript:example-2026-10-assessment-c06",
+    "text": "Transcripción 5 de 5 Ejemplo Datos sintéticos sobre una empresa ficticia. Excess when water damages a neighbour Incorrecta Alta Resultado T4 example-2026-10-assessment-c06 Causa probable (hipótesis): documento desactualizado Pregunta Water from my bathroom leaked into the flat below. Do I pay an excess for the neighbour's damage and for mine? Respuesta del asistente Both are covered. A €150 excess applies to the claim, and it covers your neighbour's repairs and your own. De la fuente Home insurance FAQ (2026) If water from your home damages a neighbour's flat, the neighbour's damage is paid under family liability, with no excess. Damage inside your own home is paid under water damage, with the €200 excess. Por qué Applies a €150 excess to both. The neighbour's damage is paid under liability without an excess, and the water-damage excess is €200 in 2026. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 8 / 10",
+  },
+  {
+    "key": "fixes",
+    "text": "Qué corregir primero Ejemplo Datos sintéticos sobre una empresa ficticia. Agrupado por causa probable y página de origen, de mayor a menor gravedad. Las causas son hipótesis. 1 Haz que las respuestas usen «Table of limits and excesses (2026)» 2 respuestas · 1 crítica · Causa probable (hipótesis): fuente equivocada 2 Haz que las respuestas usen «Hogar Completo general conditions (2026 edition)» 3 respuestas · Causa probable (hipótesis): fuente equivocada 3 Actualiza el contenido desactualizado de «Hogar Completo general conditions (2026 edition)» 2 respuestas · Causa probable (hipótesis): documento desactualizado 4 Evita datos inventados sobre «Hogar Completo general conditions (2026 edition)» 1 respuesta · 1 crítica · Causa probable (hipótesis): respuesta inventada 5 Actualiza el contenido desactualizado de «Home insurance FAQ (2026)» 1 respuesta · Causa probable (hipótesis): documento desactualizado Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 9 / 10",
+  },
+  {
+    "key": "next",
+    "text": "Siguiente paso Ejemplo Datos sintéticos sobre una empresa ficticia. Un piloto con respuestas revisadas por expertos Expertos del sector revisan el conjunto de pruebas y cada calificación. Preguntas a partir de tus propios documentos, incluidos los casos de esta presentación. Un informe puntuado y una presentación en directo en 10 días laborables. Lo que pedimos hoy Acordar el alcance y una fecha de inicio. Caudals · Evidencias, no una certificación · Hogarel home-policy assistant 10 / 10",
+  },
+]
+`;
+
+exports[`readout deck from a report snapshot > preliminary-es (en) matches its snapshot 1`] = `
+[
+  {
+    "key": "cover",
+    "text": "Evaluation readout Asistente de inversión Responder a clientes sobre carteras de inversión Evaluated 8 October 2026 Scope 8 questions from your sources · Spanish Review status Preliminary Graded automatically; no expert has reviewed the grades yet. Incomplete Some questions could not be scored, so the score describes only the scored ones. Caudals · Evidence, not a certification · Asistente de inversión 1 / 10",
+  },
+  {
+    "key": "verdict",
+    "text": "Verdict 33% of scored answers matched the sources 2 / 6 2 of 6 answers matched your sources (33%). 1 more was partly right. The main problems are wrong information (2) and unanswered questions (1). Start with: Update the outdated content behind “Tarifas y comisiones 2026” (2 answers, 1 critical). Sample: 6 scored answers out of 8 questions. Caudals · Evidence, not a certification · Asistente de inversión 2 / 10",
+  },
+  {
+    "key": "causes",
+    "text": "Why answers failed Failed and partly correct answers, out of 6 scored answers. Likely causes (hypotheses) Outdated document 2 of 6 1 critical Knowledge gap 1 of 6 What went wrong Wrong information 2 of 6 1 critical Did not answer 1 of 6 Incomplete 1 of 6 Causes are hypotheses drawn from the evidence, not verified. Your system's logs can confirm them. Caudals · Evidence, not a certification · Asistente de inversión 3 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000003",
+    "text": "Transcript 1 of 5 ¿Qué comisión se aplica a carteras de menos de 10.000 €? Incorrect Critical Result T1 66666666-6666-0000-4000-8000-000000000003 Likely cause (hypothesis): outdated document Question ¿Qué comisión se aplica a carteras de menos de 10.000 €? The assistant's answer Un 0,60 % anual. From the source Tarifas y comisiones 2026 Comisión de gestión: 0,40 % anual hasta 10.000 €. Why Da una comisión distinta de la documentada. Caudals · Evidence, not a certification · Asistente de inversión 4 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000004",
+    "text": "Transcript 2 of 5 ¿En cuántas cuotas se puede dividir el recibo? No answer Medium Result T3 66666666-6666-0000-4000-8000-000000000004 Question ¿En cuántas cuotas se puede dividir el recibo? The assistant's answer ¿Lo puedes intentar con otras palabras? From the source Posibilidad de dividir tu recibo en 12 cuotas. Why Pide reformular sin responder. Caudals · Evidence, not a certification · Asistente de inversión 5 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000002",
+    "text": "Transcript 3 of 5 ¿Con qué frecuencia puedo programar aportaciones? Partly correct Medium Result T4 66666666-6666-0000-4000-8000-000000000002 Likely cause (hypothesis): knowledge gap Question ¿Con qué frecuencia puedo programar aportaciones? The assistant's answer Puedes programar aportaciones mensuales. From the source Preguntas frecuentes — Inversión Mensualmente, trimestralmente, semestralmente o anualmente. Why Omite las demás frecuencias. Caudals · Evidence, not a certification · Asistente de inversión 6 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000005",
+    "text": "Transcript 4 of 5 ¿Hay comisión de custodia? Incorrect High Result T2 66666666-6666-0000-4000-8000-000000000005 Likely cause (hypothesis): outdated document Question ¿Hay comisión de custodia? The assistant's answer Sí, un 0,15 % anual. From the source Tarifas y comisiones 2026 Sin comisión de custodia. Why Afirma una comisión inexistente. Caudals · Evidence, not a certification · Asistente de inversión 7 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000001",
+    "text": "Transcript 5 of 5 ¿Cuál es el importe mínimo para empezar a invertir? Correct High Result T7 66666666-6666-0000-4000-8000-000000000001 Question ¿Cuál es el importe mínimo para empezar a invertir? The assistant's answer La inversión mínima inicial es de 1.000 €. From the source Preguntas frecuentes — Inversión Necesitas un mínimo de 1.000 €. Why Indica el mínimo documentado. Caudals · Evidence, not a certification · Asistente de inversión 8 / 10",
+  },
+  {
+    "key": "fixes",
+    "text": "What to fix first Grouped by likely cause and source page, most severe first. Causes are hypotheses. 1 Update the outdated content behind “Tarifas y comisiones 2026” 2 answers · 1 critical · Likely cause (hypothesis): outdated document 2 Give the assistant the content of “Preguntas frecuentes — Inversión” 1 answer · Likely cause (hypothesis): knowledge gap 3 Answer instead of deflecting 1 answer · What went wrong: unanswered questions Caudals · Evidence, not a certification · Asistente de inversión 9 / 10",
+  },
+  {
+    "key": "next",
+    "text": "Next step A pilot with expert-reviewed answers Domain experts review the test set and every grade. Questions from your own documents, including the cases this readout showed. A scored report and a live readout in 10 working days. What we ask today Agree the scope and a start date. Caudals · Evidence, not a certification · Asistente de inversión 10 / 10",
+  },
+]
+`;
+
+exports[`readout deck from a report snapshot > preliminary-es (es) matches its snapshot 1`] = `
+[
+  {
+    "key": "cover",
+    "text": "Presentación de la evaluación Asistente de inversión Responder a clientes sobre carteras de inversión Evaluado 8 de octubre de 2026 Alcance 8 preguntas a partir de tus fuentes · Español Estado de revisión Preliminar Calificado automáticamente; ningún experto ha revisado aún las calificaciones. Incompleto Algunas preguntas no se pudieron puntuar, así que la puntuación describe solo las puntuadas. Caudals · Evidencias, no una certificación · Asistente de inversión 1 / 10",
+  },
+  {
+    "key": "verdict",
+    "text": "Veredicto 33 % de las respuestas puntuadas coincidieron con las fuentes 2 / 6 2 de 6 respuestas coincidieron con tus fuentes (33 %). Otra fue parcialmente correcta. Los principales problemas son la información incorrecta (2) y las preguntas sin respuesta (1). Empieza por: Actualiza el contenido desactualizado de «Tarifas y comisiones 2026» (2 respuestas, 1 crítica). Muestra: 6 respuestas puntuadas de 8 preguntas. Caudals · Evidencias, no una certificación · Asistente de inversión 2 / 10",
+  },
+  {
+    "key": "causes",
+    "text": "Por qué fallaron las respuestas Respuestas incorrectas o parcialmente correctas, sobre 6 respuestas puntuadas. Causas probables (hipótesis) Documento desactualizado 2 de 6 1 crítica Laguna de conocimiento 1 de 6 Qué falló Información incorrecta 2 de 6 1 crítica No respondió 1 de 6 Incompleta 1 de 6 Las causas son hipótesis a partir de la evidencia, no están verificadas. Los registros de tu sistema pueden confirmarlas. Caudals · Evidencias, no una certificación · Asistente de inversión 3 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000003",
+    "text": "Transcripción 1 de 5 ¿Qué comisión se aplica a carteras de menos de 10.000 €? Incorrecta Crítica Resultado T1 66666666-6666-0000-4000-8000-000000000003 Causa probable (hipótesis): documento desactualizado Pregunta ¿Qué comisión se aplica a carteras de menos de 10.000 €? Respuesta del asistente Un 0,60 % anual. De la fuente Tarifas y comisiones 2026 Comisión de gestión: 0,40 % anual hasta 10.000 €. Por qué Da una comisión distinta de la documentada. Caudals · Evidencias, no una certificación · Asistente de inversión 4 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000004",
+    "text": "Transcripción 2 de 5 ¿En cuántas cuotas se puede dividir el recibo? Sin respuesta Media Resultado T3 66666666-6666-0000-4000-8000-000000000004 Pregunta ¿En cuántas cuotas se puede dividir el recibo? Respuesta del asistente ¿Lo puedes intentar con otras palabras? De la fuente Posibilidad de dividir tu recibo en 12 cuotas. Por qué Pide reformular sin responder. Caudals · Evidencias, no una certificación · Asistente de inversión 5 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000002",
+    "text": "Transcripción 3 de 5 ¿Con qué frecuencia puedo programar aportaciones? Parcialmente correcta Media Resultado T4 66666666-6666-0000-4000-8000-000000000002 Causa probable (hipótesis): laguna de conocimiento Pregunta ¿Con qué frecuencia puedo programar aportaciones? Respuesta del asistente Puedes programar aportaciones mensuales. De la fuente Preguntas frecuentes — Inversión Mensualmente, trimestralmente, semestralmente o anualmente. Por qué Omite las demás frecuencias. Caudals · Evidencias, no una certificación · Asistente de inversión 6 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000005",
+    "text": "Transcripción 4 de 5 ¿Hay comisión de custodia? Incorrecta Alta Resultado T2 66666666-6666-0000-4000-8000-000000000005 Causa probable (hipótesis): documento desactualizado Pregunta ¿Hay comisión de custodia? Respuesta del asistente Sí, un 0,15 % anual. De la fuente Tarifas y comisiones 2026 Sin comisión de custodia. Por qué Afirma una comisión inexistente. Caudals · Evidencias, no una certificación · Asistente de inversión 7 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000001",
+    "text": "Transcripción 5 de 5 ¿Cuál es el importe mínimo para empezar a invertir? Correcta Alta Resultado T7 66666666-6666-0000-4000-8000-000000000001 Pregunta ¿Cuál es el importe mínimo para empezar a invertir? Respuesta del asistente La inversión mínima inicial es de 1.000 €. De la fuente Preguntas frecuentes — Inversión Necesitas un mínimo de 1.000 €. Por qué Indica el mínimo documentado. Caudals · Evidencias, no una certificación · Asistente de inversión 8 / 10",
+  },
+  {
+    "key": "fixes",
+    "text": "Qué corregir primero Agrupado por causa probable y página de origen, de mayor a menor gravedad. Las causas son hipótesis. 1 Actualiza el contenido desactualizado de «Tarifas y comisiones 2026» 2 respuestas · 1 crítica · Causa probable (hipótesis): documento desactualizado 2 Da al asistente el contenido de «Preguntas frecuentes — Inversión» 1 respuesta · Causa probable (hipótesis): laguna de conocimiento 3 Responde en lugar de desviar la pregunta 1 respuesta · Qué falló: las preguntas sin respuesta Caudals · Evidencias, no una certificación · Asistente de inversión 9 / 10",
+  },
+  {
+    "key": "next",
+    "text": "Siguiente paso Un piloto con respuestas revisadas por expertos Expertos del sector revisan el conjunto de pruebas y cada calificación. Preguntas a partir de tus propios documentos, incluidos los casos de esta presentación. Un informe puntuado y una presentación en directo en 10 días laborables. Lo que pedimos hoy Acordar el alcance y una fecha de inicio. Caudals · Evidencias, no una certificación · Asistente de inversión 10 / 10",
+  },
+]
+`;
+
+exports[`readout deck from a report snapshot > stress-en (en) matches its snapshot 1`] = `
+[
+  {
+    "key": "cover",
+    "text": "Evaluation readout Customer support assistant for annual and monthly subscriptions sold directly and through… Answer customers' billing, refund and data-processing questions in English for the EU storefront. Evaluated 8 October 2026 Scope 36 questions from your sources · English Review status Preliminary Graded automatically; no expert has reviewed the grades yet. Complete Every critical question and enough of the rest were scored for the score to stand. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 1 / 10",
+  },
+  {
+    "key": "verdict",
+    "text": "Verdict 33% of scored answers matched the sources 12 / 36 12 of 36 answers matched your sources (33%). 12 more were partly right. The main problems are incomplete answers (12) and answers that contradict your documentation (6). Start with: Give the assistant the content of “Pricing table” (6 answers, 3 critical). Sample: 36 scored answers out of 36 questions. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 2 / 10",
+  },
+  {
+    "key": "causes",
+    "text": "Why answers failed Failed and partly correct answers, out of 36 scored answers. Likely causes (hypotheses) Wrong source 6 of 36 Knowledge gap 6 of 36 3 critical Out of scope 6 of 36 3 critical What went wrong Incomplete 12 of 36 3 critical Contradicts documentation 6 of 36 Different question 6 of 36 3 critical Causes are hypotheses drawn from the evidence, not verified. Your system's logs can confirm them. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 3 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000005",
+    "text": "Transcript 1 of 5 Question 5: can a customer who bought an annual plan through a reseller in anoth Incorrect Critical Result T1 66666666-6666-0000-4000-8000-000000000005 Likely cause (hypothesis): out of scope (shortened; full text in the report) Question Question 5: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 5 days, and where is that… The assistant's answer A refund is possible within 14 days of purchase for direct purchases only. From the source Data processing addendum — schedule 3: sub-processors and… Section 5. Pro-rata refunds apply within 30 days for every purchase channel. Why The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 4 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000009",
+    "text": "Transcript 2 of 5 Question 9: can a customer who bought an annual plan through a reseller in anoth Partly correct Critical Result T13 66666666-6666-0000-4000-8000-000000000009 Likely cause (hypothesis): knowledge gap (shortened; full text in the report) Question Question 9: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 9 days, and where is that… The assistant's answer A refund is possible within 14 days of purchase for direct purchases only. From the source Pricing table Section 9. Pro-rata refunds apply within 30 days for every purchase channel. Why The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 5 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000002",
+    "text": "Transcript 3 of 5 Question 2: can a customer who bought an annual plan through a reseller in anoth Incorrect High Result T4 66666666-6666-0000-4000-8000-000000000002 Likely cause (hypothesis): wrong source (shortened; full text in the report) Question Question 2: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 2 days, and where is that… The assistant's answer A refund is possible within 14 days of purchase for direct purchases only. From the source Refunds FAQ Section 2. Pro-rata refunds apply within 30 days for every purchase channel. Why The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 6 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000006",
+    "text": "Transcript 4 of 5 Question 6: can a customer who bought an annual plan through a reseller in anoth Partly correct High Result T16 66666666-6666-0000-4000-8000-000000000006 (shortened; full text in the report) Question Question 6: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 6 days, and where is that… The assistant's answer A refund is possible within 14 days of purchase for direct purchases only. From the source Release notes Section 6. Pro-rata refunds apply within 30 days for every purchase channel. https://help.example-assistant-provider.test/knowledge-base/articles/2026/refunds-and-cancellations-for-annual-subscriptio… Why The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 7 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000017",
+    "text": "Transcript 5 of 5 Question 17: can a customer who bought an annual plan through a reseller in anot Incorrect Critical Result T2 66666666-6666-0000-4000-8000-000000000017 Likely cause (hypothesis): out of scope (shortened; full text in the report) Question Question 17: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 17 days, and where is that… The assistant's answer A refund is possible within 14 days of purchase for direct purchases only. From the source Data processing addendum — schedule 3: sub-processors and… Section 17. Pro-rata refunds apply within 30 days for every purchase channel. Why The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 8 / 10",
+  },
+  {
+    "key": "fixes",
+    "text": "What to fix first Grouped by likely cause and source page, most severe first. Causes are hypotheses. 1 Give the assistant the content of “Pricing table” 6 answers · 3 critical · Likely cause (hypothesis): knowledge gap 2 Answer the in-scope questions covered by “Data processing addendum — schedule 3: sub-processors and… 6 answers · 3 critical · Likely cause (hypothesis): treated as out of scope 3 Complete the answers about “Release notes” 6 answers · What went wrong: incomplete answers 4 Make answers use “Refunds FAQ” 6 answers · Likely cause (hypothesis): wrong source Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 9 / 10",
+  },
+  {
+    "key": "next",
+    "text": "Next step A pilot with expert-reviewed answers Domain experts review the test set and every grade. Questions from your own documents, including the cases this readout showed. A scored report and a live readout in 10 working days. What we ask today Agree the scope and a start date. Caudals · Evidence, not a certification · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 10 / 10",
+  },
+]
+`;
+
+exports[`readout deck from a report snapshot > stress-en (es) matches its snapshot 1`] = `
+[
+  {
+    "key": "cover",
+    "text": "Presentación de la evaluación Customer support assistant for annual and monthly subscriptions sold directly and through… Answer customers' billing, refund and data-processing questions in English for the EU storefront. Evaluado 8 de octubre de 2026 Alcance 36 preguntas a partir de tus fuentes · Inglés Estado de revisión Preliminar Calificado automáticamente; ningún experto ha revisado aún las calificaciones. Completo Se puntuaron todas las preguntas críticas y suficientes de las demás para que la puntuación sea válida. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 1 / 10",
+  },
+  {
+    "key": "verdict",
+    "text": "Veredicto 33 % de las respuestas puntuadas coincidieron con las fuentes 12 / 36 12 de 36 respuestas coincidieron con tus fuentes (33 %). Otras 12 fueron parcialmente correctas. Los principales problemas son las respuestas incompletas (12) y las respuestas que contradicen tu documentación (6). Empieza por: Da al asistente el contenido de «Pricing table» (6 respuestas, 3 críticas). Muestra: 36 respuestas puntuadas de 36 preguntas. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 2 / 10",
+  },
+  {
+    "key": "causes",
+    "text": "Por qué fallaron las respuestas Respuestas incorrectas o parcialmente correctas, sobre 36 respuestas puntuadas. Causas probables (hipótesis) Fuente equivocada 6 de 36 Laguna de conocimiento 6 de 36 3 críticas Fuera de alcance 6 de 36 3 críticas Qué falló Incompleta 12 de 36 3 críticas Contradice la documentación 6 de 36 Otra pregunta 6 de 36 3 críticas Las causas son hipótesis a partir de la evidencia, no están verificadas. Los registros de tu sistema pueden confirmarlas. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 3 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000005",
+    "text": "Transcripción 1 de 5 Question 5: can a customer who bought an annual plan through a reseller in anoth Incorrecta Crítica Resultado T1 66666666-6666-0000-4000-8000-000000000005 Causa probable (hipótesis): fuera de alcance (abreviado; texto completo en el informe) Pregunta Question 5: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 5 days, and where is that… Respuesta del asistente A refund is possible within 14 days of purchase for direct purchases only. De la fuente Data processing addendum — schedule 3: sub-processors and… Section 5. Pro-rata refunds apply within 30 days for every purchase channel. Por qué The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 4 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000009",
+    "text": "Transcripción 2 de 5 Question 9: can a customer who bought an annual plan through a reseller in anoth Parcialmente correcta Crítica Resultado T13 66666666-6666-0000-4000-8000-000000000009 Causa probable (hipótesis): laguna de conocimiento (abreviado; texto completo en el informe) Pregunta Question 9: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 9 days, and where is that… Respuesta del asistente A refund is possible within 14 days of purchase for direct purchases only. De la fuente Pricing table Section 9. Pro-rata refunds apply within 30 days for every purchase channel. Por qué The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 5 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000002",
+    "text": "Transcripción 3 de 5 Question 2: can a customer who bought an annual plan through a reseller in anoth Incorrecta Alta Resultado T4 66666666-6666-0000-4000-8000-000000000002 Causa probable (hipótesis): fuente equivocada (abreviado; texto completo en el informe) Pregunta Question 2: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 2 days, and where is that… Respuesta del asistente A refund is possible within 14 days of purchase for direct purchases only. De la fuente Refunds FAQ Section 2. Pro-rata refunds apply within 30 days for every purchase channel. Por qué The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 6 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000006",
+    "text": "Transcripción 4 de 5 Question 6: can a customer who bought an annual plan through a reseller in anoth Parcialmente correcta Alta Resultado T16 66666666-6666-0000-4000-8000-000000000006 (abreviado; texto completo en el informe) Pregunta Question 6: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 6 days, and where is that… Respuesta del asistente A refund is possible within 14 days of purchase for direct purchases only. De la fuente Release notes Section 6. Pro-rata refunds apply within 30 days for every purchase channel. https://help.example-assistant-provider.test/knowledge-base/articles/2026/refunds-and-cancellations-for-annual-subscriptio… Por qué The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 7 / 10",
+  },
+  {
+    "key": "transcript:66666666-6666-0000-4000-8000-000000000017",
+    "text": "Transcripción 5 de 5 Question 17: can a customer who bought an annual plan through a reseller in anot Incorrecta Crítica Resultado T2 66666666-6666-0000-4000-8000-000000000017 Causa probable (hipótesis): fuera de alcance (abreviado; texto completo en el informe) Pregunta Question 17: can a customer who bought an annual plan through a reseller in another country get a pro-rata refund after 17 days, and where is that… Respuesta del asistente A refund is possible within 14 days of purchase for direct purchases only. De la fuente Data processing addendum — schedule 3: sub-processors and… Section 17. Pro-rata refunds apply within 30 days for every purchase channel. Por qué The answer limits refunds to direct purchases and gives 14 days instead of 30. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 8 / 10",
+  },
+  {
+    "key": "fixes",
+    "text": "Qué corregir primero Agrupado por causa probable y página de origen, de mayor a menor gravedad. Las causas son hipótesis. 1 Da al asistente el contenido de «Pricing table» 6 respuestas · 3 críticas · Causa probable (hipótesis): laguna de conocimiento 2 Responde las preguntas de su ámbito que cubre «Data processing addendum — schedule 3: sub-processors and… 6 respuestas · 3 críticas · Causa probable (hipótesis): tratada como fuera de alcance 3 Completa las respuestas sobre «Release notes» 6 respuestas · Qué falló: las respuestas incompletas 4 Haz que las respuestas usen «Refunds FAQ» 6 respuestas · Causa probable (hipótesis): fuente equivocada Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 9 / 10",
+  },
+  {
+    "key": "next",
+    "text": "Siguiente paso Un piloto con respuestas revisadas por expertos Expertos del sector revisan el conjunto de pruebas y cada calificación. Preguntas a partir de tus propios documentos, incluidos los casos de esta presentación. Un informe puntuado y una presentación en directo en 10 días laborables. Lo que pedimos hoy Acordar el alcance y una fecha de inicio. Caudals · Evidencias, no una certificación · Customer support assistant for annual and monthly subscriptions sold directly and through resellers (production, EU region) 10 / 10",
+  },
+]
+`;

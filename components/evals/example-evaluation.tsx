@@ -12,11 +12,14 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Download, Eye, EyeOff } from "lucide-react";
+import { Download, Eye, EyeOff, Presentation } from "lucide-react";
 import type { ExampleView } from "@/lib/evals/example";
 import type { ResultLabel } from "@/lib/evals/reports/contracts";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
-import { Action, ActionAnchor, Badge, SectionHeading, Stat, StatGrid, Status } from "./primitives";
+import { readoutCopy } from "@/lib/evals/reports/readout-copy";
+import { readoutAccess, type ReadoutMode } from "@/lib/evals/readout/access";
+import { Action, ActionAnchor, ActionLink, Badge, SectionHeading, Stat, StatGrid, Status } from "./primitives";
+import { useWorkspace } from "./workspace-context";
 import { BarList } from "./charts";
 import { ReportView } from "./report-view";
 import { ResultBadge } from "./result-labels";
@@ -66,8 +69,11 @@ function ExampleHistory({ view, onOpen }: { view: ExampleView; onOpen: (assessme
 }
 
 /** `/workspace/example`: the reviewed report, its trend and comparison, labelled and read-only. */
-export function ExampleEvaluation({ view, pdfHref }: { view: ExampleView; pdfHref: string }) {
+export function ExampleEvaluation({ view, pdfHref, readoutMode = "off" }: { view: ExampleView; pdfHref: string; readoutMode?: ReadoutMode }) {
   const example = useExampleEvaluation();
+  const { role, operator } = useWorkspace();
+  // Launch L-35: the example is the demo deck; readout mode works on it read-only.
+  const present = readoutAccess(readoutMode, role, operator).present;
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -122,6 +128,12 @@ export function ExampleEvaluation({ view, pdfHref }: { view: ExampleView; pdfHre
         onResultChange={setResult}
         actions={
           <>
+            {present && (
+              <ActionLink variant="secondary" href="/workspace/example/present" title={readoutCopy(getLocale()).presentHelp}>
+                <Presentation aria-hidden="true" />
+                {readoutCopy(getLocale()).present}
+              </ActionLink>
+            )}
             <ActionAnchor variant="secondary" href={pdfHref} download>
               <Download aria-hidden="true" />
               {t("exampleDownloadPdf")}
