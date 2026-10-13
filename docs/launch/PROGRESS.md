@@ -29,8 +29,8 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 3 | L-11 | Engine integration: holds, captures, refunds | L-09, L-10 | 089 `billing_engine_hooks` | done (shadow week running) | `84c7698` | [L-11](L-11.md); app and workers at `84c7698`, `BILLING_CREDITS_ENABLED=true`, `BILLING_ENFORCE=shadow`. Production shadow run on the DGX: shadow hold, capture, meter and admission recorded, run unaffected, ledger untouched, 8 accounts zero drift, every shadow check 0. Crash (SIGKILL), concurrency and exactness tests pass. Enforce is a founder step (§5). |
 | 3 | L-21 | Prospect snapshot and ops growth v2 | L-02 | 090 `evals_prospect_snapshots` | done | `d8f80b5`, `8f50fb7` | [L-21](L-21.md); `PROSPECT_SNAPSHOTS_ENABLED=true` (operators), `OPS_DIGEST_ENABLED=true` (internal address only). One production snapshot of Caudals' own fixture chat and caudals.com end to end (adversarial pack 422, host limit 429, 30-day labelled link, CRM draft `sent: false`); one digest delivered to the internal address. "Assign to me" left over. App `8f50fb7`, workers `d8f80b5`. |
 | 3 | L-12 | Stripe top-ups, auto-recharge and webhooks | L-09, L-01 | 091 `billing_payments` | done | `180e34b`, `485f2cc` | [L-12](L-12.md); Stripe test mode: one €20 Checkout purchase credited ~1 s after payment, 5× replays no-op, auto-recharge fired once, both refunded through the audited admin path, zero drift. `BILLING_STRIPE_MODE=test`, test endpoint and secret set; app and workers at `485f2cc`. |
-| 3 | L-13 | Invoicing and IVA | L-12 | 092 `billing_invoices` | todo | | |
-| 3 | L-14 | Plans and limits v2, upgrade moments | L-09, L-12 | 093 `evals_plans_v2` | todo | | |
+| 3 | L-13 | Invoicing and IVA | L-12 | 092 `billing_invoices` | in progress | | |
+| 3 | L-14 | Plans and limits v2, upgrade moments | L-09, L-12 | 093 `evals_plans_v2` | in progress | | |
 | 4 | L-15 | Billing and usage screens, run estimate dialog | L-10, L-11, L-12, L-14 | — | todo | | |
 | 4 | L-16 | Ops billing console and reconciliation | L-09, L-10, L-12, L-13 | 094 `billing_approvals` | todo | | |
 | 4 | L-17 | Report v2 and share page | L-02, L-04 | — | done | `87f88401` | [L-17](L-17.md); no flag (additive). Summary, next steps and "Fix these first" on reports; PDF/Word cover + summary first, `Caudals-<system>-<date>` names, versioned export paths; share page header, demo referral and open counts. App and workers at `87f88401`; production report checked web = PDF = Word. P-54 left over. |
@@ -39,7 +39,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 7 | L-18 | Schedules, re-run and compare, regression alerts | L-11, L-14, L-15, L-07 | 095 `evals_schedule_credits` | todo | | |
 | 7 | L-19 | Integrations: CI trigger, Slack/Teams/email | L-11, L-18 | 096 `evals_integrations_v2` | todo | | |
 | 7 | L-20 | Help centre, API reference, methodology page | — | — | in progress | | |
-| 7 | L-22 | Workspace home, systems health, faster review | L-06 | — | todo | | |
+| 7 | L-22 | Workspace home, systems health, faster review | L-06 | — | in progress | | |
 | 7 | L-23 | EN/ES parity guard and sweep | L-07, L-17 | — | todo | | |
 | 7 | L-24 | Accessibility and performance budgets | L-04, L-15, L-17 | 097 `perf_indexes` (if needed) | todo | | |
 | 7 | L-34 | Better document intake | L-06, L-14 | 098 `evals_intake_v2` | todo | | |
@@ -140,3 +140,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-13 | L-12 deployed (`180e34b`, fix `485f2cc`, migration 091) and verified in Stripe test mode on an internal workspace (purchase, replays, auto-recharge, refunds through the admin route, deletion afterwards; zero drift). `BILLING_STRIPE_MODE=test`; `BILLING_CREDITS_ENABLED` unchanged (L-11). |
 | 2026-10-13 | L-30 done (`7151995`, no migration, no flag): public site refresh in EN and ES and the Settings DPA click-through; app and workers deployed; production public-route suite 76 passed. Founder action added: bring Blog and Newsletter back once their content is live. |
 | 2026-10-13 | L-29 done (`2ed6c5a`, no migration): AI-disclosure check (Art. 50 evidence) in demo and product runs, stored beside the answers (demo) and on the first case observation and report snapshot (product), never in the score. App and workers deployed; one production demo against our synthetic API with `AI_DISCLOSURE_CHECK=true` for the check (Disclosed by the judge, shown on the report, score 0/8 as before), then off. `DEMO_RUNS_PER_VISITOR` and `DEMO_RUNS_PER_SITE` raised to 5 for it and restored to 1 and 3. Founder action extended: lawyer review of the wording, then switch on. |
+| 2026-10-13 | Usage limits hit at ~21:00 and ~02:00 UTC; agents resumed at 01:11 and 07:25. L-17, L-12 and L-06 done; Gate A packages all deployed. Agents started for L-13, L-14 and L-22. Brief: merge lock is acquired only in the foreground. |

@@ -55,7 +55,7 @@ Spec §8.0 item 5, through `heavy.sh`: `npm run typecheck`, `npx eslint` on the 
 
 ## 7. Merge, deploy, verify (one package at a time)
 
-1. Take the merge lock: `scripts/launch/merge-lock.sh acquire L-xx` (waits for other packages; prints the holder).
+1. Take the merge lock: `scripts/launch/merge-lock.sh acquire L-xx` (waits for other packages; prints the holder). **Acquire it only in the foreground, never in a background loop**: a stopped agent's background loop can win the lock and hold it for hours. If you must pause long work while holding it, release it first.
 2. In your worktree: `git fetch origin && git rebase origin/main`. Resolve conflicts (message catalogs, `migrate.ts`, `set-app-credentials.sh` and shared components are the usual ones; keep both sides). Re-run typecheck, lint on changed files and your tests.
 3. Squash your branch into one commit, `feat(L-xx): <title>`, with a short body and the attribution line `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 4. `cd /home/caudals/caudals && git pull --ff-only origin main && git merge --ff-only launch/L-xx`. This checkout must stay clean: if `git status` shows anything that is not yours, stop and report instead of touching it.
