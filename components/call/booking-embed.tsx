@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Cal, { getCalApi } from "@calcom/embed-react";
 
 // One inline scheduler on the page, so a single stable namespace is enough.
@@ -35,13 +35,26 @@ export function normalizeCalLink(raw: string): string {
   return link;
 }
 
+/** What the page needs to confirm a booking: Cal's start time, when it sends one. */
+export type BookingConfirmation = { startTime: string | null };
+
 type BookingEmbedProps = {
   /** Public Cal.com booking link (no API key required). */
   calLink: string;
+  /**
+   * Called once Cal reports a booking (`bookingSuccessfulV2`), so the page can
+   * confirm it in the visitor's language: Cal's own confirmation follows the
+   * Cal account's language, not the page's (launch L-30).
+   */
+  onBooked?: (booking: BookingConfirmation) => void;
 };
 
-export function BookingEmbed({ calLink }: BookingEmbedProps) {
+export function BookingEmbed({ calLink, onBooked }: BookingEmbedProps) {
   const normalizedCalLink = normalizeCalLink(calLink);
+  const onBookedRef = useRef(onBooked);
+  useEffect(() => {
+    onBookedRef.current = onBooked;
+  }, [onBooked]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +79,13 @@ export function BookingEmbed({ calLink }: BookingEmbedProps) {
         },
         hideEventTypeDetails: true,
         layout: "month_view",
+      });
+      cal("on", {
+        action: "bookingSuccessfulV2",
+        callback: (event) => {
+          const startTime = event.detail.data?.startTime;
+          onBookedRef.current?.({ startTime: typeof startTime === "string" ? startTime : null });
+        },
       });
     })();
 

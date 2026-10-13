@@ -225,7 +225,7 @@
     "label": "Cómo trabaja Caudals",
     "how": {
       "title": "Cómo funciona",
-      "description": "Reunimos tu documentación, las preguntas que hacen de verdad tus clientes y el criterio de nuestros expertos, y con ello escribimos un examen con las respuestas correctas. Se lo hacemos a tu IA como lo haría un cliente, corregimos cada respuesta con su fuente y te entregamos un informe con lo que falla y cómo arreglarlo.",
+      "description": "Reunimos tu documentación, las preguntas que hacen de verdad tus clientes y el criterio de nuestros expertos, y con ello escribimos un examen con las respuestas correctas. Se lo hacemos a tu IA como lo haría un cliente, corregimos cada respuesta con su fuente y te entregamos un informe con lo que falla y cómo arreglarlo. Para verlo antes, haz la prueba gratuita: ocho preguntas escritas a partir de tu propia web y corregidas en unos tres minutos.",
       "figure": "Tu documentación, preguntas reales de clientes y nuestros expertos se convierten en un examen. Se lo hacemos a tu IA, corregimos cada respuesta con la fuente y explicamos los resultados en un informe.",
       "docs": "Tu documentación",
       "questions": "Preguntas reales",
@@ -450,11 +450,11 @@
     },
     "access": {
       "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
-      "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público, tu documentación pública y perfiles de cliente inventados. Para sistemas internos trabajamos con un acuerdo de confidencialidad y un contrato de encargo de tratamiento, en infraestructura europea, y borramos tu material al terminar. Si lo prefieres, te damos las preguntas y las ejecutáis vosotros."
+      "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público, y se borra a los siete días. Para sistemas internos trabajamos con un acuerdo de confidencialidad y un contrato de encargo de tratamiento, en infraestructura europea, y borramos tu material al terminar. Si lo prefieres, te damos las preguntas y las ejecutáis vosotros."
     },
     "cost": {
-      "q": "¿Cuánto cuesta empezar?",
-      "a": "Nada. El diagnóstico es gratuito: le hacemos 40 preguntas a tu asistente y te enviamos los resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por expertos, dura unas dos semanas y tiene un precio cerrado que acordamos antes de empezar. Nunca facturamos por horas."
+      "q": "¿Cuánto cuesta?",
+      "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita, así que puedes seguir probando tu asistente con todas tus páginas y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por expertos de tu sector, tiene un precio cerrado que te presupuestamos antes de empezar. Nunca facturamos por horas."
     },
     "private": {
       "q": "¿Verá alguien más nuestros resultados?",
@@ -467,8 +467,8 @@
     "primaryCta": "Diagnóstico inicial gratuito",
     "secondaryCta": "Reserva una llamada de 30 minutos",
     "demoSubtitle": "Empieza con la prueba gratuita: ocho preguntas escritas a partir de tu propia web y cada respuesta comprobada con la página de la que sale. Unos tres minutos, sin cuenta.",
-    "diagnosticPrompt": "¿Prefieres que hagamos nosotros un diagnóstico de cuarenta preguntas?",
-    "diagnosticLink": "Solicítalo"
+    "pilotPrompt": "¿Necesitas respuestas revisadas por expertos de tu sector?",
+    "pilotLink": "Solicita un piloto"
   },
   "footer": {
     "tagline": "Evaluación independiente de asistentes de IA, con respuestas validadas por expertos de cada sector.",
@@ -482,6 +482,7 @@
     "github": "GitHub",
     "linkedin": "LinkedIn",
     "legalHeading": "Legal",
+    "trustHeading": "Confianza",
     "legalLinks": {
       "terms": {
         "label": "Términos del servicio"
@@ -519,15 +520,17 @@
     "error": "No hemos podido guardar tu solicitud. Inténtalo de nuevo."
   },
   "contact": {
-    "title": "Solicita una evaluación",
-    "subtitle": "Cuéntanos qué sistema de IA utilizas y qué responde. Te contestaremos en 24 horas con el punto de partida adecuado.",
+    "title": "Solicita una evaluación piloto",
+    "subtitle": "En un piloto probamos tu asistente con entre 150 y 300 preguntas revisadas por expertos de tu sector, y te entregamos un informe y una sesión de presentación. Tiene un precio cerrado que te presupuestamos antes de empezar. Cuéntanos cómo es tu asistente y te responderemos en 24 horas.",
+    "tryYourself": "¿Prefieres probarlo tú mismo?",
+    "runFreeTest": "Haz la prueba gratuita",
     "preferLive": "¿Prefieres hablar en directo?",
     "bookMeeting": "Reserva una reunión",
     "reviewFields": "Por favor, revisa los campos señalados.",
     "sendFailed": "No pudimos enviar tu mensaje.",
     "sendFailedRetry": "No pudimos enviar tu mensaje. Por favor, inténtalo de nuevo.",
     "sentTitle": "Solicitud enviada con éxito",
-    "sentBody": "Analizaremos las características de tu sistema y te responderemos en menos de 24 horas con la propuesta más conveniente.",
+    "sentBody": "Te responderemos en menos de 24 horas con una propuesta de alcance para el piloto, o con alguna pregunta si necesitamos más detalle.",
     "sentEmailPrefix": "Si deseas aportar contexto adicional mientras tanto, puedes escribirnos a",
     "sendAnother": "Enviar otra solicitud",
     "fullName": "Nombre completo",
@@ -538,41 +541,11 @@
     "companyPlaceholder": "Ej. Seguros Norte",
     "sector": "Sector",
     "sectorPlaceholder": "Selecciona un sector",
-    "systemHeading": "Tu sistema de IA",
-    "systemQuestion": "¿Qué sistema quieres evaluar?",
-    "systemType": "Tipo de sistema",
-    "systemTypePlaceholder": "Selecciona un tipo",
-    "systemOwner": "¿Qué área lidera el sistema?",
-    "systemOwnerPlaceholder": "Selecciona un área",
-    "systemAnswers": "¿Qué tipo de consultas resuelve?",
-    "systemAnswersPlaceholder": "Por ejemplo: coberturas, periodos de carencia y siniestros de nuestras pólizas de salud, basándose en condiciones generales y preguntas frecuentes.",
-    "startWith": "¿Con qué propuesta te gustaría empezar? (opcional)",
-    "startWithPlaceholder": "Selecciona una opción",
-    "anythingElse": "¿Algún detalle adicional a tener en cuenta? (opcional)",
-    "anythingElsePlaceholder": "Cómo lo evaluáis actualmente, incidencias detectadas, plazos previstos de lanzamiento…",
+    "systemAnswers": "¿Qué debería cubrir el piloto?",
+    "systemAnswersPlaceholder": "Tu asistente, dónde funciona (un enlace ayuda) y qué responde. Por ejemplo: el chat de acme.com/ayuda, sobre coberturas y siniestros de nuestras pólizas de hogar.",
     "sending": "Enviando...",
     "submit": "Enviar solicitud",
     "options": {
-      "systemType": {
-        "customer-assistant": {
-          "label": "Asistente o chatbot para clientes"
-        },
-        "voice-agent": {
-          "label": "Agente de voz o IVR"
-        },
-        "internal-assistant": {
-          "label": "Asistente interno"
-        },
-        "document-pipeline": {
-          "label": "Clasificación o extracción de documentos"
-        },
-        "product-feature": {
-          "label": "Función de IA en nuestro producto"
-        },
-        "other": {
-          "label": "Otro"
-        }
-      },
       "sector": {
         "insurance": {
           "label": "Seguros y correduría"
@@ -604,67 +577,25 @@
         "other": {
           "label": "Otro"
         }
-      },
-      "ownerRole": {
-        "customer-service": {
-          "label": "Atención al cliente"
-        },
-        "digital": {
-          "label": "Transformación digital o canal digital"
-        },
-        "after-sales": {
-          "label": "Posventa o servicio técnico"
-        },
-        "quality-operations": {
-          "label": "Calidad u operaciones"
-        },
-        "it-data": {
-          "label": "Equipo de sistemas, datos o IA"
-        },
-        "management": {
-          "label": "Dirección"
-        },
-        "integrator": {
-          "label": "Un integrador o agencia externa"
-        },
-        "other": {
-          "label": "Otro"
-        }
-      },
-      "systemStage": {
-        "live": {
-          "label": "En producción"
-        },
-        "pilot": {
-          "label": "En piloto"
-        },
-        "planned": {
-          "label": "Aún no lanzado"
-        }
-      },
-      "offer": {
-        "reality-check": {
-          "label": "Diagnóstico inicial gratuito"
-        },
-        "pilot-evaluation": {
-          "label": "Evaluación piloto"
-        },
-        "monthly-subscription": {
-          "label": "Suscripción mensual"
-        },
-        "not-sure": {
-          "label": "Aún no lo sé"
-        }
       }
     },
-    "metaTitle": "Solicita una evaluación de tu asistente de IA",
-    "metaDescription": "Cuéntanos qué sistema de IA tienes, qué responde y quién es responsable. Te respondemos en 24 horas con el mejor punto de partida: un diagnóstico inicial gratuito o una evaluación piloto."
+    "metaTitle": "Solicita una evaluación piloto de tu asistente de IA",
+    "metaDescription": "Solicita un piloto a precio cerrado: entre 150 y 300 preguntas revisadas por expertos de tu sector, un informe y una sesión de presentación. O haz tú mismo la prueba gratuita en unos tres minutos."
   },
   "call": {
     "title": "Reserva una reunión",
     "subtitle": "Elige el momento que mejor te venga. Veremos qué responde tu sistema de IA, cómo lo pruebas hoy y qué cubriría una evaluación.",
     "details": "30 minutos · Videollamada · Los horarios se muestran en tu zona horaria",
+    "agendaTitle": "En 30 minutos repasamos:",
+    "agenda1": "Qué responde tu asistente y a quién.",
+    "agenda2": "Cómo compruebas hoy sus respuestas.",
+    "agenda3": "Qué cubriría una prueba y cuál sería el siguiente paso.",
     "scheduler": "Programador de reuniones",
+    "confirmedTitle": "Reunión reservada",
+    "confirmedWhen": "Nos vemos el {date}.",
+    "confirmedInvite": "La invitación de calendario, con el enlace de la videollamada, está de camino a tu correo. Para cambiar la hora, usa el enlace de esa invitación.",
+    "confirmedPrepare": "¿Quieres hablar sobre resultados reales en la llamada?",
+    "confirmedTest": "Haz antes la prueba gratuita",
     "preferWrite": "¿Prefieres escribirnos primero?",
     "describeSystem": "Descríbenos tu sistema",
     "orEmail": "o escríbenos a",
@@ -1029,7 +960,7 @@
     "received": "Gracias por contarnos cómo es el sistema de IA de {organization}. Tu solicitud ya ha llegado al equipo de Caudals.",
     "nextTitle": "Qué pasa ahora",
     "next1": "Revisamos qué responde tu sistema y qué documentos debería seguir.",
-    "next2": "En menos de 24 horas te respondemos con el punto de partida adecuado: normalmente el diagnóstico gratuito, o una llamada breve si el alcance lo necesita.",
+    "next2": "En menos de 24 horas te respondemos con una propuesta de alcance y un precio cerrado, o te proponemos una llamada breve si necesitamos más detalle.",
     "next3": "No probamos nada hasta que hayamos acordado el alcance contigo.",
     "callLead": "¿Prefieres hablarlo ya?",
     "callAction": "Reserva una llamada de 30 minutos",

@@ -79,6 +79,40 @@ describe("contact intake emails", () => {
     expect(response.status).toBe(200);
   });
 
+  it("records and acknowledges the five-field pilot request (launch L-30)", async () => {
+    const { routePublicEvaluationRequestIntake } = await import("@/lib/public/evaluation-request-intake");
+    const intake = vi.mocked(routePublicEvaluationRequestIntake);
+    intake.mockClear();
+    const pilot = {
+      fullName: "Laura González",
+      workEmail: "laura@seguros-norte.example",
+      organization: "Seguros Norte",
+      sector: "insurance",
+      systemAnswers: "El chat de seguros-norte.example/ayuda, sobre coberturas y siniestros.",
+      requestedOffer: "pilot-evaluation",
+      formVersion: "pilot-request-v2",
+      locale: "es",
+    };
+    const response = await POST(request(pilot));
+    expect(response.status).toBe(200);
+    expect(intake).toHaveBeenCalledTimes(1);
+    expect(intake.mock.calls[0]?.[0]).toMatchObject({ sector: "insurance", requestedOffer: "pilot-evaluation", formVersion: "pilot-request-v2" });
+    expect(intake.mock.calls[0]?.[0]).not.toHaveProperty("systemType");
+    const [notification, acknowledgement] = send.mock.calls.map(([payload]) => payload);
+    const summary = renderToStaticMarkup(notification.react);
+    expect(summary).toContain("Seguros Norte");
+    expect(summary).not.toContain(">System<");
+    expect(acknowledgement.subject).toBe("Hemos recibido tu solicitud — Caudals");
+  });
+
+  it("refuses a pilot request without the sector or what it should cover", async () => {
+    const response = await POST(request({ fullName: "Laura González", workEmail: "laura@seguros-norte.example", organization: "Seguros Norte", systemAnswers: "" }));
+    expect(response.status).toBe(422);
+    const body = await response.json();
+    expect(Object.keys(body.details.fieldErrors).sort()).toEqual(["sector", "systemAnswers"]);
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("sends nothing to a bot that filled the hidden field", async () => {
     const response = await POST(request({ ...form, website: "https://spam.example" }));
     expect(response.status).toBe(200);

@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 const publicRoutes = [
   // Temporarily hidden:
   // { path: "/blog", heading: /^blog$/i },
-  { path: "/contact", heading: /request an evaluation/i },
+  { path: "/contact", heading: /request a pilot evaluation/i },
   { path: "/legal/privacy", heading: /privacy policy/i },
   { path: "/legal/terms", heading: /terms of service/i },
   { path: "/legal/cookies", heading: /cookie policy/i },
@@ -18,7 +18,7 @@ const publicRoutes = [
 ];
 
 const spanishRoutes = [
-  { path: "/es/contact", heading: /solicita una evaluación|solicitar una evaluación/i },
+  { path: "/es/contact", heading: /solicita una evaluación piloto/i },
   { path: "/es/legal/privacy", heading: /política de privacidad/i },
   { path: "/es/legal/cookies", heading: /política de cookies/i },
   { path: "/es/legal/terminos", heading: /términos del servicio/i },
@@ -291,16 +291,18 @@ test.describe("front door (launch L-04)", () => {
       const footer = page.locator("footer");
       await expect(footer.getByRole("link", { name: copy.freeTest })).toHaveAttribute("href", `/${locale}/demo`);
       await expect(footer.getByRole("link", { name: copy.signIn })).toHaveAttribute("href", /\/workspace\/sign-in$/);
-      // The closing card leads to the test and keeps the manual diagnostic one link away.
+      // The closing card leads to the test and keeps a pilot request one link away (launch L-30).
       const closing = page.locator(".lp-cta");
       await expect(closing.locator(`a[href="/${locale}/demo"]`)).toHaveCount(1);
-      await expect(closing.locator(`a[href="${copy.contact}?offer=reality-check"]`)).toHaveCount(1);
+      await expect(closing.locator(`a[href="${copy.contact}?offer=pilot-evaluation"]`)).toHaveCount(1);
     });
 
-    test(`a ${locale} sector page leads to the free test`, async ({ page }) => {
+    test(`a ${locale} sector page leads to the free test, then to a pilot request`, async ({ page }) => {
       await page.goto(copy.sector);
-      await expect(page.locator(".lp-hero").first().locator(`a[href="/${locale}/demo"]`)).toHaveCount(1);
-      await expect(page.locator(".lp-cta").locator(`a[href="${copy.contact}?offer=reality-check&sector=insurance"]`)).toHaveCount(1);
+      const hero = page.locator(".lp-hero").first();
+      await expect(hero.locator(`a[href="/${locale}/demo"]`)).toHaveCount(1);
+      await expect(hero.locator(`a[href="${copy.contact}?offer=pilot-evaluation&sector=insurance"]`)).toHaveCount(1);
+      await expect(page.locator(".lp-cta").locator(`a[href="${copy.contact}?offer=pilot-evaluation&sector=insurance"]`)).toHaveCount(1);
     });
 
     test(`the ${locale} demo is indexable, and crawlers get title, canonical and hreflang in the head`, async ({ request }) => {
@@ -333,9 +335,9 @@ test.describe("front door (launch L-04)", () => {
     expect(await markdown.text()).toContain("# Test your AI assistant for free");
   });
 
-  test("the manual diagnostic stays reachable", async ({ page }) => {
+  test("older diagnostic links still open the request form", async ({ page }) => {
     await page.goto("/en/contact?offer=reality-check");
-    await expect(page.getByRole("heading", { name: /request an evaluation/i }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /request a pilot evaluation/i }).first()).toBeVisible();
   });
 
   for (const width of [390, 1440]) {
@@ -362,6 +364,97 @@ test.describe("front door off (launch L-04)", () => {
     expect(await (await request.get("/page-sitemap.xml")).text()).not.toContain("/demo</loc>");
     expect(await (await request.get("/llms.txt")).text()).not.toContain("/demo)");
   });
+});
+
+/**
+ * Launch L-30: the public site sells the self-serve path and trust is one
+ * click away. Flag-dependent checks follow `DEMO_PUBLIC` like the front door.
+ */
+const refreshCopy = {
+  en: {
+    home: "/en", contact: "/en/contact", call: "/en/call", sector: "/en/sectors/insurance",
+    freeTest: /run the free test/i, cost: "How much does it cost?", payg: /pay as you go with credits in the app/i,
+    trust: "Trust", trustLinks: ["/en/legal/security", "/en/legal/dpa", "/en/legal/subprocessors"],
+    tryYourself: "Prefer to try it yourself?", runFreeTest: "Run the free test", agenda: "In 30 minutes we go through:",
+    missing: /this page doesn't exist/i, required: /please enter your full name/i,
+  },
+  es: {
+    home: "/es", contact: "/es/contacto", call: "/es/llamada", sector: "/es/sectores/seguros",
+    freeTest: /haz la prueba gratuita/i, cost: "¿Cuánto cuesta?", payg: /pagas por uso con créditos en la aplicación/i,
+    trust: "Confianza", trustLinks: ["/es/legal/seguridad", "/es/legal/encargo-de-tratamiento", "/es/legal/subencargados"],
+    tryYourself: "¿Prefieres probarlo tú mismo?", runFreeTest: "Haz la prueba gratuita", agenda: "En 30 minutos repasamos:",
+    missing: /esta página no existe/i, required: /introduce tu nombre completo/i,
+  },
+} as const;
+
+test.describe("public site refresh (launch L-30)", () => {
+  for (const locale of ["en", "es"] as const) {
+    const copy = refreshCopy[locale];
+
+    test(`the ${locale} home names the free test in step 1 and answers the price without numbers`, async ({ page }) => {
+      await page.goto(copy.home);
+      await expect(page.locator("#step-how").locator("xpath=..")).toContainText(locale === "en" ? "run the free test" : "haz la prueba gratuita");
+      const cost = page.locator("#faq details").filter({ hasText: copy.cost });
+      await expect(cost).toHaveCount(1);
+      await cost.locator("summary").click();
+      const answer = await cost.locator("p").innerText();
+      expect(answer).toMatch(copy.payg);
+      expect(answer).not.toMatch(/€|\bEUR\b|48/);
+    });
+
+    test(`the ${locale} footer groups the trust pages`, async ({ page }) => {
+      await page.goto(copy.home);
+      const footer = page.locator("footer");
+      const trust = footer.locator("div").filter({ has: page.getByText(copy.trust, { exact: true }) }).last();
+      for (const href of copy.trustLinks) await expect(trust.locator(`a[href="${href}"]`)).toHaveCount(1);
+      if (demoPublic) await expect(footer.getByRole("link", { name: locale === "en" ? "Sign in" : "Iniciar sesión" })).toHaveCount(1);
+      await expect(page.locator("header nav").first().getByRole("link", { name: "Blog" })).toHaveCount(0);
+    });
+
+    test(`the ${locale} contact form asks five things, validates them and offers the free test`, async ({ page }) => {
+      let posted = 0;
+      await page.route("**/api/contact", (route) => { posted++; return route.abort(); });
+      await page.goto(copy.contact);
+      const form = page.locator("main form");
+      await expect(form.locator("input:not([type=hidden]), select, textarea")).toHaveCount(5);
+      if (demoPublic) {
+        await expect(page.getByText(copy.tryYourself)).toBeVisible();
+        await expect(page.getByRole("link", { name: copy.runFreeTest })).toHaveAttribute("href", `/${locale}/demo`);
+      }
+      await form.getByRole("button").last().click();
+      await expect(form.getByText(copy.required)).toBeVisible();
+      expect(posted).toBe(0);
+    });
+
+    test(`the ${locale} call page shows a three-line agenda beside the scheduler`, async ({ page }) => {
+      await page.goto(copy.call);
+      const agenda = page.locator("section").filter({ has: page.getByRole("heading", { name: copy.agenda }) });
+      await expect(agenda.locator("ol > li")).toHaveCount(3);
+    });
+
+    test(`the ${locale} 404 offers the free test`, async ({ page }) => {
+      const response = await page.goto(`/${locale}/no-such-page-l30`);
+      expect(response?.status()).toBe(404);
+      await expect(page.getByRole("heading", { level: 1, name: copy.missing })).toBeVisible();
+      if (demoPublic) await expect(page.locator("main").locator(`a[href="/${locale}/demo"]`)).toHaveCount(1);
+      await expect(page.locator("main").locator(`a[href="/${locale}"]`)).toHaveCount(1);
+    });
+  }
+
+  for (const width of [390, 1440]) {
+    test(`the refreshed pages fit a ${width}px screen`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      for (const path of ["/en/contact", "/es/contacto", "/en/call", "/es/llamada", "/en/no-such-page-l30", "/es/sectores/seguros"]) {
+        await page.goto(path);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), path).toBe(true);
+      }
+      await page.goto("/es/contacto");
+      await page.screenshot({ path: `/tmp/caudals-l30-contact-${width}.png`, fullPage: true });
+      await page.goto("/en");
+      await page.locator("footer").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `/tmp/caudals-l30-footer-${width}.png` });
+    });
+  }
 });
 
 test.describe("removed routes", () => {

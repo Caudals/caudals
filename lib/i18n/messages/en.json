@@ -225,7 +225,7 @@
     "label": "How Caudals works",
     "how": {
       "title": "How it works",
-      "description": "We gather your documents, the questions your customers really ask and our experts' judgment, and turn them into an exam with the correct answers. We put it to your AI as a customer would, grade every answer against its source and give you a report on what fails and how to fix it.",
+      "description": "We gather your documents, the questions your customers really ask and our experts' judgment, and turn them into an exam with the correct answers. We put it to your AI as a customer would, grade every answer against its source and give you a report on what fails and how to fix it. To see it first, run the free test: eight questions written from your own website and checked in about three minutes.",
       "figure": "Your documents, real customer questions and our experts become an exam. We put it to your AI, grade every answer against the source and explain the results in a report.",
       "docs": "Your documents",
       "questions": "Real questions",
@@ -450,11 +450,11 @@
     },
     "access": {
       "q": "Do you need access to our systems or customer data?",
-      "a": "Not to start. The free diagnostic uses only your public assistant, your public documentation and made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, and delete your material when the work ends. If you prefer, we hand you the questions and you run them yourselves."
+      "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions, and it is deleted after seven days. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, and delete your material when the work ends. If you prefer, we hand you the questions and you run them yourselves."
     },
     "cost": {
-      "q": "How much does it cost to start?",
-      "a": "Nothing. The diagnostic is free: we put 40 questions to your assistant and send you the results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by experts, takes about two weeks and has a fixed price agreed before we start. We never bill by the hour."
+      "q": "How much does it cost?",
+      "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, so you can keep testing your assistant against all your pages, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by experts in your sector, has a fixed price that we quote before we start. We never bill by the hour."
     },
     "private": {
       "q": "Will anyone else see our results?",
@@ -467,8 +467,8 @@
     "primaryCta": "Get a free diagnostic",
     "secondaryCta": "Book a 30-minute call",
     "demoSubtitle": "Start with the free test: eight questions written from your own website, each answer checked against the page it comes from. About three minutes, no account.",
-    "diagnosticPrompt": "Rather we run a forty-question diagnostic for you?",
-    "diagnosticLink": "Request it"
+    "pilotPrompt": "Need answers reviewed by experts in your sector?",
+    "pilotLink": "Request a pilot"
   },
   "footer": {
     "tagline": "Independent evaluation for AI assistants, with answers validated by experts in each sector.",
@@ -482,6 +482,7 @@
     "github": "GitHub",
     "linkedin": "LinkedIn",
     "legalHeading": "Legal",
+    "trustHeading": "Trust",
     "legalLinks": {
       "terms": {
         "label": "Terms of Service"
@@ -519,15 +520,17 @@
     "error": "We couldn't save your request. Please try again."
   },
   "contact": {
-    "title": "Request an evaluation",
-    "subtitle": "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point.",
+    "title": "Request a pilot evaluation",
+    "subtitle": "A pilot tests your assistant with 150 to 300 questions reviewed by experts in your sector, then gives you a report and a live readout. It has a fixed price that we quote before we start. Tell us about your assistant and we'll reply within 24 hours.",
+    "tryYourself": "Prefer to try it yourself?",
+    "runFreeTest": "Run the free test",
     "preferLive": "Prefer to meet live?",
     "bookMeeting": "Book a meeting",
     "reviewFields": "Please review the highlighted fields.",
     "sendFailed": "We couldn't send your message.",
     "sendFailedRetry": "We couldn't send your message. Please try again.",
     "sentTitle": "Request sent",
-    "sentBody": "We'll review your system and reply within 24 hours with the right starting point.",
+    "sentBody": "We'll reply within 24 hours with a proposed scope for the pilot, or a few questions if we need more detail.",
     "sentEmailPrefix": "If you want to add more context in the meantime, email us at",
     "sendAnother": "Send another request",
     "fullName": "Full name",
@@ -538,41 +541,11 @@
     "companyPlaceholder": "Acme Corp",
     "sector": "Sector",
     "sectorPlaceholder": "Select a sector",
-    "systemHeading": "Your AI system",
-    "systemQuestion": "What should we evaluate?",
-    "systemType": "Type of system",
-    "systemTypePlaceholder": "Select a type",
-    "systemOwner": "Who owns the system?",
-    "systemOwnerPlaceholder": "Select a team",
-    "systemAnswers": "What does it answer?",
-    "systemAnswersPlaceholder": "For example: coverage, waiting periods and claims for our health policies, from our general conditions and FAQ.",
-    "startWith": "What would you like to start with? (optional)",
-    "startWithPlaceholder": "Select an option",
-    "anythingElse": "Anything else we should know? (optional)",
-    "anythingElsePlaceholder": "How you test it today, recent complaints, a deadline you're working to…",
+    "systemAnswers": "What should the pilot cover?",
+    "systemAnswersPlaceholder": "Your assistant, where it runs (a link helps) and what it answers. For example: the chat on acme.com/help, on coverage and claims for our home policies.",
     "sending": "Sending...",
     "submit": "Send request",
     "options": {
-      "systemType": {
-        "customer-assistant": {
-          "label": "Customer assistant or chatbot"
-        },
-        "voice-agent": {
-          "label": "Voice or IVR agent"
-        },
-        "internal-assistant": {
-          "label": "Internal assistant"
-        },
-        "document-pipeline": {
-          "label": "Document triage or extraction"
-        },
-        "product-feature": {
-          "label": "AI feature in our product"
-        },
-        "other": {
-          "label": "Other"
-        }
-      },
       "sector": {
         "insurance": {
           "label": "Insurance and brokerage"
@@ -604,67 +577,25 @@
         "other": {
           "label": "Other"
         }
-      },
-      "ownerRole": {
-        "customer-service": {
-          "label": "Customer service"
-        },
-        "digital": {
-          "label": "Digital transformation or digital channel"
-        },
-        "after-sales": {
-          "label": "After-sales or technical support"
-        },
-        "quality-operations": {
-          "label": "Quality or operations"
-        },
-        "it-data": {
-          "label": "IT, data or AI team"
-        },
-        "management": {
-          "label": "Senior management"
-        },
-        "integrator": {
-          "label": "An external integrator or agency"
-        },
-        "other": {
-          "label": "Other"
-        }
-      },
-      "systemStage": {
-        "live": {
-          "label": "In production"
-        },
-        "pilot": {
-          "label": "In pilot"
-        },
-        "planned": {
-          "label": "Not launched yet"
-        }
-      },
-      "offer": {
-        "reality-check": {
-          "label": "Free Initial Diagnostic"
-        },
-        "pilot-evaluation": {
-          "label": "Pilot Evaluation"
-        },
-        "monthly-subscription": {
-          "label": "Monthly subscription"
-        },
-        "not-sure": {
-          "label": "Not sure yet"
-        }
       }
     },
-    "metaTitle": "Request an evaluation of your AI assistant",
-    "metaDescription": "Tell us which AI system you run, what it answers and who owns it. We reply within 24 hours with the right starting point: a free diagnostic or a pilot evaluation."
+    "metaTitle": "Request a pilot evaluation of your AI assistant",
+    "metaDescription": "Request a fixed-price pilot: 150 to 300 questions reviewed by experts in your sector, a report and a live readout. Or run the free test yourself in about three minutes."
   },
   "call": {
     "title": "Book a meeting",
     "subtitle": "Pick a time that works for you. We'll look at what your AI system answers, how you test it today and what an evaluation would cover.",
     "details": "30 minutes · Video call · Times are shown in your time zone",
+    "agendaTitle": "In 30 minutes we go through:",
+    "agenda1": "What your assistant answers, and for whom.",
+    "agenda2": "How you check its answers today.",
+    "agenda3": "What a test would cover, and the next step.",
     "scheduler": "Meeting scheduler",
+    "confirmedTitle": "You're booked",
+    "confirmedWhen": "We'll see you on {date}.",
+    "confirmedInvite": "The calendar invitation, with the video link, is on its way to your email. To change the time, use the link in that invitation.",
+    "confirmedPrepare": "Want real results to talk about before the call?",
+    "confirmedTest": "Run the free test",
     "preferWrite": "Prefer to write first?",
     "describeSystem": "Describe your system",
     "orEmail": "or email",
@@ -1029,7 +960,7 @@
     "received": "Thank you for telling us about {organization}'s AI system. Your request has reached the Caudals team.",
     "nextTitle": "What happens next",
     "next1": "We review what your system answers and which documents it should follow.",
-    "next2": "Within 24 hours we reply with the right starting point: usually the free diagnostic, or a short call if the scope needs it.",
+    "next2": "Within 24 hours we reply with a proposed scope and a fixed price, or suggest a short call if we need more detail.",
     "next3": "Nothing is tested until you have agreed the scope with us.",
     "callLead": "Prefer to talk it through now?",
     "callAction": "Book a 30-minute call",

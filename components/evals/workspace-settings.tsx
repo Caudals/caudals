@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { evalRequest } from "./api";
 import { Action, Badge, Check, PageHeading, SettingsRow, Status, Tabs, formatMoney } from "./primitives";
 import { ExampleEvaluationSetting } from "./example-evaluation-links";
+import { DpaSetting } from "./dpa-setting";
 import { Meter } from "./charts";
 import { Modal, notify } from "./overlays";
 import { EntitlementForm, type WorkspaceEntitlement } from "./entitlement-form";
@@ -22,7 +23,7 @@ import { getLocale, t } from "@/lib/evals/messages/en";
 
 type Tab = "general" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
 
-export function WorkspaceSettings() {
+export function WorkspaceSettings({ marketingOrigin }: { marketingOrigin?: string } = {}) {
   const { orgId, workspace, role, canManage, platformAdmin } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const params = useSearchParams();
@@ -64,7 +65,7 @@ export function WorkspaceSettings() {
           {t("loading")}
         </p>
       ) : tab === "general" ? (
-        <General key={orgId} platformAdmin={platformAdmin} onManageRoles={() => select("members")} onSaved={reload} summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} />
+        <General key={orgId} platformAdmin={platformAdmin} onManageRoles={() => select("members")} onSaved={reload} summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} marketingOrigin={marketingOrigin} />
       ) : tab === "members" ? (
         <InvitationManager orgId={orgId} workspaceName={workspace.name} />
       ) : tab === "notifications" ? (
@@ -82,7 +83,7 @@ export function WorkspaceSettings() {
   );
 }
 
-function General({ summary, orgId, workspaceName, role, canRename, platformAdmin, onSaved, onManageRoles }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean; platformAdmin: boolean; onSaved: () => Promise<void>; onManageRoles: () => void }) {
+function General({ summary, orgId, workspaceName, role, canRename, platformAdmin, onSaved, onManageRoles, marketingOrigin }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean; platformAdmin: boolean; onSaved: () => Promise<void>; onManageRoles: () => void; marketingOrigin?: string }) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -149,6 +150,7 @@ function General({ summary, orgId, workspaceName, role, canRename, platformAdmin
           {platformAdmin && <Action variant="secondary" size="sm" onClick={onManageRoles}>{t("manageRoles")}</Action>}
         </span>
       </SettingsRow>
+      <DpaSetting orgId={orgId} workspaceName={workspaceName} marketingOrigin={marketingOrigin} />
       <SettingsRow
         title={t("spendThisMonth")}
         description={`${t("settledSpend")}: ${formatMoney(usage.settled, entitlement.currency)} · ${t("outstandingSpend")}: ${formatMoney(usage.outstanding, entitlement.currency)}. ${t("spendHelp")}`}

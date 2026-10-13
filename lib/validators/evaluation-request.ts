@@ -56,6 +56,13 @@ export const evaluationRequestOffers = [
   "not-sure",
 ] as const;
 
+/**
+ * Which version of the public form sent a request. The five-field pilot form
+ * (launch L-30) sends `pilot-request-v2`; the earlier structured intake sent
+ * nothing. The intake records it, so operators know which fields were asked.
+ */
+export const CONTACT_FORM_VERSION = "pilot-request-v2";
+
 export type EvaluationSystemType = (typeof evaluationSystemTypes)[number];
 export type EvaluationSector = (typeof evaluationSectors)[number];
 export type EvaluationOwnerRole = (typeof evaluationOwnerRoles)[number];
@@ -156,13 +163,19 @@ export const evaluationRequestFormSchema = z.object({
     .max(160, { message: messageKey("validation.companyTooLong") }),
   organizationWebsite: optionalUrl(messageKey("validation.invalidUrl")),
   companySize: z.enum(evaluationCompanySizes).optional(),
-  systemType: z.enum(evaluationSystemTypes, {
-    message: messageKey("validation.systemTypeRequired"),
-  }),
+  // The pilot form (launch L-30) no longer asks for the system type or the
+  // owning team; requests from the earlier form still send them.
+  systemType: z
+    .enum(evaluationSystemTypes, {
+      message: messageKey("validation.systemTypeRequired"),
+    })
+    .optional(),
   sector: z.enum(evaluationSectors, { message: messageKey("validation.sectorRequired") }),
-  ownerRole: z.enum(evaluationOwnerRoles, {
-    message: messageKey("validation.ownerRequired"),
-  }),
+  ownerRole: z
+    .enum(evaluationOwnerRoles, {
+      message: messageKey("validation.ownerRequired"),
+    })
+    .optional(),
   systemStage: z.enum(evaluationSystemStages).optional(),
   systemAnswers: z
     .string({ message: messageKey("validation.systemAnswersRequired") })
@@ -177,11 +190,11 @@ export const evaluationRequestFormSchema = z.object({
     .max(2000, { message: messageKey("validation.messageTooLong") })
     .transform((value) => (value ? value : undefined))
     .optional(),
+  formVersion: z.literal(CONTACT_FORM_VERSION).optional(),
 });
 
 export type EvaluationRequestFormValues = z.infer<typeof evaluationRequestFormSchema>;
 
-/** Reads the `?offer=` hint that pricing and hero links pass to `/contact`. */
 /** Reads a `?sector=` query value; sector pages link to the form with their id. */
 export function parseRequestedSector(
   value: string | undefined,
@@ -189,6 +202,7 @@ export function parseRequestedSector(
   return evaluationSectors.find((sector) => sector === value);
 }
 
+/** Reads the `?offer=` hint that landing, sector and email links pass to `/contact`. */
 export function parseRequestedOffer(
   value: string | undefined,
 ): EvaluationRequestOffer | undefined {

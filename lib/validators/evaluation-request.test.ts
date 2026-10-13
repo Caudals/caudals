@@ -4,6 +4,7 @@ import { locales } from "@/lib/i18n/config";
 import { createTranslator, type MessageKey } from "@/lib/i18n/messages";
 
 import {
+  CONTACT_FORM_VERSION,
   evaluationRequestFormSchema,
   parseRequestedOffer,
 } from "@/lib/validators/evaluation-request";
@@ -35,22 +36,48 @@ describe("evaluationRequestFormSchema", () => {
     }
   });
 
-  it("requires the system type, sector, owner and what the system answers", () => {
+  it("accepts the five-field pilot request (launch L-30)", () => {
     const result = evaluationRequestFormSchema.safeParse({
       fullName: basePayload.fullName,
       workEmail: basePayload.workEmail,
       organization: basePayload.organization,
-      systemAnswers: "",
+      sector: "insurance",
+      systemAnswers: "The chat on mutua.example/ayuda, on coverage and claims.",
+      requestedOffer: "pilot-evaluation",
+      formVersion: CONTACT_FORM_VERSION,
+      locale: "es",
     });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.systemType).toBeUndefined();
+      expect(result.data.ownerRole).toBeUndefined();
+      expect(result.data.formVersion).toBe("pilot-request-v2");
+    }
+  });
+
+  it("still accepts the earlier structured request, and checks its optional choices", () => {
+    expect(evaluationRequestFormSchema.safeParse(basePayload).success).toBe(true);
+    const result = evaluationRequestFormSchema.safeParse({ ...basePayload, systemType: "robot", ownerRole: "board" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const { fieldErrors } = result.error.flatten();
+      expect(fieldErrors.systemType).toContain("validation.systemTypeRequired");
+      expect(fieldErrors.ownerRole).toContain("validation.ownerRequired");
+    }
+    expect(evaluationRequestFormSchema.safeParse({ ...basePayload, formVersion: "v9" }).success).toBe(false);
+  });
+
+  it("requires a name, a work email, the company, the sector and what the pilot should cover", () => {
+    const result = evaluationRequestFormSchema.safeParse({ systemAnswers: "" });
 
     expect(result.success).toBe(false);
     if (!result.success) {
       // The schema runs where no locale is in scope, so it emits message keys
       // that the form resolves in the reader's language.
       const { fieldErrors } = result.error.flatten();
-      expect(fieldErrors.systemType).toContain("validation.systemTypeRequired");
+      expect(Object.keys(fieldErrors).sort()).toEqual(["fullName", "organization", "sector", "systemAnswers", "workEmail"]);
       expect(fieldErrors.sector).toContain("validation.sectorRequired");
-      expect(fieldErrors.ownerRole).toContain("validation.ownerRequired");
       expect(fieldErrors.systemAnswers).toContain(
         "validation.systemAnswersRequired",
       );

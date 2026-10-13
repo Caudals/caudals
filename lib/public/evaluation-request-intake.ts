@@ -56,14 +56,22 @@ export function isPublicEvaluationRequestIntakeEnabled(
   return env.PUBLIC_BUYER_BRIEF_INTAKE_ENABLED !== "false";
 }
 
+/**
+ * Values for the columns the five-field pilot form (launch L-30) no longer
+ * asks for. `evaluation_request.system_type` and `owner_role` are required
+ * (migration 030), so an unanswered one is stored as "other"; the request's
+ * `source.form` says which form sent it, so "other" is never read as an answer.
+ */
+const UNASKED = "other" as const;
+
 /** Operator-facing summary, stored as the opportunity's use case. */
 export function buildEvaluationRequestSummary(data: EvaluationRequestFormValues) {
   const lines = [
     `What it answers: ${data.systemAnswers}`,
-    `System: ${evaluationSystemTypeLabels[data.systemType]}`,
+    data.systemType ? `System: ${evaluationSystemTypeLabels[data.systemType]}` : null,
     data.systemStage ? `Stage: ${evaluationSystemStageLabels[data.systemStage]}` : null,
     `Sector: ${evaluationSectorLabels[data.sector]}`,
-    `Owner: ${evaluationOwnerRoleLabels[data.ownerRole]}`,
+    data.ownerRole ? `Owner: ${evaluationOwnerRoleLabels[data.ownerRole]}` : null,
     data.systemUrl ? `System URL: ${data.systemUrl}` : null,
     data.requestedOffer
       ? `Wants to start with: ${evaluationRequestOfferLabels[data.requestedOffer]}`
@@ -77,10 +85,11 @@ export function buildEvaluationRequestSummary(data: EvaluationRequestFormValues)
 /** Structured request fields, as recorded on the request's audit transition. */
 function buildStructuredRequest(data: EvaluationRequestFormValues) {
   return {
-    system_type: data.systemType,
+    form: data.formVersion ?? null,
+    system_type: data.systemType ?? null,
     system_stage: data.systemStage ?? null,
     sector: data.sector,
-    owner_role: data.ownerRole,
+    owner_role: data.ownerRole ?? null,
     requested_offer: data.requestedOffer ?? null,
     company_size: data.companySize ?? null,
     organization_website: data.organizationWebsite ?? null,
@@ -190,16 +199,17 @@ export async function routePublicEvaluationRequestIntake(
                 data.organization,
                 data.organizationWebsite ?? null,
                 data.companySize ?? null,
-                data.systemType,
+                data.systemType ?? UNASKED,
                 data.systemStage ?? null,
                 data.sector,
-                data.ownerRole,
+                data.ownerRole ?? UNASKED,
                 data.systemAnswers,
                 data.systemUrl ?? null,
                 data.requestedOffer ?? null,
                 data.message ?? null,
                 JSON.stringify({
                   channel: "public_contact",
+                  form: data.formVersion ?? null,
                   referer: context.referer ?? null,
                   submitted_at: submittedAt,
                 }),

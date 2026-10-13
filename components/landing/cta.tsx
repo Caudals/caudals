@@ -4,25 +4,33 @@ import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { useFrontDoor } from "@/components/public/front-door";
 import { useTranslations } from "@/lib/i18n/context";
+import { PILOT_REQUEST_PATH } from "@/lib/public/pilot-request";
 
 type CTASectionProps = {
   /** Overrides for a page with its own closing line, such as a sector page. */
   title?: string;
   /** Describes the manual diagnostic, so it gives way to the free test's line once the demo is public. */
   subtitle?: string;
-  /** Where the free diagnostic is requested; a sector page preselects its sector. */
+  /** Where the free diagnostic is requested while the demo is not public; a sector page preselects its sector. */
   diagnosticHref?: string;
+  /** Where a pilot is requested once the demo is public; a sector page preselects its sector. */
+  pilotHref?: string;
+  /** The line before "Request a pilot"; a sector page names its own reviewers. */
+  pilotPrompt?: string;
 };
 
 /**
  * Closing call to action, over a blurred black-and-white office at night (a
- * CSS background, see landing.css). With `DEMO_PUBLIC` the free test leads and
- * the manual diagnostic stays one quiet link away (launch L-04).
+ * CSS background, see landing.css). With `DEMO_PUBLIC` the free test leads,
+ * the call follows, and a pilot request stays one quiet link away (launch
+ * L-04, L-30).
  */
 export function CTASection({
   title,
   subtitle,
   diagnosticHref = "/contact?offer=reality-check",
+  pilotHref = PILOT_REQUEST_PATH,
+  pilotPrompt,
 }: CTASectionProps = {}) {
   const t = useTranslations("cta");
   const { demoPublic } = useFrontDoor();
@@ -51,8 +59,7 @@ export function CTASection({
         </div>
         {demoPublic ? (
           <p className="lp-cta-alt">
-            {t("diagnosticPrompt")}{" "}
-            <Link href={diagnosticHref}>{t("diagnosticLink")}</Link>
+            {pilotPrompt ?? t("pilotPrompt")} <Link href={pilotHref}>{t("pilotLink")}</Link>
           </p>
         ) : null}
       </div>

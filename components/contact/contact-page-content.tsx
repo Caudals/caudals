@@ -4,6 +4,7 @@ import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { ContactForm } from "@/components/contact/contact-form";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { useFrontDoor } from "@/components/public/front-door";
 import { useTranslations } from "@/lib/i18n/context";
 import type {
   EvaluationRequestOffer,
@@ -15,8 +16,14 @@ type ContactPageContentProps = {
   requestedSector?: EvaluationSector;
 };
 
+/**
+ * `/contact`: the pilot request (launch L-30). The free test is offered first
+ * for anyone who would rather try it themselves, and the call stays one link
+ * away; the form asks for five things.
+ */
 export function ContactPageContent({ requestedOffer, requestedSector }: ContactPageContentProps) {
   const t = useTranslations("contact");
+  const { demoPublic } = useFrontDoor();
 
   return (
     <div className="min-h-screen bg-background text-black font-mk-sans selection:bg-black selection:text-white">
@@ -29,7 +36,18 @@ export function ContactPageContent({ requestedOffer, requestedSector }: ContactP
           <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed text-balance">
             {t("subtitle")}
           </p>
-          <p className="mt-4 text-sm text-gray-500">
+          {demoPublic ? (
+            <p className="mt-6 text-base text-black">
+              {t("tryYourself")}{" "}
+              <Link
+                href="/demo"
+                className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
+              >
+                {t("runFreeTest")}
+              </Link>
+            </p>
+          ) : null}
+          <p className="mt-3 text-sm text-gray-500">
             {t("preferLive")}{" "}
             <Link
               href="/call"

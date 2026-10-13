@@ -103,6 +103,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por expertos en siniestros.",
+      "prompt": "¿Necesitas que peritos y tramitadores de siniestros validen cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA de seguros evaluáis?",
@@ -114,7 +118,7 @@
       },
       {
         "q": "¿Necesitáis acceso a nuestros sistemas o a datos de asegurados?",
-        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tu documentación pública, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o te damos las preguntas y las lanzas tú."
+        "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o te damos las preguntas y las lanzas tú."
       },
       {
         "q": "¿Esto ayuda con el Reglamento Europeo de IA?",
@@ -122,7 +126,7 @@
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: le hacemos 40 preguntas a tu asistente público y te enviamos los resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros expertos, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros expertos, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -226,6 +230,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por ingenieros de posventa.",
+      "prompt": "¿Necesitas que ingenieros que reparan equipos como los tuyos comprueben cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA de posventa evaluáis?",
@@ -241,11 +249,11 @@
       },
       {
         "q": "¿Necesitáis acceso a nuestros sistemas?",
-        "a": "Para empezar, no. El diagnóstico gratuito usa solo lo que es público. Para asistentes internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o te damos las preguntas, las lanzas tú y nos envías las respuestas."
+        "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para asistentes internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o te damos las preguntas, las lanzas tú y nos envías las respuestas."
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros expertos, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros expertos, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -349,6 +357,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por profesionales sanitarios.",
+      "prompt": "¿Necesitas que médicos y enfermeras revisen cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA sanitarios evaluáis?",
@@ -364,11 +376,11 @@
       },
       {
         "q": "¿Necesitáis datos de pacientes?",
-        "a": "No. Evaluamos con perfiles de paciente inventados y nunca con datos de salud reales. El diagnóstico gratuito usa solo tu asistente público e información pública. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+        "a": "No. Evaluamos con perfiles de paciente inventados y nunca con datos de salud reales. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por profesionales sanitarios cuando hace falta, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por profesionales sanitarios cuando hace falta, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -472,6 +484,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por especialistas en banca.",
+      "prompt": "¿Necesitas que especialistas en banca y cumplimiento normativo comprueben cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA bancarios evaluáis?",
@@ -487,11 +503,11 @@
       },
       {
         "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
-        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público e información pública, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+        "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -595,6 +611,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por especialistas en energía.",
+      "prompt": "¿Necesitas que asesores energéticos y especialistas en facturación comprueben cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA de energía evaluáis?",
@@ -610,11 +630,11 @@
       },
       {
         "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
-        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tus tarifas públicas, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+        "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -718,6 +738,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por especialistas en telecomunicaciones.",
+      "prompt": "¿Necesitas que especialistas en atención al cliente y facturación comprueben cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA de telecomunicaciones evaluáis?",
@@ -733,11 +757,11 @@
       },
       {
         "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
-        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tus tarifas públicas, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+        "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -841,6 +865,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por profesionales en ejercicio.",
+      "prompt": "¿Necesitas que abogados y asesores validen cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA legales evaluáis?",
@@ -860,7 +888,7 @@
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros abogados y asesores, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros abogados y asesores, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   },
@@ -964,6 +992,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "O solicita un piloto revisado por especialistas en derechos del pasajero.",
+      "prompt": "¿Necesitas que especialistas en derechos del pasajero y agentes de viajes comprueben cada respuesta?"
+    },
     "faq": [
       {
         "q": "¿Qué sistemas de IA de viajes evaluáis?",
@@ -979,11 +1011,11 @@
       },
       {
         "q": "¿Necesitáis acceso a nuestros sistemas o a datos de pasajeros?",
-        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tus condiciones públicas, con perfiles de pasajero inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+        "a": "Para empezar, no. La prueba gratuita solo lee tus páginas públicas y le hace preguntas normales a tu asistente público. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
       },
       {
         "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
-        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+        "a": "La prueba gratuita no cuesta nada y no necesita cuenta: ocho preguntas escritas a partir de tu propia web, en unos tres minutos. La cuenta también es gratuita y, más allá del plan gratuito, pagas por uso con créditos en la aplicación. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
       }
     ]
   }

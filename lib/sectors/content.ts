@@ -75,6 +75,12 @@ export type SectorCopy = {
     roles: readonly { label: string; icon: ExpertRoleIcon }[];
     datasets: readonly { kind: DatasetKind; name: string; description: string }[];
   };
+  /**
+   * The secondary way in (launch L-30): the free test leads, and a pilot
+   * request with the sector's own reviewers follows. `cta` is the hero's
+   * secondary link; `prompt` precedes "Request a pilot" on the closing card.
+   */
+  pilot: { cta: string; prompt: string };
   faq: readonly { q: string; a: string }[];
 };
 

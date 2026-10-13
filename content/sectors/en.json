@@ -103,6 +103,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by claims experts.",
+      "prompt": "Need every answer signed off by loss adjusters and claims handlers?"
+    },
     "faq": [
       {
         "q": "Which insurance AI systems do you evaluate?",
@@ -114,7 +118,7 @@
       },
       {
         "q": "Do you need access to our systems or policyholder data?",
-        "a": "Not to start. The free diagnostic uses only your public assistant and your public documentation, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or we give you the questions and you run them yourself."
+        "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or we give you the questions and you run them yourself."
       },
       {
         "q": "Does this help with the EU AI Act?",
@@ -122,7 +126,7 @@
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: we put 40 questions to your public assistant and send you the results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our experts, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our experts, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -226,6 +230,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by after-sales engineers.",
+      "prompt": "Need every answer checked by engineers who repair equipment like yours?"
+    },
     "faq": [
       {
         "q": "Which after-sales AI systems do you evaluate?",
@@ -241,11 +249,11 @@
       },
       {
         "q": "Do you need access to our systems?",
-        "a": "Not to start. The free diagnostic uses only what is public. For internal assistants we work under an NDA and a data processing agreement on EU infrastructure, or we give you the questions and you run them yourself and send us the answers."
+        "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions. For internal assistants we work under an NDA and a data processing agreement on EU infrastructure, or we give you the questions and you run them yourself and send us the answers."
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our experts, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our experts, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -349,6 +357,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by clinicians.",
+      "prompt": "Need every answer reviewed by doctors and nurses?"
+    },
     "faq": [
       {
         "q": "Which healthcare AI systems do you evaluate?",
@@ -364,11 +376,11 @@
       },
       {
         "q": "Do you need patient data?",
-        "a": "No. We test with made-up patient profiles and never with real health data. The free diagnostic uses only your public assistant and public information. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+        "a": "No. We test with made-up patient profiles and never with real health data. The free test reads only your public pages and asks your public assistant ordinary questions. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by clinicians where needed, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by clinicians where needed, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -472,6 +484,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by banking specialists.",
+      "prompt": "Need every answer checked by banking and compliance specialists?"
+    },
     "faq": [
       {
         "q": "Which banking AI systems do you evaluate?",
@@ -487,11 +503,11 @@
       },
       {
         "q": "Do you need access to our systems or customer data?",
-        "a": "Not to start. The free diagnostic uses only your public assistant and public information, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+        "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -595,6 +611,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by energy specialists.",
+      "prompt": "Need every answer checked by energy advisers and billing specialists?"
+    },
     "faq": [
       {
         "q": "Which energy AI systems do you evaluate?",
@@ -610,11 +630,11 @@
       },
       {
         "q": "Do you need access to our systems or customer data?",
-        "a": "Not to start. The free diagnostic uses only your public assistant and public tariffs, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+        "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -718,6 +738,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by telecoms specialists.",
+      "prompt": "Need every answer checked by customer-service and billing specialists?"
+    },
     "faq": [
       {
         "q": "Which telecom AI systems do you evaluate?",
@@ -733,11 +757,11 @@
       },
       {
         "q": "Do you need access to our systems or customer data?",
-        "a": "Not to start. The free diagnostic uses only your public assistant and public price list, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+        "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -841,6 +865,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by practising professionals.",
+      "prompt": "Need every answer signed off by lawyers and advisers?"
+    },
     "faq": [
       {
         "q": "Which legal AI systems do you evaluate?",
@@ -860,7 +888,7 @@
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our lawyers and advisers, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our lawyers and advisers, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   },
@@ -964,6 +992,10 @@
         }
       ]
     },
+    "pilot": {
+      "cta": "Or request a pilot reviewed by passenger-rights specialists.",
+      "prompt": "Need every answer checked by passenger-rights specialists and travel agents?"
+    },
     "faq": [
       {
         "q": "Which travel AI systems do you evaluate?",
@@ -979,11 +1011,11 @@
       },
       {
         "q": "Do you need access to our systems or passenger data?",
-        "a": "Not to start. The free diagnostic uses only your public assistant and public conditions, with made-up passenger profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+        "a": "Not to start. The free test reads only your public pages and asks your public assistant ordinary questions. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
       },
       {
         "q": "How long does it take and what does it cost to start?",
-        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+        "a": "The free test costs nothing and needs no account: eight questions written from your own website, in about three minutes. The account is free too, and beyond the free plan you pay as you go with credits in the app. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
       }
     ]
   }

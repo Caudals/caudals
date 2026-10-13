@@ -30,6 +30,18 @@ describe.each([
     }
   });
 
+  it.each(SECTOR_IDS)("%s offers the free test first and a pilot request second (launch L-30)", (id) => {
+    const copy = content[id];
+    expect(copy.pilot.cta.length).toBeGreaterThan(10);
+    expect(copy.pilot.prompt).toMatch(/\?$/);
+    const answers = copy.faq.map((item) => item.a).join(" ");
+    // D-06: no public prices, and the free test (not the retired 48-hour diagnostic) is the way in.
+    expect(answers).not.toMatch(/€\s?\d|\d\s?€|\bEUR\b/);
+    expect(answers).not.toMatch(/48 (hours|horas)|diagnostic is free|diagnóstico (es )?gratuito/i);
+    expect(answers).toMatch(_locale === "en" ? /free test/ : /prueba gratuita/);
+    expect(answers).toMatch(_locale === "en" ? /pay as you go with credits in the app/ : /pagas por uso con créditos en la aplicación/);
+  });
+
   it("never claims certification, audit or compliance", () => {
     const text = JSON.stringify(content).toLowerCase();
     // "It gives you evidence, not a certificate" is the only permitted mention.

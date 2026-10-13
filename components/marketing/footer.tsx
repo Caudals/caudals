@@ -6,10 +6,19 @@ import { useTranslations } from "@/lib/i18n/context";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { useFrontDoor } from "@/components/public/front-door";
 import { SECTOR_IDS, sectorPath } from "@/lib/public/sectors";
-import { LEGAL_DOCUMENT_IDS, LEGAL_DOCUMENT_PATHS } from "@/lib/legal/versions";
+import { LEGAL_DOCUMENT_IDS, LEGAL_DOCUMENT_PATHS, type LegalDocumentId } from "@/lib/legal/versions";
 
-/** Every legal and trust page; ids match `footer.legalLinks.*` in the message files. */
-const legalLinks = LEGAL_DOCUMENT_IDS.map((id) => ({ id, href: LEGAL_DOCUMENT_PATHS[id] }));
+/**
+ * Every legal and trust page, each listed once; ids match `footer.legalLinks.*`
+ * in the message files. The trust pages a procurement team asks for first get
+ * their own column (launch L-30); the rest stay under Legal.
+ */
+const TRUST_DOCUMENT_IDS = ["security", "dpa", "subprocessors"] as const satisfies readonly LegalDocumentId[];
+const toLink = (id: LegalDocumentId) => ({ id, href: LEGAL_DOCUMENT_PATHS[id] });
+const trustLinks = TRUST_DOCUMENT_IDS.map(toLink);
+const legalLinks = LEGAL_DOCUMENT_IDS.filter(
+  (id) => !(TRUST_DOCUMENT_IDS as readonly LegalDocumentId[]).includes(id),
+).map(toLink);
 
 const getAskAiLinks = (prompt: string) => {
   const encodedPrompt = encodeURIComponent(prompt);
@@ -74,7 +83,7 @@ export function MarketingFooter() {
   return (
     <footer className="font-mk-sans border-t border-[#e9e7e1] bg-background text-[#141413]">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-10 px-[clamp(16px,4vw,40px)] pb-10 pt-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[minmax(0,4fr)_minmax(0,3fr)_minmax(0,3fr)_minmax(0,3fr)]">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[minmax(0,4fr)_minmax(0,3fr)_minmax(0,3fr)_minmax(0,3fr)_minmax(0,3fr)]">
           <div className="max-w-sm">
             <Link href="/" aria-label={tNav("brand")} className="inline-flex transition-opacity hover:opacity-80">
               <Image src="/caudals_logo_black.svg" alt={tNav("logoAlt")} width={28} height={28} className="h-7 w-7" />
@@ -136,20 +145,23 @@ export function MarketingFooter() {
               ))}
             </ul>
           </div>
-          <div>
-            <p className="mb-4 text-sm font-medium text-[#141413]">
-              {t("legalHeading")}
-            </p>
-            <ul className="space-y-2.5 text-sm text-[#3b3a36]">
-              {legalLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="transition-colors hover:text-[#141413]">
-                    {t(`legalLinks.${link.id}.label`)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {[
+            { heading: t("trustHeading"), links: trustLinks },
+            { heading: t("legalHeading"), links: legalLinks },
+          ].map((group) => (
+            <div key={group.heading}>
+              <p className="mb-4 text-sm font-medium text-[#141413]">{group.heading}</p>
+              <ul className="space-y-2.5 text-sm text-[#3b3a36]">
+                {group.links.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="transition-colors hover:text-[#141413]">
+                      {t(`legalLinks.${link.id}.label`)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         <div>

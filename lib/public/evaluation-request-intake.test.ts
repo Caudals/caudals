@@ -5,7 +5,7 @@ import {
   isPublicEvaluationRequestIntakeEnabled,
   routePublicEvaluationRequestIntake,
 } from "@/lib/public/evaluation-request-intake";
-import type { EvaluationRequestFormValues } from "@/lib/validators/evaluation-request";
+import { CONTACT_FORM_VERSION, type EvaluationRequestFormValues } from "@/lib/validators/evaluation-request";
 
 vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
@@ -123,6 +123,7 @@ describe("public evaluation request intake", () => {
     ]);
     expect(JSON.parse(String(requestValues[15]))).toEqual({
       channel: "public_contact",
+      form: null,
       referer: "https://caudals.com/contact?offer=reality-check",
       submitted_at: "2026-09-11T08:00:00.000Z",
     });
@@ -147,6 +148,44 @@ describe("public evaluation request intake", () => {
       },
     });
     expect(JSON.stringify(requestAudit)).not.toContain("lucia@mutua.example");
+  });
+
+  it("records a five-field pilot request with the unasked columns as other (launch L-30)", async () => {
+    const queries: Array<{ sql: string; values?: unknown[] }> = [];
+    const data = {
+      fullName: "Lucía Martín",
+      workEmail: "lucia@mutua.example",
+      organization: "Mutua Ejemplo",
+      sector: "insurance",
+      systemAnswers: "The chat on mutua.example/ayuda, on coverage and claims.",
+      requestedOffer: "pilot-evaluation",
+      formVersion: CONTACT_FORM_VERSION,
+    } satisfies EvaluationRequestFormValues;
+
+    const result = await routePublicEvaluationRequestIntake(data, { referer: "https://caudals.com/es/contacto" }, {
+      env: { NODE_ENV: "test" },
+      runInSession: async (_session, callback) =>
+        callback({
+          query: async (sql, values) => {
+            queries.push({ sql, values });
+            return { rows: [] };
+          },
+        }),
+    });
+
+    expect(result.status).toBe("routed");
+    const requestValues = queries[2]?.values ?? [];
+    // system_type and owner_role are required columns (migration 030).
+    expect(requestValues[7]).toBe("other");
+    expect(requestValues[9]).toBe("insurance");
+    expect(requestValues[10]).toBe("other");
+    expect(requestValues[13]).toBe("pilot-evaluation");
+    expect(JSON.parse(String(requestValues[15]))).toMatchObject({ channel: "public_contact", form: "pilot-request-v2" });
+    expect(String(queries[1]?.values?.[4])).toBe(
+      ["What it answers: The chat on mutua.example/ayuda, on coverage and claims.", "Sector: Insurance and brokerage", "Wants to start with: Pilot Evaluation"].join("\n"),
+    );
+    const requestAudit = JSON.parse(String(queries[3]?.values?.[6]));
+    expect(requestAudit.evaluation_request).toMatchObject({ form: "pilot-request-v2", system_type: null, owner_role: null, sector: "insurance" });
   });
 
   it("stores missing optional fields as nulls", async () => {

@@ -89,12 +89,16 @@ export function ContactInquiryEmail({
                 {companySize ? (
                   <InfoRow label="Company size" value={`${companySize} employees`} />
                 ) : null}
-                <InfoRow label="System" value={evaluationSystemTypeLabels[systemType]} />
+                {systemType ? (
+                  <InfoRow label="System" value={evaluationSystemTypeLabels[systemType]} />
+                ) : null}
                 {systemStage ? (
                   <InfoRow label="Stage" value={evaluationSystemStageLabels[systemStage]} />
                 ) : null}
                 <InfoRow label="Sector" value={evaluationSectorLabels[sector]} />
-                <InfoRow label="Owner" value={evaluationOwnerRoleLabels[ownerRole]} />
+                {ownerRole ? (
+                  <InfoRow label="Owner" value={evaluationOwnerRoleLabels[ownerRole]} />
+                ) : null}
                 {requestedOffer ? (
                   <InfoRow
                     label="Wants to start with"

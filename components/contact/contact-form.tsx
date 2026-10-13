@@ -5,18 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ArrowRight } from "lucide-react";
 import {
-  evaluationCompanySizes,
-  evaluationOwnerRoleLabels,
-  evaluationOwnerRoles,
+  CONTACT_FORM_VERSION,
   evaluationRequestFormSchema,
-  evaluationRequestOfferLabels,
-  evaluationRequestOffers,
-  evaluationSectorLabels,
   evaluationSectors,
-  evaluationSystemStageLabels,
-  evaluationSystemStages,
-  evaluationSystemTypeLabels,
-  evaluationSystemTypes,
   type EvaluationRequestFormValues,
   type EvaluationRequestOffer,
   type EvaluationSector,
@@ -36,20 +27,18 @@ import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
+/**
+ * The five fields a pilot request asks for (launch L-30): name, work email,
+ * company, sector and what the pilot should cover. The offer comes from the
+ * link that opened the form (`?offer=`) and defaults to a pilot; the API still
+ * accepts the longer form's optional fields.
+ */
 const defaultValues: Partial<EvaluationRequestFormValues> = {
   fullName: "",
   workEmail: "",
   organization: "",
-  organizationWebsite: "",
-  companySize: undefined,
-  systemType: undefined,
-  systemStage: undefined,
   sector: undefined,
-  ownerRole: undefined,
   systemAnswers: "",
-  systemUrl: "",
-  requestedOffer: undefined,
-  message: "",
 };
 
 const minimalInputClass =
@@ -60,13 +49,7 @@ const minimalSelectClass =
 
 type SelectOption = { value: string; label: string };
 
-type SelectFieldName =
-  | "systemType"
-  | "systemStage"
-  | "sector"
-  | "ownerRole"
-  | "companySize"
-  | "requestedOffer";
+type SelectFieldName = "sector";
 
 type SelectInputProps = Omit<ComponentProps<"select">, "value" | "onChange"> & {
   options: readonly SelectOption[];
@@ -111,7 +94,7 @@ export function ContactForm({ requestedOffer, requestedSector }: ContactFormProp
   const t = useTranslations("contact");
   const locale = useLocale();
   const formDefaults = useMemo<Partial<EvaluationRequestFormValues>>(
-    () => ({ ...defaultValues, requestedOffer, sector: requestedSector }),
+    () => ({ ...defaultValues, requestedOffer: requestedOffer ?? "pilot-evaluation", sector: requestedSector }),
     [requestedOffer, requestedSector],
   );
   const form = useForm<EvaluationRequestFormValues>({
@@ -128,7 +111,7 @@ export function ContactForm({ requestedOffer, requestedSector }: ContactFormProp
    * the reader's language while the stored value stays a stable id.
    */
   function optionsFrom<T extends string>(
-    group: "systemType" | "sector" | "ownerRole" | "systemStage" | "offer",
+    group: "sector",
     values: readonly T[],
   ): SelectOption[] {
     return values.map((value) => ({
@@ -173,7 +156,7 @@ export function ContactForm({ requestedOffer, requestedSector }: ContactFormProp
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // The locale picks the language of the acknowledgement email.
-        body: JSON.stringify({ ...values, locale }),
+        body: JSON.stringify({ ...values, formVersion: CONTACT_FORM_VERSION, locale }),
       });
 
       const payload = await response.json().catch(() => null);
@@ -290,102 +273,46 @@ export function ContactForm({ requestedOffer, requestedSector }: ContactFormProp
             />
           </div>
 
-            <div className="grid gap-8 md:grid-cols-2 items-start">
-              <FormField
-                control={form.control}
-                name="organization"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("company")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("companyPlaceholder")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-              {renderSelectField(
-                "sector",
-                t("sector"),
-                t("sectorPlaceholder"),
-                optionsFrom("sector", evaluationSectors),
+          <div className="grid gap-8 md:grid-cols-2 items-start">
+            <FormField
+              control={form.control}
+              name="organization"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("company")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t("companyPlaceholder")}
+                      className={minimalInputClass}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
               )}
-            </div>
-
-            <div className="space-y-8 border-t border-black/[0.08] pt-8">
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  {t("systemHeading")}
-                </p>
-                <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
-                  {t("systemQuestion")}
-                </h2>
-              </div>
-
-              <div className="grid gap-8 md:grid-cols-2 items-start">
-                {renderSelectField(
-                  "systemType",
-                  t("systemType"),
-                  t("systemTypePlaceholder"),
-                  optionsFrom("systemType", evaluationSystemTypes),
-                )}
-                {renderSelectField(
-                  "ownerRole",
-                  t("systemOwner"),
-                  t("systemOwnerPlaceholder"),
-                  optionsFrom("ownerRole", evaluationOwnerRoles),
-                )}
-              </div>
-
-              <FormField
-                control={form.control}
-                name="systemAnswers"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("systemAnswers")}
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={3}
-                        placeholder={t("systemAnswersPlaceholder")}
-                        className={cn(minimalInputClass, "resize-none")}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid gap-8 md:grid-cols-2 items-start">
-                {renderSelectField(
-                  "requestedOffer",
-                  t("startWith"),
-                  t("startWithPlaceholder"),
-                  optionsFrom("offer", evaluationRequestOffers),
-                )}
-              </div>
-            </div>
+            />
+            {renderSelectField(
+              "sector",
+              t("sector"),
+              t("sectorPlaceholder"),
+              optionsFrom("sector", evaluationSectors),
+            )}
+          </div>
 
           <FormField
             control={form.control}
-            name="message"
+            name="systemAnswers"
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm font-medium text-black">
-                  {t("anythingElse")}
+                  {t("systemAnswers")}
                 </FormLabel>
                 <FormControl>
                   <Textarea
-                    rows={3}
-                    placeholder={t("anythingElsePlaceholder")}
+                    rows={4}
+                    placeholder={t("systemAnswersPlaceholder")}
                     className={cn(minimalInputClass, "resize-none")}
                     {...field}
                   />

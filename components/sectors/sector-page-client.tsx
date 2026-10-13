@@ -12,6 +12,7 @@ import { Breadcrumbs } from "@/components/sectors/breadcrumbs";
 import { EXPERT_ROLE_ICONS } from "@/components/sectors/expert-icons";
 import { useFrontDoor } from "@/components/public/front-door";
 import { useTranslations } from "@/lib/i18n/context";
+import { sectorPilotRequestPath } from "@/lib/public/pilot-request";
 import { SECTORS_HUB_PATH, type SectorId } from "@/lib/public/sectors";
 import type { SectorCopy } from "@/lib/sectors/content";
 
@@ -27,7 +28,8 @@ type SectorPageClientProps = {
  * One sector's page, in the landing's Paper language: the sector's own
  * conversation in the hero, what we test, where assistants in the sector go
  * wrong, who writes the answer key, questions buyers ask, and the way out:
- * the free test once the demo is public (launch L-04), otherwise the free
+ * the free test once the demo is public (launch L-04), with a pilot request
+ * for the sector as the secondary action (launch L-30); otherwise the free
  * diagnostic with the sector already chosen on the form.
  */
 export function SectorPageClient({ sectorId, copy, related }: SectorPageClientProps) {
@@ -36,6 +38,7 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
   const { demoPublic } = useFrontDoor();
   const headline = splitMarked(copy.headline);
   const diagnosticHref = `/contact?offer=reality-check&sector=${sectorId}`;
+  const pilotHref = sectorPilotRequestPath(sectorId);
 
   const steps = [
     {
@@ -117,9 +120,15 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
                 </span>
               </Link>
             )}
-            <Link href="/call" className="lp-hero-call">
-              {tHero("secondaryCta")}
-            </Link>
+            {demoPublic ? (
+              <Link href={pilotHref} className="lp-hero-call">
+                {copy.pilot.cta}
+              </Link>
+            ) : (
+              <Link href="/call" className="lp-hero-call">
+                {tHero("secondaryCta")}
+              </Link>
+            )}
           </div>
         </div>
         <div className="lp-rise" style={{ ["--d" as string]: 0.24 }}>
@@ -184,7 +193,13 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
         </ul>
       </section>
 
-      <CTASection title={t("ctaTitle")} subtitle={t("ctaSubtitle")} diagnosticHref={diagnosticHref} />
+      <CTASection
+        title={t("ctaTitle")}
+        subtitle={t("ctaSubtitle")}
+        diagnosticHref={diagnosticHref}
+        pilotHref={pilotHref}
+        pilotPrompt={copy.pilot.prompt}
+      />
     </LandingShell>
   );
 }
