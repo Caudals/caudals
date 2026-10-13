@@ -75,6 +75,8 @@ test('card pages carry the contact and the right links', () => {
       assert.ok(html.includes(`href="${links.vcard(p, l)}"`));
       assert.ok(html.includes(`href="${links.call(l)}"`));
       assert.ok(html.includes('<meta name="robots" content="noindex, nofollow">'));
+      // Cloudflare's email obfuscation would rewrite the mailto links and break them offline.
+      assert.ok(html.indexOf('<!--email_off-->') < html.indexOf(p.email) && html.lastIndexOf(p.email) < html.indexOf('<!--/email_off-->'));
       assert.ok(html.includes(`<link rel="canonical" href="https://connect.caudals.com/${l}/${p.id}/">`));
       const data = cardData(html);
       assert.equal(data.cardUrl, `https://connect.caudals.com/${p.id}`);

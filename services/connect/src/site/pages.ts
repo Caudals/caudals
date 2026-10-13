@@ -149,6 +149,7 @@ export function cardPage(p: Person, l: Locale, assets: Assets): string {
     assets,
   )}
 <body class="page page-card" data-person="${p.id}">
+<!--email_off-->
 ${FOIL_DEFS}
 <a class="skip" href="#main">${esc(c.skip)}</a>
 <header class="topbar">
@@ -254,6 +255,7 @@ ${footer(l)}
 </dialog>
 <div class="toast" role="status" aria-live="polite" data-toast></div>
 ${jsonScript('card-data', data)}
+<!--/email_off-->
 </body>
 </html>
 `;
