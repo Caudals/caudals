@@ -36,6 +36,8 @@ import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { WebAppConnector } from "./web-app-connector";
+import { ConnectionHealth } from "./workspace-systems";
+import { reviewModeForPlan } from "@/lib/evals/review/spot-check";
 import { FirstEvaluationPanel, OnboardingWelcome, useFirstEvaluation, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { HelpLink } from "./help";
 import { evaluationStage, stepStates } from "./evaluation-stage";
@@ -97,7 +99,8 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
   const controlledRun = controls.state?.subject?.kind === "run" && controls.state.subject.id === latestRunId ? controls.state.subject : null;
   const run = useMemo(() => scopedRun && controlledRun ? { ...scopedRun, run: { ...scopedRun.run, status: controlledRun.status, phase: controlledRun.phase ?? scopedRun.run.phase } } : scopedRun, [scopedRun, controlledRun]);
   const reportRow = summary?.reports.find((item) => item.evaluation_id === evaluationId && (!item.run_id || item.run_id === latestRunId));
-  usePageCrumb(evaluation?.title);
+  // Breadcrumb: Evaluations › <system> › <evaluation> (launch L-22).
+  usePageCrumb(evaluation?.title, system ? { label: system.title, href: `/workspace/systems?system=${system.id}` } : null);
   // First-run onboarding (launch L-06): the welcome and, for an imported demo, the automatic start.
   const onboarding = useWorkspaceOnboarding(orgId);
   const firstRun = useFirstEvaluation(orgId, evaluationId, reload);
@@ -349,7 +352,8 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
       {controls.alert}
       {connectOpen && <Panel title={t("connectEvaluation")} help={connectHelp(system?.document.kind)}>
         <p>{t("connectEvaluationHelp")}</p>
-        {system && <div className="p-row"><strong>{system.title}</strong><Badge>{connectionLabel(system.document.kind)}</Badge><ActionLink variant="secondary" href={withOrg(`/workspace/systems/${system.id}`)}>{t("manageConnection")}</ActionLink></div>}
+        {system && <div className="p-row"><strong>{system.title}</strong><Badge>{connectionLabel(system.document.kind)}</Badge><ActionLink variant="secondary" href={withOrg(`/workspace/systems?system=${system.id}`)}>{t("manageConnection")}</ActionLink></div>}
+        {system && <ConnectionHealth system={system} orgId={orgId} onChecked={reload} fixHref={withOrg(`/workspace/systems?system=${system.id}&fix=1`)} />}
         {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} />}
         {platformAdmin && <EvaluationModels expanded orgId={orgId} evaluationId={evaluationId} />}
         <div className="p-row"><Action variant="secondary" onClick={() => setConnectOpen(false)}>{t("backToEvaluation")}<ArrowRight aria-hidden="true" /></Action></div>
@@ -380,7 +384,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
       <div hidden={connectOpen}>
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
-          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} />
+          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} reviewMode={reviewModeForPlan(summary.entitlement.plan)} onRun={start} />
         ) : (
           <Panel title={stage.label} live={stage.live}>
             <p>{t("viewerPreparationHelp")}</p>

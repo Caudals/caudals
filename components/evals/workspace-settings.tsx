@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { evalRequest } from "./api";
 import { Action, Badge, Check, PageHeading, SettingsRow, Status, Tabs, formatMoney } from "./primitives";
@@ -20,9 +20,10 @@ import { RenameDialog } from "./item-actions";
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary, type WorkspaceSummary } from "./workspace-data";
+import { rememberTab, rememberedTab, settingsTabs, type SettingsTab } from "./settings-tabs";
 import { getLocale, t } from "@/lib/evals/messages/en";
 
-type Tab = "general" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
+type Tab = SettingsTab;
 
 /** `estimatesApi`: the estimate endpoint accepts API tokens (BILLING_ESTIMATES_ENABLED=true, read on the server). */
 export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { marketingOrigin?: string; estimatesApi?: boolean } = {}) {
@@ -32,15 +33,7 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
   const router = useRouter();
   const pathname = usePathname();
   const owner = role === "owner";
-  const tabs: Array<{ value: Tab; label: string }> = [
-    { value: "general", label: t("general") },
-    ...(canManage || platformAdmin ? [{ value: "members" as const, label: t("members") }] : []),
-    { value: "notifications", label: t("notifications") },
-    { value: "monitoring", label: t("monitoring") },
-    { value: "developers", label: t("developers") },
-    ...(platformAdmin ? [{ value: "models" as const, label: t("aiModels") }] : []),
-    ...(owner || platformAdmin ? [{ value: "danger" as const, label: t("dangerZone") }] : []),
-  ];
+  const tabs = settingsTabs({ canManage, platformAdmin, owner });
   const requested = params.get("tab") as Tab | null;
   const tab: Tab = tabs.some((item) => item.value === requested) ? requested! : "general";
   function select(value: Tab) {
@@ -48,6 +41,21 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
     next.set("tab", value);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   }
+  // Settings opens on the tab this device last showed unless the link names one (launch L-22).
+  const hasTab = params.has("tab");
+  const allowed = tabs.map((item) => item.value).join();
+  useEffect(() => {
+    if (hasTab) rememberTab("settings", tab);
+  }, [hasTab, tab]);
+  useEffect(() => {
+    if (hasTab) return;
+    const saved = rememberedTab("settings");
+    if (saved && saved !== "general" && allowed.split(",").includes(saved)) {
+      const next = new URLSearchParams(window.location.search);
+      next.set("tab", saved);
+      router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+    }
+  }, [hasTab, allowed, pathname, router]);
 
   if (!workspace) return <NoWorkspace />;
   return (

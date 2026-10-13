@@ -206,6 +206,15 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`
   users. Its dashboard, sidebar and command palette are removed; no active
   navigation or auth return path may point to it.
 
+### Workspace Home, navigation and review (launch L-22)
+
+- **Home** (`/workspace/home`, `components/evals/workspace-home.tsx`) is the first sidebar item and the landing page for workspace members while `WORKSPACE_HOME_ENABLED` is on (read on the server, passed to `ShellFrame` as `features.home`; off, the route answers 404 and the nav item is absent). It renders from the one workspace summary: "Needs your action" (exactly the evaluations list's Needs action filter, through `evaluationRows`; "See all" opens `/workspace/evaluations?filter=action`), the latest score per system with its three-run trend, the next scheduled run, the plan (`balance` prop reserved for L-15) and shortcuts with the example evaluation link.
+- **Systems** has status (connected / needs attention), last successful check and last score columns, "Check now" and "Fix". `?system=<id>` opens a system's panel (Home, ⌘K, the evaluation's Connect step and its breadcrumb link there) and `&fix=1` scrolls to re-teaching the chat (owners), the key (editors) or pairing. The Connect step shows the same health block (`ConnectionHealth`).
+- **⌘K** lists evaluations, reports, systems (deep links), test sets and every Settings tab the person can open (`components/evals/settings-tabs.ts`, shared with Settings). An evaluation's breadcrumb is Evaluations › system › evaluation (`usePageCrumb(label, parent)`); an open system is Systems › system.
+- **Remembered tabs.** Settings and reports reopen on the tab this device last showed (`caudals.tab.settings`, `caudals.tab.report` in `localStorage`, best effort) unless the link names a tab or a result. Shared and example reports do not remember.
+- **Test-set review** (`TestSetReview` in `components/evals/preparation-parts.tsx`): free and pay-as-you-go workspaces open on a spot check of 10 questions (spread across source pages, most severe first; `lib/evals/review/spot-check.ts`), each marked "Looks right", edited in place or removed; "Approve and run" (or "Approve without running") unlocks when all are checked and says the report will be preliminary. "Review all N questions" opens the full review, the only mode for managed workspaces: search, difficulty chips, a source-page filter, select (one or all shown), "Mark as checked", "Remove selected" (one request, confirmed) and inline edit. The approval sends `review` (mode and checked ids) for the audit trail. Spot-check progress survives a reload in the tab (`sessionStorage`).
+- **Review keyboard shortcuts** (while no field, dialog or menu has the keyboard; "Keyboard shortcuts" or `?` lists them): `j` next question, `k` previous, `c` mark as right (or undo), `x` select (full review), `e` edit, `r` remove (asks first), `/` search (opens the full review from the spot check), `?` show the list.
+
 ## Implementation Rules
 
 1. Start from existing design tokens and shared primitives.

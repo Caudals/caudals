@@ -28,6 +28,8 @@ import { ImprovementDatasets } from "../../components/evals/improvement-datasets
 import { OperatorOverview } from "../../components/evals/operator-overview";
 import { NewProspectSnapshot, ProspectSnapshotDetail, ProspectSnapshots } from "../../components/evals/prospect-snapshot";
 import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
+import { WorkspaceHome } from "../../components/evals/workspace-home";
+import { WorkspaceSystems } from "../../components/evals/workspace-systems";
 import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
 import { LocaleProvider } from "../../lib/i18n/context";
@@ -240,6 +242,10 @@ const content =
     <ExpertWorkbench assignmentId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname === "/review" ? (
     <ExpertAssignmentQueue />
+  ) : location.pathname === "/workspace/home" ? (
+    <WorkspaceHome />
+  ) : location.pathname === "/workspace/systems" ? (
+    <WorkspaceSystems />
   ) : location.pathname === "/workspace/evaluations/new" ? (
     <NewEvaluationFlow />
   ) : location.pathname === "/workspace/settings" ? (
@@ -286,6 +292,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding") }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding"), home: params.has("home") }}>{content}</ShellFrame>
   ),
 );

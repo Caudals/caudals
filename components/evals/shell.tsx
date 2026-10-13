@@ -3,6 +3,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 import { exampleEvaluationEnabled } from "@/lib/evals/example/flags";
 import { ShellFrame } from "./shell-frame";
 import { onboardingEnabled } from "@/lib/evals/onboarding/flags";
+import { workspaceHomeEnabled } from "@/lib/evals/workspace/flags";
 
 /**
  * Server entry for the platform shell. Feature flags are read here, on the
@@ -10,7 +11,7 @@ import { onboardingEnabled } from "@/lib/evals/onboarding/flags";
  */
 export function EvalShell({ identity, expert = false, children }: { identity: EvalIdentity; expert?: boolean; children: ReactNode }) {
   return (
-    <ShellFrame identity={identity} expert={expert} features={{ growth: process.env.ANALYTICS_EVENTS_V2 === "true", experts: process.env.EVALS_EXPERT_WORK_ENABLED === "true", example: exampleEvaluationEnabled(), prospects: process.env.PROSPECT_SNAPSHOTS_ENABLED === "true", onboarding: onboardingEnabled() }}>
+    <ShellFrame identity={identity} expert={expert} features={{ growth: process.env.ANALYTICS_EVENTS_V2 === "true", experts: process.env.EVALS_EXPERT_WORK_ENABLED === "true", example: exampleEvaluationEnabled(), prospects: process.env.PROSPECT_SNAPSHOTS_ENABLED === "true", onboarding: onboardingEnabled(), home: workspaceHomeEnabled() }}>
       {children}
     </ShellFrame>
   );

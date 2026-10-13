@@ -4625,7 +4625,8 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--p-text-tertiary);
+  /* Secondary, not tertiary: tertiary grey fails WCAG AA contrast at 11px (axe, launch L-22). */
+  color: var(--p-text-secondary);
 }
 .p-review-answer p {
   padding: 10px 12px;
@@ -5843,3 +5844,272 @@
 .p-step-button:not(:disabled):hover .p-step-label { text-decoration: underline; text-underline-offset: 4px; }
 .p-step-button[aria-pressed="true"] .p-step-label { color: var(--p-text); font-weight: 600; }
 .p-step-button:focus-visible { outline: 2px solid var(--p-action); outline-offset: 4px; border-radius: var(--p-radius-sm); }
+
+/* --- Workspace Home, systems health, faster review (launch L-22) ------------ */
+
+/* Home: cards on one grid; "needs your action" and the scores span two columns from 900px. */
+.p-home {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+  .p-home {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .p-home > [data-wide="true"] {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1280px) {
+  .p-home {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .p-home > [data-wide="true"] {
+    grid-column: span 3;
+  }
+}
+.p-home-skeleton {
+  display: block;
+  width: 100%;
+  height: 140px;
+  border-radius: var(--p-radius-lg);
+}
+.p-home-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+.p-home-card.p-card > * + * {
+  margin-top: 0;
+}
+.p-home-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.p-home-card-head h2 {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.p-home-card-action {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.p-home-card-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--p-radius-sm);
+  background: var(--p-surface-2);
+  color: var(--p-text-secondary);
+}
+.p-home-card-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+.p-home-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-home-item {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--p-border-hairline);
+}
+.p-home-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.p-home-item-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+.p-home-item-main .p-row-link {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.p-home-score {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.p-home-score-value {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+  font-variant-numeric: tabular-nums;
+  color: var(--p-text);
+}
+.p-home-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.p-home-trend .p-badge svg {
+  width: 12px;
+  height: 12px;
+}
+@media (max-width: 479px) {
+  .p-home-trend-runs {
+    display: none;
+  }
+}
+.p-home-when {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.p-home-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-home-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--p-radius-sm);
+  background: var(--p-surface-2);
+  color: var(--p-text);
+  font-size: var(--p-text-label);
+  font-weight: 500;
+  transition-property: background-color, transform;
+  transition-duration: var(--p-dur-instant);
+  transition-timing-function: var(--p-ease-crisp);
+}
+.p-home-shortcut svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  color: var(--p-text-secondary);
+}
+@media (hover: hover) and (pointer: fine) {
+  .p-home-shortcut:hover {
+    background: var(--p-surface-3);
+  }
+}
+.p-home-shortcut:active {
+  transform: scale(0.97);
+}
+.p-home-shortcut:focus-visible {
+  outline: 2px solid var(--p-focus);
+  outline-offset: 2px;
+}
+
+/* Systems: the health block (also on the evaluation's Connect step) and the empty state's three kinds. */
+.p-health {
+  display: grid;
+  gap: 10px;
+}
+.p-connect-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.p-connect-kind {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+  overflow-wrap: anywhere;
+}
+
+/* Sidebar Help entry: a button that looks like the links around it. */
+button.p-nav-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Test-set review: spot check, bulk actions, inline edit and shortcuts. */
+.p-review-search {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.p-review-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+.p-review-select-all {
+  margin-right: auto;
+}
+.p-review-select {
+  width: 16px;
+  height: 16px;
+  margin: 4px 4px 0;
+  accent-color: var(--p-action);
+}
+.p-review-case[data-checked="true"] {
+  box-shadow: inset 3px 0 0 var(--p-pass), var(--p-shadow-border);
+}
+.p-review-case:focus-visible {
+  outline: 2px solid var(--p-focus);
+  outline-offset: 2px;
+}
+.p-review-case-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 36px;
+}
+.p-review-edit {
+  margin-left: 36px;
+}
+@media (max-width: 767px) {
+  .p-review-case-actions,
+  .p-review-edit {
+    margin-left: 0;
+  }
+}
+.p-shortcuts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.p-shortcuts > div {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.p-shortcuts dd {
+  margin: 0;
+}

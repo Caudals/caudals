@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Code2, FileSpreadsheet, FlaskConical, Globe, Inbox, Pencil, Plus, Terminal, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
 import {
@@ -26,8 +26,9 @@ import { Meter, percent } from "./charts";
 import { ActionMenu, CopyField } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
-import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
-import { evaluationStage } from "./evaluation-stage";
+import { connectionLabel, evaluationRows, useWorkspaceSummary } from "./workspace-data";
+import { nextStep } from "./evaluation-stage";
+import { scoreHistory, trendPoints } from "@/lib/evals/workspace/health";
 import { ExampleEvaluationCard, ExampleEvaluationLink } from "./example-evaluation-links";
 import { OnboardingChecklist, OnboardingWelcome, useOnboardingEnabled, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { openLimitDialog, usePlanSummary } from "./limit-dialog";
@@ -41,20 +42,15 @@ export function WorkspaceEvaluations() {
   const { orgId, workspace, canWrite, withOrg } = useWorkspace();
   const { summary, error, retry, loading, reload } = useWorkspaceSummary(orgId);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  // Home's "See all" links here with ?filter=action (launch L-22).
+  const requestedFilter = useSearchParams().get("filter");
+  const [filter, setFilter] = useState<Filter>(requestedFilter === "action" || requestedFilter === "progress" || requestedFilter === "done" ? requestedFilter : "all");
   const items = useItemActions(orgId, reload);
   // First-run checklist and welcome (launch L-06); refreshed with the list.
   const onboardingEnabled = useOnboardingEnabled();
   const onboarding = useWorkspaceOnboarding(orgId, summary);
 
-  const rows = useMemo(() => {
-    if (!summary) return [];
-    return summary.evaluations.map((evaluation) => {
-      const report = summary.reports.find((item) => item.evaluation_id === evaluation.id);
-      const system = summary.systems.find((item) => (evaluation.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation.project_id));
-      return { evaluation, report, system, stage: evaluationStage(evaluation, !!report) };
-    });
-  }, [summary]);
+  const rows = useMemo(() => (summary ? evaluationRows(summary) : []), [summary]);
 
   const counts = {
     all: rows.length,
@@ -135,15 +131,22 @@ export function WorkspaceEvaluations() {
                     {evaluation.title}
                   </RowTitle>
                   <td>
-                    <Badge tone={stage.tone} dot live={stage.live}>
-                      {stage.label}
-                    </Badge>
+                    <span className="p-table-primary">
+                      <span>
+                        <Badge tone={stage.tone} dot live={stage.live}>
+                          {stage.label}
+                        </Badge>
+                      </span>
+                      {/* The next move on rows that need one (launch L-22). */}
+                      {nextStep(evaluation, stage) && <span className="p-cell-meta">{t(nextStep(evaluation, stage)!)}</span>}
+                    </span>
                   </td>
                   <td>
                     {report?.strict_pass_rate != null ? (
                       <span className="p-table-primary">
                         <Meter value={report.strict_pass_rate} label={`${t("strictPassRate")} ${percent(report.strict_pass_rate)}`} />
                         {report.n_scorable != null && <span className="p-cell-meta">{tv("answersCorrectOf", { pass: report.n_pass ?? 0, scored: report.n_scorable })}</span>}
+                        <ScoreTrend points={trendPoints(scoreHistory(summary?.reports ?? [], (item) => item.evaluation_id === evaluation.id))} />
                       </span>
                     ) : (
                       <span className="p-cell-meta">—</span>
@@ -179,6 +182,16 @@ export function WorkspaceEvaluations() {
       )}
       {items.dialog}
     </>
+  );
+}
+
+/** The change over the last three runs of an evaluation, in points (launch L-22). */
+function ScoreTrend({ points }: { points: number | null }) {
+  if (points == null) return null;
+  return (
+    <span className="p-cell-meta">
+      {points > 0 ? tv("trendUpLastRuns", { n: points }) : points < 0 ? tv("trendDownLastRuns", { n: -points }) : t("trendSameLastRuns")}
+    </span>
   );
 }
 

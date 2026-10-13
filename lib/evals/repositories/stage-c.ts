@@ -21,6 +21,7 @@ import {
   enqueueTargetExecution,
 } from "../queue/store";
 import { idempotent, type EvidenceScope } from "./evidence";
+import { coveredQuestions, reviewModeForPlan, spotCheckRequired, type ReviewMode } from "../review/spot-check";
 import { withTenant } from "./db";
 import { createRunnerJob } from "../private-runner/store";
 import { assertRunAllowance, lockRunQueue } from "./run-capacity";
@@ -86,6 +87,42 @@ export function getTargetConnectionKind(
       ).rows[0],
     );
     return targetConfigSchema.parse(row.document).kind;
+  });
+}
+
+/** "Check now" limits (launch L-22): per system and per workspace, on top of the one-check-at-a-time bound. */
+export const CONNECTION_CHECK_LIMITS = {
+  perSystem: { limit: 5, windowMs: 10 * 60_000 },
+  perWorkspace: { limit: 30, windowMs: 60 * 60_000 },
+  /** A check still queued or running after this long is treated as stuck, so a new one may start. */
+  inFlightMs: 10 * 60_000,
+} as const;
+
+/**
+ * The connection kind of a system version and the check already in flight for
+ * it, if any. "Check now" returns that check instead of starting another, so
+ * at most one probe per system version runs at a time.
+ */
+export function connectionCheckState(scope: EvidenceScope, targetRevisionId: string) {
+  return withTenant(scope, async (db) => {
+    const row = required(
+      (
+        await db.query(
+          `SELECT tr.document,
+             (SELECT jsonb_build_object('id',c.id,'status',c.status,'created_at',c.created_at)
+              FROM evals.connection_check c
+              WHERE c.org_id=tr.org_id AND c.target_revision_id=tr.id AND c.completed_at IS NULL
+                AND c.status IN ('queued','running') AND c.created_at>now()-make_interval(secs=>$3::int/1000)
+              ORDER BY c.created_at DESC,c.id DESC LIMIT 1) AS in_flight
+           FROM evals.target_revision tr WHERE tr.org_id=$1 AND tr.id=$2`,
+          [scope.orgId, targetRevisionId, CONNECTION_CHECK_LIMITS.inFlightMs],
+        )
+      ).rows[0],
+    );
+    return {
+      kind: targetConfigSchema.parse(row.document).kind,
+      inFlight: (row.in_flight as { id: string; status: string; created_at: string } | null) ?? null,
+    };
   });
 }
 
@@ -277,8 +314,12 @@ export function assertOperatorRecipeAuthority(role: "platform_admin" | "operator
   }
 }
 
-export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string, suiteVersionId: string, key: string) {
-  return withTenant(scope, (db) => idempotent(db, scope, `approve-suite/${evaluationId}`, key, { suiteVersionId }, async () => {
+/** How a test set was reviewed before approval (launch L-22, P-17). Older clients send none: a full review. */
+export type ApprovalReview = { mode: ReviewMode; checkedCaseRevisionIds: string[]; approvedCaseRevisionIds: string[] };
+
+export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string, suiteVersionId: string, key: string, review?: ApprovalReview) {
+  // The request fingerprint keeps its pre-L-22 shape when no review is sent, so earlier retries still match.
+  return withTenant(scope, (db) => idempotent(db, scope, `approve-suite/${evaluationId}`, key, review ? { suiteVersionId, review } : { suiteVersionId }, async () => {
     const evaluation = required((await db.query(
       "SELECT id,project_id,preparation_status,selected_suite_version_id FROM evals.evaluation WHERE org_id=$1 AND id=$2 FOR UPDATE",
       [scope.orgId, evaluationId],
@@ -291,7 +332,10 @@ export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string,
     }
     // Any frozen version of the generated test set counts, so edits made during review can be approved.
     const suite = (await db.query(
-      `SELECT sv.id FROM evals.suite_version sv
+      `SELECT sv.id,
+         ARRAY(SELECT c->>'revision_id' FROM jsonb_array_elements(sv.manifest->'case_revisions') c
+               WHERE COALESCE(c->>'split','')<>'holdout') AS case_revision_ids
+       FROM evals.suite_version sv
        JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
        JOIN evals.generation_batch b ON b.org_id=sv.org_id
          AND b.evaluation_id=$2 AND b.status='completed'
@@ -305,12 +349,33 @@ export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string,
       [scope.orgId, evaluationId, suiteVersionId, evaluation.project_id],
     )).rows[0];
     if (!suite) throw new EvalError("SCOPE_DENIED", 404, "The frozen test set does not belong to this preparation.");
+    const mode = review?.mode ?? "full";
+    const questions = (suite.case_revision_ids as string[]) ?? [];
+    const checked = coveredQuestions(review?.checkedCaseRevisionIds ?? [], questions);
+    if (mode === "spot_check") {
+      // Managed (and partner) workspaces keep the full review; free and pay-as-you-go may spot-check.
+      if (reviewModeForPlan((await entitlement(db, scope.orgId)).plan) !== "spot_check")
+        throw new EvalError("REVIEW_REQUIRED", 409, "This workspace reviews every question before a test set is approved. Open the full review.");
+      if (checked.length < spotCheckRequired(questions.length))
+        throw new EvalError("INPUT_INVALID", 422, `Check at least ${spotCheckRequired(questions.length)} questions of this test set before approving it.`);
+    }
     await db.query(
       `UPDATE evals.evaluation SET selected_suite_version_id=$3,preparation_status='ready',
        reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2`,
       [scope.orgId, evaluationId, suiteVersionId],
     );
-    return { evaluationId, suiteVersionId, status: "ready" };
+    // Attribution: who approved which version, after which review, and the questions they checked.
+    await db.query(
+      "INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id,details) VALUES($1,$2,'suite.approved',$3,$4)",
+      [scope.orgId, scope.actorId, evaluationId, {
+        suite_version_id: suiteVersionId,
+        review_mode: mode,
+        question_count: questions.length,
+        checked_case_revision_ids: checked,
+        approved_case_revision_ids: coveredQuestions(review?.approvedCaseRevisionIds ?? [], questions),
+      }],
+    );
+    return { evaluationId, suiteVersionId, status: "ready", review: { mode, checked: checked.length, questions: questions.length } };
   }));
 }
 
@@ -359,6 +424,9 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
       await db.query(
         `SELECT t.id,t.project_id,t.title,t.created_at,tr.id AS target_revision_id,tr.document,
           cc.status AS connection_status,cc.error_code,cc.capability_report,cc.created_at AS connection_checked_at,ri.id AS runner_id,
+          (SELECT max(ok.completed_at) FROM evals.connection_check ok
+           WHERE ok.org_id=tr.org_id AND ok.target_revision_id=tr.id AND ok.status='ready') AS connection_ok_at,
+          ri.last_seen_at AS runner_seen_at,
           CASE WHEN tr.document->>'kind'='private_runner' THEN
             CASE WHEN ri.id IS NULL THEN 'pairing_required'
                  WHEN ri.revoked_at IS NOT NULL THEN 'revoked'
@@ -387,6 +455,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
       await db.query(
         `SELECT rp.id,rp.title,rp.current_revision_id,rp.publication_status,rp.updated_at,
                 r.evaluation_id,r.id AS run_id,rr.created_at AS revision_created_at,
+                r.created_at AS run_created_at,rt.target_id,
                 rr.snapshot->'system'->>'name' AS system_name,
                 rr.snapshot->'scope'->>'review_status' AS review_status,
                 rr.snapshot->'metrics'->>'headline_status' AS headline_status,
@@ -398,6 +467,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
          JOIN evals.report_revision rr
            ON (rr.org_id,rr.id)=(rp.org_id,rp.current_revision_id)
          JOIN evals.run r ON (r.org_id,r.id)=(rr.org_id,rr.run_id)
+         LEFT JOIN evals.target_revision rt ON (rt.org_id,rt.id)=(r.org_id,r.target_revision_id)
          WHERE rp.org_id=$1 AND rp.publication_status='published' AND rp.archived_at IS NULL
            AND NOT EXISTS (SELECT 1 FROM evals.evaluation ev WHERE ev.org_id=r.org_id AND ev.id=r.evaluation_id AND ev.archived_at IS NOT NULL)
          ORDER BY rp.updated_at DESC,rp.id LIMIT 100`,
@@ -416,7 +486,18 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
       // Per person across workspaces (launch L-07): "getting started" email.
       lifecycle: (await db.query("SELECT lifecycle FROM evals.email_preference WHERE user_id=$1", [scope.actorId])).rows[0]?.lifecycle ?? true,
     };
-    return { evaluations, systems, reports, entitlement: limits, usage, preferences };
+    // Home (launch L-22): the next scheduled run of an evaluation still in the workspace.
+    const nextRun = (
+      await db.query(
+        `SELECT s.id,s.evaluation_id,e.title AS evaluation_title,s.next_due_at,s.cadence,s.timezone
+         FROM evals.monitor_schedule s
+         JOIN evals.evaluation e ON (e.org_id,e.id)=(s.org_id,s.evaluation_id)
+         WHERE s.org_id=$1 AND s.status='active' AND e.archived_at IS NULL
+         ORDER BY s.next_due_at,s.id LIMIT 1`,
+        [scope.orgId],
+      )
+    ).rows[0] ?? null;
+    return { evaluations, systems, reports, entitlement: limits, usage, preferences, next_run: nextRun };
   });
 }
 

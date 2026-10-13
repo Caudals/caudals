@@ -1,17 +1,20 @@
 "use client";
 
 /**
- * ⌘K / Ctrl+K: jump to any screen, evaluation, report or system in the
- * current workspace, or switch workspace, without learning the navigation.
- * Items come from the same scoped APIs as the screens; nothing is cached.
+ * ⌘K / Ctrl+K: jump to any screen, evaluation, report, system, test set or
+ * settings tab in the current workspace, or switch workspace, without learning
+ * the navigation (launch L-22 added systems as deep links, test sets and
+ * settings tabs). Items come from the same scoped APIs as the screens;
+ * nothing is cached.
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
-import { Building2, CircleHelp, FileText, FlaskConical, Plug, Plus, Search } from "lucide-react";
+import { Building2, CircleHelp, FileText, FlaskConical, ListChecks, Plug, Plus, Search, Settings } from "lucide-react";
 import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
+import { settingsTabs } from "./settings-tabs";
 import { t } from "@/lib/evals/messages/en";
 
 export type PaletteLink = { href: string; label: string; icon: ReactNode; group: string };
@@ -20,6 +23,7 @@ type Summary = {
   reports: Array<{ id: string; title: string }>;
   systems: Array<{ id: string; title: string }>;
 };
+type TestSet = { suite_id: string; title: string; project_title: string };
 
 export function CommandPalette({
   open,
@@ -34,8 +38,9 @@ export function CommandPalette({
   onHelp?: () => void;
 }) {
   const router = useRouter();
-  const { orgId, workspaces, workspace, canWrite, setOrgId, withOrg } = useWorkspace();
+  const { orgId, workspaces, workspace, role, canWrite, canManage, platformAdmin, setOrgId, withOrg } = useWorkspace();
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [testSets, setTestSets] = useState<TestSet[]>([]);
 
   useEffect(() => {
     if (!open || !orgId) return;
@@ -43,10 +48,14 @@ export function CommandPalette({
     void evalRequest<Summary>(`/workspace/summary?orgId=${encodeURIComponent(orgId)}`)
       .then((value) => live && setSummary(value))
       .catch(() => live && setSummary(null));
+    void evalRequest<TestSet[]>(`/suites?orgId=${encodeURIComponent(orgId)}&grouped=1`)
+      .then((value) => live && setTestSets(value))
+      .catch(() => live && setTestSets([]));
     return () => {
       live = false;
     };
   }, [open, orgId]);
+  const settings = workspace ? settingsTabs({ canManage, platformAdmin, owner: role === "owner" }) : [];
 
   function go(href: string) {
     onOpenChange(false);
@@ -115,9 +124,31 @@ export function CommandPalette({
               {summary?.systems.length ? (
                 <Command.Group heading={t("systems")}>
                   {summary.systems.slice(0, 30).map((item) => (
-                    <Command.Item key={item.id} value={`system ${item.title} ${item.id}`} onSelect={() => go(withOrg("/workspace/systems"))}>
+                    <Command.Item key={item.id} value={`system ${item.title} ${item.id}`} onSelect={() => go(withOrg(`/workspace/systems?system=${item.id}`))}>
                       <Plug aria-hidden="true" />
                       <span className="p-palette-text">{item.title}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              ) : null}
+              {testSets.length ? (
+                <Command.Group heading={t("testSets")}>
+                  {testSets.slice(0, 30).map((item) => (
+                    <Command.Item key={item.suite_id} value={`test set ${item.title} ${item.project_title} ${item.suite_id}`} onSelect={() => go(withOrg(`/workspace/test-sets/${item.suite_id}`))}>
+                      <ListChecks aria-hidden="true" />
+                      <span className="p-palette-text">{item.title}</span>
+                      <span className="p-palette-meta">{item.project_title}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              ) : null}
+              {settings.length ? (
+                <Command.Group heading={t("settings")}>
+                  {settings.map((item) => (
+                    <Command.Item key={item.value} value={`settings ${t("settings")} ${item.label} ${item.value}`} onSelect={() => go(withOrg(`/workspace/settings?tab=${item.value}`))}>
+                      <Settings aria-hidden="true" />
+                      <span className="p-palette-text">{item.label}</span>
+                      <span className="p-palette-meta">{t("settings")}</span>
                     </Command.Item>
                   ))}
                 </Command.Group>

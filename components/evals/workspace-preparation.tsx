@@ -18,7 +18,8 @@ import { notify } from "./overlays";
 import { WebDiscovery } from "./web-discovery";
 import { HelpLink } from "./help";
 import { DeleteDialog, itemRequest } from "./item-actions";
-import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion } from "./preparation-parts";
+import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion, type ReviewRecord } from "./preparation-parts";
+import type { ReviewMode } from "@/lib/evals/review/spot-check";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Evaluation = {
@@ -96,6 +97,8 @@ export function PrepareEvaluation({
   controlUpdatedAt,
   onReady,
   autoStartCases = null,
+  reviewMode = "full",
+  onRun,
 }: {
   orgId: string;
   evaluation: Evaluation;
@@ -104,6 +107,10 @@ export function PrepareEvaluation({
   onReady: () => Promise<void>;
   /** An imported demo waiting for its automatic start (launch L-06): the number of questions it will ask for. */
   autoStartCases?: number | null;
+  /** Spot check (free, pay as you go) or full review (managed), from the workspace plan (launch L-22). */
+  reviewMode?: ReviewMode;
+  /** Starts the run after "Approve and run" (launch L-22). */
+  onRun?: () => Promise<void>;
 }) {
   const [sources, setSources] = useState<PreparedSource[]>([]);
   const [pendingSources, setPendingSources] = useState<PendingSource[]>([]);
@@ -508,23 +515,26 @@ export function PrepareEvaluation({
     }
   }
 
-  async function approve(draftVersion: number | null, count: number, frozenVersionId: string | null) {
+  async function approve(draftVersion: number | null, count: number, frozenVersionId: string | null, review: ReviewRecord, andRun: boolean) {
     if (!draft || pending || !count) return;
     setPending("approve");
     setError("");
+    // The approval carries how the set was reviewed; the server records it with the approver (launch L-22).
+    const approveSuite = (suiteVersionId: string) =>
+      evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId, review }, `suite-approve-${evaluation.id}-${suiteVersionId}-${review.mode}-${review.checkedCaseRevisionIds.length}`);
     try {
       // The test set may have been edited since this page loaded: freeze its current draft and approve that version.
       if (frozenVersionId) {
-        await evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId: frozenVersionId }, `suite-approve-${evaluation.id}-${frozenVersionId}`);
-        await onReady();
-        return;
+        await approveSuite(frozenVersionId);
+      } else {
+        const current = await evalRequest<{ draft: Draft | null }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`).then((value) => value.draft ?? draft).catch(() => draft);
+        const version = draftVersion ?? current.suiteDraftVersion;
+        const frozen = await evalRequest<{ id: string }>(`/suites/${current.suiteId}/versions`, "POST", { orgId, version }, `suite-freeze-${current.suiteId}-${version}`);
+        await approveSuite(frozen?.id ?? current.suiteVersionId);
       }
-      const current = await evalRequest<{ draft: Draft | null }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`).then((value) => value.draft ?? draft).catch(() => draft);
-      const version = draftVersion ?? current.suiteDraftVersion;
-      const frozen = await evalRequest<{ id: string }>(`/suites/${current.suiteId}/versions`, "POST", { orgId, version }, `suite-freeze-${current.suiteId}-${version}`);
-      const suiteVersionId = frozen?.id ?? current.suiteVersionId;
-      await evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId }, `suite-approve-${evaluation.id}-${suiteVersionId}`);
       await onReady();
+      // "Approve and run": the same start as the Run button, so its checks and errors apply.
+      if (andRun && onRun) await onRun();
     } catch (value) {
       setError(value instanceof Error ? value.message : t("approveFailed"));
     } finally {
@@ -549,7 +559,9 @@ export function PrepareEvaluation({
         editorHref={`/workspace/test-sets/${draft.suiteId}?orgId=${encodeURIComponent(orgId)}&from=${encodeURIComponent(evaluation.id)}`}
         pending={pending === "approve"}
         error={error}
-        onApprove={(version, count, frozen) => void approve(version, count, frozen)}
+        mode={reviewMode}
+        canRun={!!onRun}
+        onApprove={(version, count, frozen, review, andRun) => void approve(version, count, frozen, review, andRun)}
       />
     );
 

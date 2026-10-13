@@ -6,6 +6,7 @@ type Summary = {
   entitlement: RecordValue;
   usage: RecordValue;
   preferences: RecordValue;
+  next_run?: RecordValue | null;
 };
 
 export function customerWorkspaceView(value: Summary) {
@@ -47,6 +48,9 @@ export function customerWorkspaceView(value: Summary) {
       error_code: item.error_code,
       created_at: item.created_at,
       connection_checked_at: item.connection_checked_at,
+      // Health columns (launch L-22): last successful check, a private runner's last contact.
+      connection_ok_at: item.connection_ok_at,
+      runner_seen_at: item.runner_seen_at,
     })),
     reports: value.reports.map((item) => ({
       id: item.id,
@@ -54,6 +58,8 @@ export function customerWorkspaceView(value: Summary) {
       current_revision_id: item.current_revision_id,
       evaluation_id: item.evaluation_id,
       run_id: item.run_id,
+      target_id: item.target_id,
+      run_created_at: item.run_created_at,
       updated_at: item.updated_at,
       revision_created_at: item.revision_created_at,
       system_name: item.system_name,
@@ -65,6 +71,8 @@ export function customerWorkspaceView(value: Summary) {
       n_eligible: item.n_eligible,
     })),
     entitlement: {
+      // The plan decides the review mode (launch L-22) and is shown on Home.
+      plan: value.entitlement.plan,
       max_active_runs: value.entitlement.max_active_runs,
       monthly_spend_limit: value.entitlement.monthly_spend_limit,
       currency: value.entitlement.currency,
@@ -82,5 +90,15 @@ export function customerWorkspaceView(value: Summary) {
       failure: value.preferences.failure,
       email: value.preferences.email,
     },
+    next_run: value.next_run
+      ? {
+          id: value.next_run.id,
+          evaluation_id: value.next_run.evaluation_id,
+          evaluation_title: value.next_run.evaluation_title,
+          next_due_at: value.next_run.next_due_at,
+          cadence: value.next_run.cadence,
+          timezone: value.next_run.timezone,
+        }
+      : null,
   };
 }

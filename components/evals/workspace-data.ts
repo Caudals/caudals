@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { evalRequest } from "./api";
+import { evaluationStage, type Stage } from "./evaluation-stage";
 import { t } from "@/lib/evals/messages/en";
 
 export type WorkspaceEvaluation = {
@@ -42,6 +43,10 @@ export type WorkspaceSystem = {
   error_code: string | null;
   created_at?: string;
   connection_checked_at?: string | null;
+  /** Last successful connection check of the current version (launch L-22). */
+  connection_ok_at?: string | null;
+  /** A private runner's last contact (launch L-22). */
+  runner_seen_at?: string | null;
 };
 
 export type WorkspaceReport = {
@@ -50,6 +55,9 @@ export type WorkspaceReport = {
   title: string;
   current_revision_id: string;
   evaluation_id: string;
+  /** The system the run asked (launch L-22): scores per system. */
+  target_id?: string | null;
+  run_created_at?: string | null;
   updated_at?: string;
   revision_created_at?: string;
   system_name?: string | null;
@@ -66,6 +74,8 @@ export type WorkspaceSummary = {
   systems: WorkspaceSystem[];
   reports: WorkspaceReport[];
   entitlement: {
+    /** free · payg · managed · partner (launch L-14). Older servers omit it. */
+    plan?: string;
     max_active_runs: number;
     monthly_spend_limit: string;
     currency: string;
@@ -74,6 +84,8 @@ export type WorkspaceSummary = {
     can_schedule: boolean;
   };
   usage: { settled: string; outstanding: string };
+  /** The next active schedule (launch L-22). Older servers omit it. */
+  next_run?: { id: string; evaluation_id: string; evaluation_title: string; next_due_at: string; cadence: string; timezone: string } | null;
   preferences: {
     completion: boolean;
     required_input: boolean;
@@ -122,9 +134,12 @@ export function useWorkspaceSummary(orgId: string) {
     }
     try {
       const value = await evalRequest<WorkspaceSummary>(`/workspace/summary?orgId=${encodeURIComponent(orgId)}`);
-      busy.current = value.evaluations.some(
-        (item) => IN_FLIGHT.has(item.preparation_status) || (item.latest_run_status != null && IN_FLIGHT.has(item.latest_run_status)),
-      );
+      busy.current =
+        value.evaluations.some(
+          (item) => IN_FLIGHT.has(item.preparation_status) || (item.latest_run_status != null && IN_FLIGHT.has(item.latest_run_status)),
+        ) ||
+        // A connection check in flight ("Check now", launch L-22) settles within a couple of minutes.
+        value.systems.some((item) => item.connection_status === "queued" || item.connection_status === "running");
       setSummary(value);
       setError("");
     } catch (value) {
@@ -169,4 +184,19 @@ export function connectionLabel(kind: string) {
     default:
       return kind.replaceAll("_", " ");
   }
+}
+
+export type EvaluationRow = { evaluation: WorkspaceEvaluation; report: WorkspaceReport | undefined; system: WorkspaceSystem | undefined; stage: Stage };
+
+/**
+ * Each evaluation with its latest report, its system and its stage. The
+ * evaluations list and Home both read this, so Home's "needs your action"
+ * is exactly the list's "Needs action" filter (launch L-22).
+ */
+export function evaluationRows(summary: WorkspaceSummary): EvaluationRow[] {
+  return summary.evaluations.map((evaluation) => {
+    const report = summary.reports.find((item) => item.evaluation_id === evaluation.id);
+    const system = summary.systems.find((item) => (evaluation.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation.project_id));
+    return { evaluation, report, system, stage: evaluationStage(evaluation, !!report) };
+  });
 }

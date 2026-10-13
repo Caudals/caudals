@@ -1,4 +1,5 @@
 import { tr } from "@/lib/evals/messages/phrases";
+import type { MessageKey } from "@/lib/evals/messages/en";
 /**
  * Customer-facing projection of an evaluation's separate state dimensions
  * (preparation, run execution, publication — spec §12.1) into one stage a
@@ -80,6 +81,32 @@ export function evaluationStage(evaluation: Input, hasReport: boolean): Stage {
   if (prep === "canceled") return { key: "canceled", label: tr("Cancelled"), tone: "neutral", live: false, step: 1, needsAction: false };
   const hasSources = !!evaluation.source_ids?.length || !!evaluation.latest_source_id;
   return { key: "setup", label: tr(hasSources ? "Generate the test set" : "Add reference material"), tone: "neutral", live: false, step: 1, needsAction: true };
+}
+
+/**
+ * The customer's next move for a stage that needs action (launch L-22): a
+ * short imperative for Home's "Needs your action" card and the evaluations
+ * list. Null when nothing is needed from the customer.
+ */
+export function nextStep(evaluation: Input, stage: Stage): MessageKey | null {
+  if (!stage.needsAction) return null;
+  const run = evaluation.latest_run_status;
+  if (run === "paused") {
+    if (evaluation.latest_run_execution_mode === "imported_responses") return "nextStepUploadAnswers";
+    if (evaluation.latest_run_reason_code === "runner_wait") return "nextStepStartRunner";
+    if (evaluation.latest_run_reason_code === "credits_exhausted") return "nextStepAddCredits";
+    if (evaluation.latest_run_reason_code === "cap_reached") return "nextStepCap";
+    return "nextStepResumeRun";
+  }
+  if (run === "failed") return "nextStepRunFailed";
+  if (run) return null;
+  if (stage.key === "ready") return "nextStepStartRun";
+  if (stage.key === "review_tests") return "nextStepReview";
+  if (stage.key === "paused") return "nextStepResumePreparation";
+  if (stage.key === "needs_input") return evaluation.preparation_status === "needs_review" ? "nextStepRetryDraft" : "nextStepAnswer";
+  if (stage.key === "failed") return "nextStepPreparationFailed";
+  if (stage.key === "setup") return evaluation.source_ids?.length || evaluation.latest_source_id ? "nextStepGenerate" : "nextStepAddSources";
+  return null;
 }
 
 export const STEP_LABELS = ["Connect", "Prepare tests", "Run", "Results"] as const;

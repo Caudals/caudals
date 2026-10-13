@@ -675,6 +675,27 @@ export function removeSuiteDraftCase(scope: EvidenceScope, suiteId: string, case
   });
 }
 
+/**
+ * Remove several questions from an editable draft in one change (bulk reject
+ * in the review, launch L-22). All or nothing: every question must be in the
+ * draft and at least one must remain. The removal is audited with its actor.
+ */
+export function removeSuiteDraftCases(scope: EvidenceScope, suiteId: string, caseRevisionIds: string[]) {
+  return withTenant(scope, async (db) => {
+    const { manifest } = await editableDraft(db, scope, suiteId);
+    const drop = new Set(caseRevisionIds);
+    const remaining = manifest.case_revisions.filter((item) => !drop.has(item.revision_id));
+    if (manifest.case_revisions.length - remaining.length !== drop.size) throw new EvidenceError(404, "A question is no longer in this draft. Reload the test set.");
+    if (!remaining.some((item) => item.split !== "holdout")) throw new EvidenceError(422, "A test set needs at least one question.");
+    const version = await saveDraftCases(db, suiteId, scope.orgId, manifest, remaining);
+    await db.query(
+      "INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id,details) VALUES($1,$2,'suite.questions_removed',$3,$4)",
+      [scope.orgId, scope.actorId, suiteId, { case_revision_ids: [...drop], draft_version: version }],
+    );
+    return { suiteId, version, removed: drop.size };
+  });
+}
+
 /** One row per test set, drafts included: newest frozen version, draft state and usage. */
 export function listTestSets(scope: EvidenceScope) {
   return withTenant(scope, async (db) => (await db.query(`SELECT s.id AS suite_id,s.title,s.project_id,p.title AS project_title,s.created_at,

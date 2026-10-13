@@ -121,27 +121,38 @@ export function useWorkspace(): WorkspaceState {
 
 /* ------------------------------------------------------------ page title -- */
 
-type CrumbState = { label: string | null; setLabel: (label: string | null) => void };
-const CrumbContext = createContext<CrumbState>({ label: null, setLabel: () => undefined });
+/** A crumb between the section and the page, such as the system an evaluation tests (launch L-22). */
+export type ParentCrumb = { label: string; href: string };
+type CrumbEntry = { label: string | null; parent: ParentCrumb | null };
+type CrumbState = CrumbEntry & { setLabel: (label: string | null, parent?: ParentCrumb | null) => void };
+const CrumbContext = createContext<CrumbState>({ label: null, parent: null, setLabel: () => undefined });
 
 export function CrumbProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // Keyed by path, so a label never leaks onto the next screen.
-  const [entry, setEntry] = useState<{ path: string; label: string | null }>({ path: pathname, label: null });
-  const setLabel = useCallback((label: string | null) => setEntry({ path: pathname, label }), [pathname]);
-  const label = entry.path === pathname ? entry.label : null;
-  const value = useMemo(() => ({ label, setLabel }), [label, setLabel]);
+  const [entry, setEntry] = useState<{ path: string } & CrumbEntry>({ path: pathname, label: null, parent: null });
+  const setLabel = useCallback((label: string | null, parent: ParentCrumb | null = null) => setEntry({ path: pathname, label, parent }), [pathname]);
+  const current = entry.path === pathname;
+  const label = current ? entry.label : null;
+  const parent = current ? entry.parent : null;
+  const value = useMemo(() => ({ label, parent, setLabel }), [label, parent, setLabel]);
   return <CrumbContext.Provider value={value}>{children}</CrumbContext.Provider>;
 }
 
-/** Name the current detail page in the breadcrumb once its title is known. */
-export function usePageCrumb(label: string | null | undefined) {
+/** Name the current detail page in the breadcrumb once its title is known, optionally under a parent crumb. */
+export function usePageCrumb(label: string | null | undefined, parent?: ParentCrumb | null) {
   const { setLabel } = useContext(CrumbContext);
+  const parentLabel = parent?.label ?? null;
+  const parentHref = parent?.href ?? null;
   useEffect(() => {
-    setLabel(label ?? null);
-  }, [label, setLabel]);
+    setLabel(label ?? null, parentLabel && parentHref ? { label: parentLabel, href: parentHref } : null);
+  }, [label, parentLabel, parentHref, setLabel]);
 }
 
 export function useCrumbLabel() {
   return useContext(CrumbContext).label;
+}
+
+export function useCrumbParent() {
+  return useContext(CrumbContext).parent;
 }

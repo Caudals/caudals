@@ -48,6 +48,7 @@ import { ActionMenu, notify } from "./overlays";
 import { ReportActions, type ReportCommands, type ReportRevision } from "./report-actions";
 import { AiDisclosureEvidence } from "./ai-disclosure-evidence";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
+import { rememberTab, rememberedTab } from "./settings-tabs";
 import { t, tv } from "@/lib/evals/messages/en";
 import { shareExportKinds } from "@/lib/evals/reports/share-sections";
 import { tr } from "@/lib/evals/messages/phrases";
@@ -90,6 +91,7 @@ export function ReportView({
   overviewIntro,
   cta,
   sample = false,
+  rememberAs,
 }: {
   report: Partial<ReportSnapshot>;
   actions?: ReactNode;
@@ -105,8 +107,21 @@ export function ReportView({
   cta?: ReportCta;
   /** The example evaluation: its review is simulated, and the summary says so. */
   sample?: boolean;
+  /** Remember the last tab on this device under this page name (launch L-22); off for shared and example views. */
+  rememberAs?: string;
 }) {
   const [tab, setTab] = useState<Tab>(initialResult ? "results" : (["overview", "findings", "results", "improvements", "methodology"] as const).find((value) => value === initialTab) ?? "overview");
+  // Open on the tab this device last chose, unless the link names a tab or a result.
+  useEffect(() => {
+    if (!rememberAs || initialResult || initialTab) return;
+    const saved = rememberedTab(rememberAs);
+    if (saved && (["findings", "results", "improvements", "methodology"] as const).some((value) => value === saved)) setTab(saved as Tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rememberAs]);
+  function selectTab(value: Tab) {
+    setTab(value);
+    if (rememberAs) rememberTab(rememberAs, value);
+  }
   const [resultFilter, setResultFilter] = useState<{ ids: string[]; label: string } | null>(null);
   const results = report.results ?? [];
   const findings = bySeverity(report.findings ?? []);
@@ -148,7 +163,7 @@ export function ReportView({
           {report.system?.purpose ? gen(report.system.purpose) : null}
         </PageHeading>
       )}
-      <Tabs value={tab} onChange={setTab} label={t("reportSections")} options={tabs} />
+      <Tabs value={tab} onChange={selectTab} label={t("reportSections")} options={tabs} />
       {tab === "overview" && <Overview report={report} findings={findings} cta={cta} sample={sample} intro={overviewIntro} onFinding={() => setTab("findings")} onResults={showResults} onAllResults={() => { setResultFilter(null); setTab("results"); }} />}
       {tab === "findings" && <Findings findings={findings} onResults={showResults} />}
       {tab === "results" && (
@@ -1177,6 +1192,7 @@ export function AuthenticatedReport({
         initialResult={params.get("result")}
         initialTab={params.get("tab")}
         onResultChange={setResult}
+        rememberAs="report"
         cta={cta}
         actions={
           <>

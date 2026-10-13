@@ -314,6 +314,10 @@ const STATUS: Record<string, { tone: Tone; label: string }> = {
   capture_incomplete: { tone: "warn", label: "Capture incomplete" },
   unknown_external_outcome: { tone: "neutral", label: "Unknown outcome" },
   pairing_required: { tone: "warn", label: "Pairing required" },
+  // system health (launch L-22)
+  needs_attention: { tone: "warn", label: "Needs attention" },
+  checking: { tone: "info", label: "Checking" },
+  not_checked: { tone: "neutral", label: "Not checked" },
   runner_wait: { tone: "warn", label: "Awaiting runner" },
   // billing pauses (L-11)
   credits_exhausted: { tone: "warn", label: "Paused — add credits to continue" },
@@ -382,6 +386,7 @@ export function toneFor(value: string): Tone {
 }
 
 const LIVE = new Set([
+  "checking",
   "running",
   "queued",
   "validating",

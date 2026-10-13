@@ -33,6 +33,7 @@ const ES: Record<string, string> = {
   "Paused (circuit open)": "En pausa (circuito abierto)", "Not checked": "Sin comprobar", Retired: "Retirado", Enabled: "Activado",
   Disabled: "Desactivado", Revoked: "Revocado", "Token expired": "Token caducado", Unsupported: "No admitido", "Needs assistance": "Necesita ayuda",
   "System error": "Error del sistema", "Network error": "Error de red", "Timed out": "Tiempo agotado", "Capture incomplete": "Captura incompleta",
+  "Needs attention": "Requiere atención", Checking: "Comprobando",
   "Unknown outcome": "Resultado desconocido", "Pairing required": "Emparejamiento pendiente", "Awaiting runner": "Esperando al ejecutor",
   "Website chatbot": "Chatbot web", "OpenAI-compatible API": "API compatible con OpenAI", "Provider API": "API del proveedor",
   "HTTPS JSON API": "API JSON HTTPS", "Uploaded answers": "Respuestas subidas", "Private runner": "Ejecutor privado",

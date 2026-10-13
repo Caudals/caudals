@@ -5,12 +5,13 @@
  * reference material, the scope picker (size and difficulty), the optional
  * context questions and the review of a generated draft.
  */
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Check as CheckIcon, FileText, Info, Pencil, RotateCcw, Trash2, X } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check as CheckIcon, CircleCheck, FileText, Info, Keyboard, ListChecks, Pencil, Play, RotateCcw, Trash2, X } from "lucide-react";
 import type { CefCase } from "@/lib/evals/contracts/cases";
+import { SPOT_CHECK_SIZE, spotCheckRequired, spotCheckSample, type ReviewMode } from "@/lib/evals/review/spot-check";
 import { evalRequest } from "./api";
-import { Action, ActionLink, Badge, Chip, FilterChips, SearchInput, Status, StatusBadge } from "./primitives";
-import { SidePanel, notify } from "./overlays";
+import { Action, ActionLink, Badge, Chip, FilterChips, InlineSelect, SearchInput, Status, StatusBadge, TextArea } from "./primitives";
+import { Modal, SidePanel, notify } from "./overlays";
 import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 /* ------------------------------------------------------------- excerpts --- */
@@ -500,7 +501,10 @@ type ReviewCase = {
   expected: string;
   difficulty: string | null;
   severity: string | null;
+  /** The source page its first excerpt cites (the source-page filter and the spot-check spread). */
+  source: string | null;
   excerpts: Array<{ sourceTitle: string; excerpt: string }>;
+  document: CefCase | null;
 };
 type TestSetView = {
   draft: { version: number; caseCount: number } | null;
@@ -508,10 +512,23 @@ type TestSetView = {
   cases: Array<{ caseRevisionId: string; document: CefCase; excerpts: Array<{ sourceRevisionId: string; sourceTitle: string; anchor: string; excerpt: string }> }>;
 };
 export type CasePreview = { caseRevisionId: string; question: string; approvedAnswer: string; sourceExcerpt: string | null };
+/** How the person reviewed the set, sent with the approval and recorded in the audit trail (launch L-22). */
+export type ReviewRecord = { mode: ReviewMode; checkedCaseRevisionIds: string[]; approvedCaseRevisionIds: string[] };
 
 const DIFFICULTIES = ["routine", "advanced", "challenge"] as const;
 const PAGE = 20;
 const DIFFICULTY_TONE: Record<string, "neutral" | "info" | "warn"> = { routine: "neutral", advanced: "info", challenge: "warn" };
+/** Review shortcuts (launch L-22); also documented in docs/FRONTEND.md. */
+const SHORTCUTS: Array<[string, MessageKey]> = [
+  ["j", "shortcutNext"],
+  ["k", "shortcutPrevious"],
+  ["c", "shortcutCheck"],
+  ["x", "shortcutSelect"],
+  ["e", "shortcutEdit"],
+  ["r", "shortcutRemove"],
+  ["/", "shortcutSearch"],
+  ["?", "shortcutHelp"],
+];
 
 // With no draft left, the test set was already frozen: approve its newest version.
 function latestVersion(view: TestSetView) {
@@ -522,10 +539,38 @@ function expectedText(value: unknown) {
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
+/** Spot-check progress survives a reload in this tab (best effort). */
+function storedReview(suiteId: string): { sample: string[]; checked: string[]; approved: string[] } {
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(`caudals.review.${suiteId}`) ?? "null");
+    if (value && Array.isArray(value.sample) && Array.isArray(value.checked)) return { sample: value.sample, checked: value.checked, approved: Array.isArray(value.approved) ? value.approved : [] };
+  } catch {
+    /* storage unavailable */
+  }
+  return { sample: [], checked: [], approved: [] };
+}
+function storeReview(suiteId: string, value: { sample: string[]; checked: string[]; approved: string[] }) {
+  try {
+    window.sessionStorage.setItem(`caudals.review.${suiteId}`, JSON.stringify(value));
+  } catch {
+    /* best effort */
+  }
+}
+
+const typing = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+
 /**
- * The generated draft as the customer reviews it: the current draft (edits
- * included), searchable and filterable, with each answer shown inside the
- * excerpt that supports it.
+ * The generated draft as the customer reviews it (launch L-22, P-17).
+ *
+ * Free and pay-as-you-go workspaces start with a spot check: ten questions
+ * spread across the source pages, the most severe first, each marked "Looks
+ * right", edited or removed; then "Approve and run". The full review (every
+ * question, searchable, filterable by difficulty and source page, with bulk
+ * select, mark as checked and remove) is one click away, and is the only mode
+ * for managed workspaces. Each answer is shown inside the excerpt that
+ * supports it, and questions can be edited in place. Keyboard shortcuts:
+ * j/k move, c checks, x selects, e edits, r removes, / searches, ? lists them.
  */
 export function TestSetReview({
   orgId,
@@ -534,6 +579,8 @@ export function TestSetReview({
   editorHref,
   pending,
   error,
+  mode = "full",
+  canRun = false,
   onApprove,
 }: {
   orgId: string;
@@ -542,16 +589,34 @@ export function TestSetReview({
   editorHref: string;
   pending: boolean;
   error: string;
-  onApprove: (draftVersion: number | null, count: number, frozenVersionId: string | null) => void;
+  /** The workspace's default: a spot check (free, pay as you go) or the full review (managed). */
+  mode?: ReviewMode;
+  /** Offer "Approve and run" (the person can start runs here). */
+  canRun?: boolean;
+  onApprove: (draftVersion: number | null, count: number, frozenVersionId: string | null, review: ReviewRecord, andRun: boolean) => void;
 }) {
   const [view, setView] = useState<TestSetView | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [query, setQuery] = useState("");
   const [difficulty, setDifficulty] = useState<"all" | (typeof DIFFICULTIES)[number]>("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [limit, setLimit] = useState(PAGE);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [full, setFull] = useState(mode === "full");
+  const [sample, setSample] = useState<string[]>([]);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [approved, setApproved] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRemove, setBulkRemove] = useState(false);
+  const [bulkPending, setBulkPending] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [focused, setFocused] = useState(0);
+  const [shortcuts, setShortcuts] = useState(false);
+  const listRef = useRef<HTMLOListElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const restored = useRef(false);
 
   async function load() {
     try {
@@ -575,21 +640,68 @@ export function TestSetReview({
         expected: expectedText(item.document.reference.expected),
         difficulty: item.document.difficulty ?? null,
         severity: item.document.severity ?? null,
+        source: item.excerpts[0]?.sourceTitle || null,
         excerpts: item.excerpts.map((excerpt) => ({ sourceTitle: excerpt.sourceTitle, excerpt: excerpt.excerpt })),
+        document: item.document,
       }));
-    return previews.map((item) => ({ caseRevisionId: item.caseRevisionId, question: item.question, expected: item.approvedAnswer, difficulty: null, severity: null, excerpts: item.sourceExcerpt ? [{ sourceTitle: "", excerpt: item.sourceExcerpt }] : [] }));
+    return previews.map((item) => ({ caseRevisionId: item.caseRevisionId, question: item.question, expected: item.approvedAnswer, difficulty: null, severity: null, source: null, excerpts: item.sourceExcerpt ? [{ sourceTitle: "", excerpt: item.sourceExcerpt }] : [], document: null }));
   }, [view, previews]);
+  const editable = !!view?.draft;
 
+  // The spot-check sample: restored for this tab, topped up when a question in it was removed.
+  useEffect(() => {
+    if (!cases.length) return;
+    const items = cases.map((item) => ({ id: item.caseRevisionId, source: item.source, severity: item.severity }));
+    const saved = restored.current ? null : storedReview(suiteId);
+    restored.current = true;
+    setSample((current) => spotCheckSample(items, saved ? saved.sample : current));
+    if (saved) {
+      setChecked(new Set(saved.checked));
+      setApproved(new Set(saved.approved));
+    }
+  }, [cases, suiteId]);
+  useEffect(() => {
+    if (restored.current) storeReview(suiteId, { sample, checked: [...checked], approved: [...approved] });
+  }, [suiteId, sample, checked, approved]);
+
+  const present = useMemo(() => new Set(cases.map((item) => item.caseRevisionId)), [cases]);
   const counts = useMemo(() => Object.fromEntries(DIFFICULTIES.map((value) => [value, cases.filter((item) => item.difficulty === value).length])) as Record<(typeof DIFFICULTIES)[number], number>, [cases]);
+  const sourcePages = useMemo(() => {
+    const pages = new Map<string, number>();
+    for (const item of cases) if (item.source) pages.set(item.source, (pages.get(item.source) ?? 0) + 1);
+    return [...pages];
+  }, [cases]);
   const sources = useMemo(() => new Set(cases.flatMap((item) => item.excerpts.map((excerpt) => excerpt.sourceTitle)).filter(Boolean)).size, [cases]);
   const filtered = useMemo(() => {
+    if (!full) {
+      const position = new Map(cases.map((item, index) => [item.caseRevisionId, index]));
+      return sample.filter((id) => position.has(id)).map((id) => ({ item: cases[position.get(id)!], index: position.get(id)! })).sort((a, b) => a.index - b.index);
+    }
     const needle = query.trim().toLocaleLowerCase();
     return cases
       .map((item, index) => ({ item, index }))
       .filter(({ item }) => difficulty === "all" || item.difficulty === difficulty)
+      .filter(({ item }) => sourceFilter === "all" || item.source === sourceFilter)
       .filter(({ item }) => !needle || item.question.toLocaleLowerCase().includes(needle) || item.expected.toLocaleLowerCase().includes(needle));
-  }, [cases, query, difficulty]);
-  const editable = !!view?.draft;
+  }, [cases, query, difficulty, sourceFilter, full, sample]);
+  const shown = full ? filtered.slice(0, limit) : filtered;
+  const checkedCount = [...checked].filter((id) => present.has(id)).length;
+  const sampleChecked = sample.filter((id) => checked.has(id) && present.has(id)).length;
+  const required = spotCheckRequired(cases.length);
+  const spotCheckDone = sampleChecked >= required;
+  const selectedShown = shown.filter(({ item }) => selected.has(item.caseRevisionId)).length;
+
+  const toggle = (set: Set<string>, id: string, on?: boolean) => {
+    const next = new Set(set);
+    if (on ?? !next.has(id)) next.add(id);
+    else next.delete(id);
+    return next;
+  };
+  function markChecked(id: string, on?: boolean) {
+    const value = on ?? !checked.has(id);
+    setChecked((current) => toggle(current, id, value));
+    setApproved((current) => toggle(current, id, value));
+  }
 
   async function remove(caseRevisionId: string) {
     setRemoving(caseRevisionId);
@@ -598,6 +710,7 @@ export function TestSetReview({
       await evalRequest(`/suites/${suiteId}/cases/${caseRevisionId}?orgId=${encodeURIComponent(orgId)}`, "DELETE");
       notify(t("reviewRemoved"));
       setConfirming(null);
+      setSelected((current) => toggle(current, caseRevisionId, false));
       await load();
     } catch (value) {
       setActionError(value instanceof Error ? value.message : t("error"));
@@ -605,29 +718,116 @@ export function TestSetReview({
       setRemoving(null);
     }
   }
+  async function removeSelected() {
+    const ids = [...selected].filter((id) => present.has(id));
+    if (!ids.length) return;
+    setBulkPending(true);
+    setActionError("");
+    try {
+      await evalRequest(`/suites/${suiteId}/cases/remove`, "POST", { orgId, caseRevisionIds: ids });
+      notify(tv("reviewRemovedMany", { n: ids.length }));
+      setSelected(new Set());
+      setBulkRemove(false);
+      await load();
+    } catch (value) {
+      setActionError(value instanceof Error ? value.message : t("error"));
+      setBulkRemove(false);
+    } finally {
+      setBulkPending(false);
+    }
+  }
+  function markSelected() {
+    const ids = [...selected].filter((id) => present.has(id));
+    setChecked((current) => new Set([...current, ...ids]));
+    setApproved((current) => new Set([...current, ...ids]));
+    notify(tv("reviewMarkedMany", { n: ids.length }));
+    setSelected(new Set());
+  }
+  async function saved(previous: string, next: string) {
+    // An edited question has been read and corrected: it counts as checked under its new id.
+    setChecked((current) => new Set([...[...current].filter((id) => id !== previous), next]));
+    setApproved((current) => toggle(current, previous, false));
+    setSample((current) => current.map((id) => (id === previous ? next : id)));
+    setEditing(null);
+    notify(t("caseSaved"));
+    await load();
+  }
+
+  const approve = (andRun: boolean) => {
+    const ids = [...checked].filter((id) => present.has(id));
+    onApprove(view?.draft?.version ?? null, cases.length, view && !view.draft ? latestVersion(view) : null, {
+      mode: full ? "full" : "spot_check",
+      checkedCaseRevisionIds: ids,
+      approvedCaseRevisionIds: [...approved].filter((id) => present.has(id)),
+    }, andRun);
+  };
+
+  // Keyboard shortcuts, while no field, dialog or menu has the keyboard.
+  const focusCase = useCallback((index: number) => {
+    const items = listRef.current?.querySelectorAll<HTMLElement>("[data-review-case]");
+    if (!items?.length) return;
+    const next = Math.max(0, Math.min(items.length - 1, index));
+    setFocused(next);
+    items[next].focus();
+  }, []);
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey || typing(event.target) || document.querySelector("[role=dialog],[role=menu]")) return;
+      const current = shown[Math.min(focused, shown.length - 1)]?.item;
+      const handled = (() => {
+        switch (event.key) {
+          case "j": focusCase(focused + 1); return true;
+          case "k": focusCase(focused - 1); return true;
+          case "c": if (current) markChecked(current.caseRevisionId); return !!current;
+          case "x": if (current && full) setSelected((value) => toggle(value, current.caseRevisionId)); return !!current && full;
+          case "e": if (current && editable && current.document) setEditing(current.caseRevisionId); return !!current;
+          case "r": if (current && editable && cases.length > 1) setConfirming(current.caseRevisionId); return !!current;
+          case "/": if (full) searchRef.current?.querySelector("input")?.focus(); else setFull(true); return true;
+          case "?": setShortcuts(true); return true;
+          default: return false;
+        }
+      })();
+      if (handled) event.preventDefault();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const hasDifficulty = DIFFICULTIES.some((value) => counts[value] > 0);
+  const runLabel = (count: number) => `${t("approveAndRun")} (${count})`;
 
   return (
     <section className="p-prep p-review" aria-live="polite">
       <div className="p-review-head">
         <div>
-          <h2 className="p-review-title">{t("reviewTestSet")}</h2>
-          <p className="p-cell-meta">{t("reviewTestSetHelp")}</p>
+          <h2 className="p-review-title">{full ? t("reviewTestSet") : tv("spotCheckTitle", { n: required || SPOT_CHECK_SIZE })}</h2>
+          <p className="p-cell-meta">{full ? t("reviewTestSetHelp") : tv("spotCheckHelp", { rest: Math.max(0, cases.length - sample.length) })}</p>
         </div>
         {cases.length > 0 && (
           <dl className="p-review-stats">
+            {!full && (
+              <div>
+                <dt>{t("spotCheckChecked")}</dt>
+                <dd>{sampleChecked}/{required}</dd>
+              </div>
+            )}
             <div>
               <dt>{t("scopeTests")}</dt>
               <dd>{cases.length}</dd>
             </div>
+            {full && checkedCount > 0 && (
+              <div>
+                <dt>{t("reviewCheckedCount")}</dt>
+                <dd>{checkedCount}</dd>
+              </div>
+            )}
             {sources > 0 && (
               <div>
                 <dt>{sources === 1 ? t("reviewSource") : t("reviewSources")}</dt>
                 <dd>{sources}</dd>
               </div>
             )}
-            {hasDifficulty &&
+            {full && hasDifficulty &&
               DIFFICULTIES.map((value) => (
                 <div key={value}>
                   <dt>{t(`difficulty_${value}` as MessageKey)}</dt>
@@ -649,68 +849,164 @@ export function TestSetReview({
       ) : (
         <>
           <div className="p-review-tools">
-            <SearchInput value={query} onChange={(value) => { setQuery(value); setLimit(PAGE); }} label={t("reviewSearch")} />
-            {hasDifficulty && (
-              <FilterChips
-                label={t("reviewFilter")}
-                value={difficulty}
-                onChange={(value) => { setDifficulty(value); setLimit(PAGE); }}
-                options={[
-                  { value: "all" as const, label: t("reviewAll"), count: cases.length },
-                  ...DIFFICULTIES.filter((value) => counts[value] > 0).map((value) => ({ value, label: t(`difficulty_${value}` as MessageKey), count: counts[value] })),
-                ]}
-              />
+            {full ? (
+              <>
+                <div ref={searchRef} className="p-review-search">
+                  <SearchInput value={query} onChange={(value) => { setQuery(value); setLimit(PAGE); }} label={t("reviewSearch")} />
+                </div>
+                {sourcePages.length > 1 && (
+                  <InlineSelect id="review-source" label={t("reviewSourcePage")} value={sourceFilter} onChange={(event) => { setSourceFilter(event.target.value); setLimit(PAGE); }}>
+                    <option value="all">{tv("reviewAllPages", { n: cases.length })}</option>
+                    {sourcePages.map(([page, count]) => (
+                      <option key={page} value={page}>{`${page} (${count})`}</option>
+                    ))}
+                  </InlineSelect>
+                )}
+                {hasDifficulty && (
+                  <FilterChips
+                    label={t("reviewFilter")}
+                    value={difficulty}
+                    onChange={(value) => { setDifficulty(value); setLimit(PAGE); }}
+                    options={[
+                      { value: "all" as const, label: t("reviewAll"), count: cases.length },
+                      ...DIFFICULTIES.filter((value) => counts[value] > 0).map((value) => ({ value, label: t(`difficulty_${value}` as MessageKey), count: counts[value] })),
+                    ]}
+                  />
+                )}
+              </>
+            ) : (
+              <Status>{t("spotCheckPreliminary")}</Status>
             )}
+            <Action variant="ghost" size="sm" onClick={() => setShortcuts(true)} aria-keyshortcuts="?">
+              <Keyboard aria-hidden="true" />
+              {t("reviewShortcuts")}
+            </Action>
           </div>
-          {!filtered.length && <p className="p-cell-meta">{t("reviewNoMatches")}</p>}
-          <ol className="p-review-list">
-            {filtered.slice(0, limit).map(({ item, index }) => (
-              <li key={item.caseRevisionId} className="p-review-case">
-                <div className="p-review-case-head">
-                  <span className="p-case-index">{index + 1}</span>
-                  <p className="p-review-question">{item.question}</p>
-                  <div className="p-review-case-meta">
-                    {item.difficulty && <Badge tone={DIFFICULTY_TONE[item.difficulty] ?? "neutral"}>{t(`difficulty_${item.difficulty}` as MessageKey)}</Badge>}
-                    {item.severity && <StatusBadge value={item.severity} />}
-                    {editable &&
-                      (confirming === item.caseRevisionId ? (
-                        <span className="p-review-confirm">
-                          <Action variant="danger" size="sm" onClick={() => void remove(item.caseRevisionId)} disabled={removing === item.caseRevisionId}>
-                            {t("reviewRemoveTest")}
-                          </Action>
-                          <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" data-size="sm" aria-label={t("cancel")} onClick={() => setConfirming(null)}>
-                            <X aria-hidden="true" />
-                          </button>
-                        </span>
-                      ) : (
-                        <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" data-size="sm" aria-label={`${t("reviewRemoveTest")} ${index + 1}`} title={t("reviewRemoveTest")} disabled={!!removing || pending} onClick={() => setConfirming(item.caseRevisionId)}>
-                          <Trash2 aria-hidden="true" />
-                        </button>
-                      ))}
-                  </div>
-                </div>
-                <div className="p-review-case-body">
-                  <div className="p-review-answer">
-                    <span className="p-review-label">{t("expectedAnswer")}</span>
-                    <p>{item.expected}</p>
-                  </div>
-                  <div className="p-review-source">
-                    <span className="p-review-label">{t("sourceExcerpt")}</span>
-                    {item.excerpts.length ? (
-                      item.excerpts.map((excerpt, excerptIndex) => (
-                        <Fragment key={excerptIndex}>
-                          <ExcerptSnippet excerpt={excerpt.excerpt} answer={item.expected} source={excerpt.sourceTitle || undefined} />
-                        </Fragment>
-                      ))
+          {full && shown.length > 0 && (
+            <div className="p-review-bulk" role="toolbar" aria-label={t("reviewBulkActions")}>
+              <label className="p-check p-review-select-all">
+                <input
+                  type="checkbox"
+                  checked={selectedShown > 0 && selectedShown === shown.length}
+                  ref={(input) => { if (input) input.indeterminate = selectedShown > 0 && selectedShown < shown.length; }}
+                  onChange={(event) => setSelected((current) => {
+                    const next = new Set(current);
+                    for (const { item } of shown) if (event.target.checked) next.add(item.caseRevisionId); else next.delete(item.caseRevisionId);
+                    return next;
+                  })}
+                />
+                <span className="p-check-label">{selected.size ? tv("reviewSelectedCount", { n: selected.size }) : tv("reviewSelectShown", { n: shown.length })}</span>
+              </label>
+              {selected.size > 0 && (
+                <>
+                  <Action variant="secondary" size="sm" onClick={markSelected}>
+                    <CircleCheck aria-hidden="true" />
+                    {t("reviewMarkChecked")}
+                  </Action>
+                  {editable && (
+                    <Action variant="secondary" size="sm" onClick={() => setBulkRemove(true)} disabled={bulkPending || selected.size >= cases.length}>
+                      <Trash2 aria-hidden="true" />
+                      {t("reviewRemoveSelected")}
+                    </Action>
+                  )}
+                  <Action variant="ghost" size="sm" onClick={() => setSelected(new Set())}>{t("reviewClearSelection")}</Action>
+                </>
+              )}
+            </div>
+          )}
+          {full && !filtered.length && <p className="p-cell-meta">{t("reviewNoMatches")}</p>}
+          <ol className="p-review-list" ref={listRef} aria-label={full ? t("reviewTestSet") : t("spotCheckList")}>
+            {shown.map(({ item, index }, position) => {
+              const isChecked = checked.has(item.caseRevisionId);
+              const title = `${t("question")} ${index + 1}`;
+              return (
+                <li
+                  key={item.caseRevisionId}
+                  className="p-review-case"
+                  data-review-case=""
+                  data-checked={isChecked ? "true" : undefined}
+                  tabIndex={-1}
+                  aria-label={title}
+                  onFocus={() => setFocused(position)}
+                >
+                  <div className="p-review-case-head">
+                    {full ? (
+                      <input
+                        type="checkbox"
+                        className="p-review-select"
+                        aria-label={`${t("reviewSelect")} ${index + 1}`}
+                        checked={selected.has(item.caseRevisionId)}
+                        onChange={() => setSelected((current) => toggle(current, item.caseRevisionId))}
+                      />
                     ) : (
-                      <span className="p-cell-meta">{t("sourceExcerptMissing")}</span>
+                      <span className="p-case-index">{index + 1}</span>
                     )}
+                    <p className="p-review-question">{item.question}</p>
+                    <div className="p-review-case-meta">
+                      {isChecked && <Badge tone="pass" dot>{t("reviewCheckedBadge")}</Badge>}
+                      {item.difficulty && <Badge tone={DIFFICULTY_TONE[item.difficulty] ?? "neutral"}>{t(`difficulty_${item.difficulty}` as MessageKey)}</Badge>}
+                      {item.severity && <StatusBadge value={item.severity} />}
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                  {editing === item.caseRevisionId && item.document ? (
+                    <InlineCaseEditor orgId={orgId} suiteId={suiteId} caseRevisionId={item.caseRevisionId} document={item.document} onCancel={() => setEditing(null)} onSaved={(next) => void saved(item.caseRevisionId, next)} />
+                  ) : (
+                    <div className="p-review-case-body">
+                      <div className="p-review-answer">
+                        <span className="p-review-label">{t("expectedAnswer")}</span>
+                        <p>{item.expected}</p>
+                      </div>
+                      <div className="p-review-source">
+                        <span className="p-review-label">{t("sourceExcerpt")}</span>
+                        {item.excerpts.length ? (
+                          item.excerpts.map((excerpt, excerptIndex) => (
+                            <Fragment key={excerptIndex}>
+                              <ExcerptSnippet excerpt={excerpt.excerpt} answer={item.expected} source={excerpt.sourceTitle || undefined} />
+                            </Fragment>
+                          ))
+                        ) : (
+                          <span className="p-cell-meta">{t("sourceExcerptMissing")}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {editing !== item.caseRevisionId && (
+                    <div className="p-review-case-actions">
+                      <Action variant={isChecked ? "secondary" : "ghost"} size="sm" aria-pressed={isChecked} onClick={() => markChecked(item.caseRevisionId)}>
+                        <CheckIcon aria-hidden="true" />
+                        {t("reviewLooksRight")}
+                        <span className="sr-only">: {title}</span>
+                      </Action>
+                      {editable && item.document && (
+                        <Action variant="ghost" size="sm" onClick={() => setEditing(item.caseRevisionId)}>
+                          <Pencil aria-hidden="true" />
+                          {t("edit")}
+                          <span className="sr-only">: {title}</span>
+                        </Action>
+                      )}
+                      {editable &&
+                        (confirming === item.caseRevisionId ? (
+                          <span className="p-review-confirm">
+                            <Action variant="danger" size="sm" onClick={() => void remove(item.caseRevisionId)} disabled={removing === item.caseRevisionId}>
+                              {t("reviewRemoveTest")}
+                            </Action>
+                            <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" data-size="sm" aria-label={t("cancel")} onClick={() => setConfirming(null)}>
+                              <X aria-hidden="true" />
+                            </button>
+                          </span>
+                        ) : (
+                          <Action variant="ghost" size="sm" aria-label={`${t("reviewRemoveTest")} ${index + 1}`} disabled={!!removing || pending || cases.length <= 1} onClick={() => setConfirming(item.caseRevisionId)}>
+                            <Trash2 aria-hidden="true" />
+                            {t("remove")}
+                          </Action>
+                        ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ol>
-          {filtered.length > limit && (
+          {full && filtered.length > limit && (
             <div className="p-row p-review-more">
               <Action variant="secondary" size="sm" onClick={() => setLimit((value) => value + PAGE)}>
                 {tv("reviewShowMoreTests", { n: Math.min(PAGE, filtered.length - limit) })}
@@ -721,14 +1017,119 @@ export function TestSetReview({
       )}
 
       <div className="p-review-bar">
-        <span className="p-cell-meta">{t("approveHelp")}</span>
-        <ActionLink variant="secondary" href={editorHref}>
-          {t("reviewEditTestSet")}
-        </ActionLink>
-        <Action onClick={() => onApprove(view?.draft?.version ?? null, cases.length, view && !view.draft ? latestVersion(view) : null)} disabled={pending || !cases.length}>
-          {pending ? t("saving") : `${t("approveTestSet")} (${cases.length})`}
-        </Action>
+        <span className="p-cell-meta">{full ? t("approveHelp") : spotCheckDone ? tv("spotCheckReady", { n: cases.length }) : tv("spotCheckRemaining", { n: required - sampleChecked })}</span>
+        {full ? (
+          mode === "spot_check" && <Action variant="ghost" onClick={() => setFull(false)}>{t("spotCheckBack")}</Action>
+        ) : (
+          <Action variant="ghost" onClick={() => setFull(true)}>
+            <ListChecks aria-hidden="true" />
+            {tv("reviewAllQuestions", { n: cases.length })}
+          </Action>
+        )}
+        {full && (
+          <ActionLink variant="secondary" href={editorHref}>
+            {t("reviewEditTestSet")}
+          </ActionLink>
+        )}
+        {mode === "spot_check" && canRun ? (
+          <>
+            <Action variant="secondary" onClick={() => approve(false)} disabled={pending || !cases.length || (!full && !spotCheckDone)}>
+              {t("approveOnly")}
+            </Action>
+            <Action onClick={() => approve(true)} disabled={pending || !cases.length || (!full && !spotCheckDone)}>
+              <Play aria-hidden="true" />
+              {pending ? t("saving") : runLabel(cases.length)}
+            </Action>
+          </>
+        ) : (
+          <Action onClick={() => approve(false)} disabled={pending || !cases.length || (!full && !spotCheckDone)}>
+            {pending ? t("saving") : `${t("approveTestSet")} (${cases.length})`}
+          </Action>
+        )}
       </div>
+
+      <Modal
+        open={bulkRemove}
+        onOpenChange={(open) => !bulkPending && setBulkRemove(open)}
+        size="sm"
+        title={tv("reviewRemoveSelectedTitle", { n: selected.size })}
+        description={t("reviewRemoveSelectedHelp")}
+        alert={actionError ? <Status error>{actionError}</Status> : null}
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setBulkRemove(false)} disabled={bulkPending}>{t("cancel")}</Action>
+            <Action variant="danger" onClick={() => void removeSelected()} disabled={bulkPending}>{bulkPending ? t("working") : t("reviewRemoveSelected")}</Action>
+          </>
+        }
+      />
+      <Modal open={shortcuts} onOpenChange={setShortcuts} size="sm" title={t("reviewShortcuts")} description={t("reviewShortcutsHelp")}>
+        <dl className="p-shortcuts">
+          {SHORTCUTS.map(([key, label]) => (
+            <div key={key}>
+              <dt><kbd className="p-kbd">{key}</kbd></dt>
+              <dd>{t(label)}</dd>
+            </div>
+          ))}
+        </dl>
+      </Modal>
     </section>
+  );
+}
+
+/** Edit one question in place: its question and expected answer (the full editor keeps every field). */
+function InlineCaseEditor({ orgId, suiteId, caseRevisionId, document, onSaved, onCancel }: {
+  orgId: string; suiteId: string; caseRevisionId: string; document: CefCase; onSaved: (caseRevisionId: string) => void; onCancel: () => void;
+}) {
+  const messages = document.scenario.messages;
+  const userIndex = Math.max(0, messages.findIndex((message) => message.role === "user"));
+  const original = document.reference.expected;
+  const json = typeof original !== "string";
+  const [question, setQuestion] = useState(messages[userIndex]?.content ?? "");
+  const [expected, setExpected] = useState(json ? JSON.stringify(original, null, 2) : original);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const key = useRef(crypto.randomUUID());
+  const changed = question !== (messages[userIndex]?.content ?? "") || expected !== (json ? JSON.stringify(original, null, 2) : original);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (pending || !changed) return;
+    let value: unknown = expected;
+    if (json) {
+      try {
+        value = JSON.parse(expected);
+      } catch {
+        setError(t("invalidJsonAnswer"));
+        return;
+      }
+    }
+    setPending(true);
+    setError("");
+    try {
+      const result = await evalRequest<{ caseRevisionId: string }>(`/suites/${suiteId}/cases/${caseRevisionId}`, "POST", {
+        orgId,
+        title: document.title,
+        contents: messages.map((message, index) => (index === userIndex ? question : message.content)),
+        expected: value,
+      }, key.current);
+      onSaved(result.caseRevisionId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("error"));
+      setPending(false);
+    }
+  }
+  return (
+    <form className="p-stack p-review-edit" onSubmit={(event) => void save(event)}>
+      <TextArea id={`review-question-${caseRevisionId}`} label={t("question")} value={question} rows={3} required onChange={(event) => setQuestion(event.target.value)} autoFocus />
+      <TextArea id={`review-expected-${caseRevisionId}`} label={t("referenceAnswer")} hint={json ? t("referenceAnswerJson") : undefined} value={expected} rows={3} required onChange={(event) => setExpected(event.target.value)} />
+      {changed && <Status>{t("keyFactsResetHint")}</Status>}
+      {error && <Status error>{error}</Status>}
+      <div className="p-row">
+        <Action type="submit" variant="secondary" size="sm" disabled={pending || !changed || !question.trim() || !expected.trim()}>
+          {pending ? t("saving") : t("saveCase")}
+        </Action>
+        <Action variant="ghost" size="sm" onClick={onCancel} disabled={pending}>{t("cancel")}</Action>
+      </div>
+    </form>
   );
 }

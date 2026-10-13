@@ -29,6 +29,7 @@ import {
   Cpu,
   FileText,
   FlaskConical,
+  House,
   LayoutGrid,
   LibraryBig,
   LifeBuoy,
@@ -60,13 +61,13 @@ import { OnboardingAvailability } from "./onboarding-checklist";
 import { LimitDialogHost } from "./limit-dialog";
 import { setInterfaceLocale } from "./locale";
 import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
-import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
+import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useCrumbParent, useWorkspace, type ParentCrumb } from "./workspace-context";
 import { getLocale, t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -76,6 +77,8 @@ function navFor(identity: EvalIdentity, features: ShellFeatures, expert: boolean
   if (identity.workspaces.length) {
     groups.push({
       items: [
+        // Home (launch L-22) is the first item while WORKSPACE_HOME_ENABLED is on.
+        ...(features.home ? [{ href: "/workspace/home", label: t("home"), icon: <House />, scoped: true }] : []),
         { href: "/workspace/evaluations", label: t("product"), icon: <FlaskConical />, scoped: true, match: (path) => prefix("/workspace/evaluations")(path) || path === "/workspace/example" },
         { href: "/workspace/systems", label: t("systems"), icon: <Plug />, scoped: true },
         { href: "/workspace/reports", label: t("reports"), icon: <FileText />, scoped: true },
@@ -115,6 +118,7 @@ function initials(identity: EvalIdentity) {
 /* ----------------------------------------------------------- breadcrumbs --- */
 
 const SECTION: Record<string, string> = {
+  home: t("home"),
   evaluations: t("product"),
   systems: t("systems"),
   reports: t("reports"),
@@ -145,16 +149,17 @@ const DETAIL: Record<string, string> = {
 
 type Crumb = { label: string; href?: string };
 
-function crumbsFor(pathname: string, detail: string | null): Crumb[] {
+function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb | null = null): Crumb[] {
   const s = pathname.split("/").filter(Boolean);
   const name = (segment: string) => SECTION[segment] ?? humanize(segment.replaceAll("-", "_"));
   if (s[0] === "workspace") {
     const section = s[1] ?? "evaluations";
     if (section === "example") return [{ label: name("evaluations"), href: "/workspace/evaluations" }, { label: t("exampleEvaluationTitle") }];
-    if (s.length <= 2) return [{ label: name(section) }];
+    // A system open on Systems (`?system=`) names itself: Systems › <system>.
+    if (s.length <= 2) return detail && section === "systems" ? [{ label: name(section), href: `/workspace/${section}` }, { label: detail }] : [{ label: name(section) }];
     const base = { label: name(section), href: `/workspace/${section}` };
     if (s[2] === "new") return [base, { label: t("newEvaluationAction") }];
-    return [base, { label: detail ?? DETAIL[section] ?? t("details") }];
+    return [base, ...(parent ? [parent] : []), { label: detail ?? DETAIL[section] ?? t("details") }];
   }
   if (s[0] === "ops") {
     if (!s[1] || s[1] === "evaluations" || s[1] === "reports") return [{ label: t("overview") }];
@@ -175,8 +180,9 @@ function crumbsFor(pathname: string, detail: string | null): Crumb[] {
 function Breadcrumbs() {
   const pathname = usePathname();
   const detail = useCrumbLabel();
+  const parent = useCrumbParent();
   const { withOrg } = useWorkspace();
-  const crumbs = crumbsFor(pathname, detail);
+  const crumbs = crumbsFor(pathname, detail, parent);
   const page = crumbs.at(-1)?.label;
   // Name the browser tab after the page. Route metadata rewrites <title> on
   // client navigations (including query changes), so re-apply after it does.
@@ -442,6 +448,11 @@ function SidebarBody({
       <WorkspaceSwitcher collapsed={collapsed} />
       <Nav groups={groups} collapsed={collapsed} onNavigate={onNavigate} />
       <div className="p-sidebar-foot">
+        {/* A visible Help entry (launch L-22, spec §5.2 Shell); the account menu and ⌘K keep theirs. */}
+        <button type="button" className="p-nav-item" title={collapsed ? t("help") : undefined} onClick={onHelp}>
+          <CircleHelp />
+          <span className="p-nav-label-text">{t("help")}</span>
+        </button>
         {workspace && (
           <Link
             href={withOrg("/workspace/settings")}
@@ -558,7 +569,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   const paletteLinks: PaletteLink[] = groups.flatMap((group) =>
     group.items.map((item) => ({ href: item.scoped ? withOrg(item.href) : item.href, label: item.label, icon: item.icon, group: group.label ?? t("goTo") })),
   );
-  if (identity.workspaces.length) paletteLinks.push({ href: withOrg("/workspace/settings"), label: t("settings"), icon: <Settings />, group: t("goTo") });
+  // Settings and each of its tabs are their own ⌘K group (launch L-22).
 
   const sidebarProps = { identity, groups, signingOut, signOutError, onSignOut: signOut, onHelp: () => openHelp() };
 
