@@ -67,7 +67,14 @@ export function paymentsAccess(orgId: string, env: Env = process.env, options: {
   return billingCreditsEnabled(env) && (options.requireEntity === false || getLegalEntity(env)) ? "open" : "closed";
 }
 
-/** Base URL of the app for Stripe return links. */
+/**
+ * Origin of the app host for Stripe return links and the portal. Never
+ * NEXT_PUBLIC_APP_URL: in production it names the public site, where
+ * /workspace paths do not exist.
+ */
 export function appBaseUrl(env: Env = process.env) {
-  return (env.EVALS_APP_URL ?? env.NEXT_PUBLIC_APP_URL ?? "https://app.caudals.com").replace(/\/$/, "");
+  for (const value of [env.EVALS_APP_URL, env.BETTER_AUTH_URL]) {
+    try { if (value?.trim()) return new URL(value.trim()).origin; } catch { /* next */ }
+  }
+  return "https://app.caudals.com";
 }

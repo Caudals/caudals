@@ -1,6 +1,6 @@
 /** Who may pay, in which mode, with which key (spec §6.18; decisions I-3, I-9). */
 import { describe, expect, it } from "vitest";
-import { keyMatchesMode, paymentsAccess, stripeMode, stripeSecretKey, stripeWebhookSecret, testWorkspaceIds } from "../../lib/billing/payments-config";
+import { appBaseUrl, keyMatchesMode, paymentsAccess, stripeMode, stripeSecretKey, stripeWebhookSecret, testWorkspaceIds } from "../../lib/billing/payments-config";
 import { billingEmailAllowed } from "../../lib/billing/emails";
 import { checkoutText } from "../../lib/billing/checkout";
 import { creditsToUcr } from "../../lib/billing/units";
@@ -49,6 +49,14 @@ describe("payments access", () => {
   it("closes when the key is missing or of the other mode", () => {
     expect(paymentsAccess(ORG, { BILLING_TEST_WORKSPACE_IDS: ORG })).toBe("closed");
     expect(paymentsAccess(ORG, { STRIPE_SECRET_KEY: "sk_live_x", BILLING_TEST_WORKSPACE_IDS: ORG })).toBe("closed");
+  });
+});
+
+describe("Stripe return links", () => {
+  it("point at the app host, never at the public site", () => {
+    expect(appBaseUrl({ NEXT_PUBLIC_APP_URL: "https://caudals.com" })).toBe("https://app.caudals.com");
+    expect(appBaseUrl({ EVALS_APP_URL: "https://app.caudals.com/", NEXT_PUBLIC_APP_URL: "https://caudals.com" })).toBe("https://app.caudals.com");
+    expect(appBaseUrl({ BETTER_AUTH_URL: "http://localhost:3000/api/auth" })).toBe("http://localhost:3000");
   });
 });
 
