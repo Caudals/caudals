@@ -90,8 +90,8 @@ export function WorkspaceBilling() {
       <div className="p-billing-head">
         <Tabs value={view} onChange={select} label={t("billingAndUsage")} options={views} variant="pill" />
         <HelpLink topic="billing" />
+        {summary.payments?.mode === "test" && summary.payments.access !== "closed" && <Badge tone="warn" dot>{t("billingTestMode")}</Badge>}
       </div>
-      {summary.payments?.mode === "test" && summary.payments.access !== "closed" && <Badge tone="warn" dot>{t("billingTestMode")}</Badge>}
       {view === "overview" ? <BillingOverview summary={summary} onSelect={select} />
         : view === "top-up" ? <TopUpPanel summary={summary} onChanged={refresh} />
         : view === "usage" ? <UsagePanel summary={summary} />

@@ -22,13 +22,14 @@ import { requireWorkspace } from "@/lib/evals/domain/identity";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { idempotent } from "@/lib/evals/repositories/evidence";
 import {
-  ledgerPage, lowBalanceThresholdUcr, monthWindow, nextExpiry, readAccount, usageLines, usageReport, usageTotals, type UsageLine,
+  everFunded, ledgerPage, lowBalanceThresholdUcr, monthWindow, nextExpiry, readAccount, usageLines, usageReport, usageTotals, type UsageLine,
 } from "./account-view";
 import { allowanceKey, allowancePeriod } from "./allowance";
 import { billingLevel, billingUiEligible, type BillingLevel } from "./billing-ui";
 import { engineBillingMode, workspaceEngineMode } from "./engine";
 import { EstimateError, evaluationModelRates } from "./estimate";
 import { capsInput, readSpendCaps, saveSpendCaps, type SpendCaps } from "./limits";
+import { plansV2For } from "./overrides";
 import { findPack, packCredits } from "./packs";
 import { getAutoRecharge, getStripeCustomer } from "./payments";
 import { paymentsAccessFor, stripeMode } from "./payments-config";
@@ -90,7 +91,10 @@ export async function billingSummary(identity: EvalIdentity, orgId: string, env:
     const settings = owner ? await getAutoRecharge(db, orgId) : null;
     const customer = owner ? await getStripeCustomer(db, orgId, stripeMode(env) === "live") : null;
     const pending = owner ? Number((await db.query("SELECT count(*)::int AS n FROM billing.top_up_order WHERE org_id=$1 AND status='pending' AND created_at > now()-interval '1 hour'", [orgId])).rows[0].n) : 0;
-    return { account, plan: String(entitlement?.plan ?? "managed"), month, caps, threshold, expiry, mode, allowance: allowance.rows[0] ?? null, settings, customer, pending };
+    // A workspace that never had credits is not "low"; the monthly allowance exists only where plans v2 applies (L-14).
+    const funded = await everFunded(db, orgId);
+    const plansV2 = await plansV2For(db, orgId, env);
+    return { account, plan: String(entitlement?.plan ?? "managed"), month, caps, threshold, expiry, mode, allowance: allowance.rows[0] ?? null, settings, customer, pending, funded, plansV2 };
   });
   if (!data) throw new EvalError("SCOPE_DENIED", 404);
   const { account, month, caps, threshold, expiry, settings } = data;
@@ -99,7 +103,8 @@ export async function billingSummary(identity: EvalIdentity, orgId: string, env:
   const credit = account.billingMode !== "contract";
   const alerts: Array<{ kind: string; [key: string]: unknown }> = [];
   if (account.frozen) alerts.push({ kind: "frozen" });
-  if (credit && account.availableUcr < threshold) alerts.push({ kind: "low_balance", thresholdUcr: s(threshold) });
+  const low = credit && data.funded && account.availableUcr < threshold;
+  if (low) alerts.push({ kind: "low_balance", thresholdUcr: s(threshold) });
   if (caps.monthlyUcr !== null && caps.monthlyUcr > ZERO && committed * BigInt(100) >= caps.monthlyUcr * BigInt(50)) {
     alerts.push({ kind: "cap", percent: Number((committed * BigInt(100)) / caps.monthlyUcr) });
   }
@@ -115,8 +120,8 @@ export async function billingSummary(identity: EvalIdentity, orgId: string, env:
     gate: data.mode === "enforce" && credit ? "enforced" : "none",
     month: { period: window.period, from: window.start.toISOString(), to: window.end.toISOString(), usedUcr: s(month.netUcr), committedUcr: s(committed) },
     caps: capsView(caps),
-    lowBalance: { thresholdUcr: s(threshold), below: credit && account.availableUcr < threshold },
-    allowance: data.plan === "free" || data.plan === "payg"
+    lowBalance: { thresholdUcr: s(threshold), below: low },
+    allowance: data.plansV2 && (data.plan === "free" || data.plan === "payg")
       ? { monthlyCredits: MONTHLY_ALLOWANCE_CREDITS, period: allowancePeriod(), granted: Boolean(data.allowance), expiresAt: data.allowance ? new Date(data.allowance.expires_at).toISOString() : null }
       : null,
     nextExpiry: expiry ? { ucr: s(expiry.ucr), at: expiry.at.toISOString(), source: expiry.source } : null,
