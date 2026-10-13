@@ -43,13 +43,13 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 7 | L-23 | EN/ES parity guard and sweep | L-07, L-17 | — | todo | | |
 | 7 | L-24 | Accessibility and performance budgets | L-04, L-15, L-17 | 097 `perf_indexes` (if needed) | todo | | |
 | 7 | L-34 | Better document intake | L-06, L-14 | 098 `evals_intake_v2` | todo | | |
-| 7 | L-35 | Readout (presentation) mode | L-17 | 099 `evals_readout_decks` | todo | | |
+| 7 | L-35 | Readout (presentation) mode | L-17 | 099 `evals_readout_decks` | in progress | | |
 | 7 | L-25 | Sector packs v1 and monthly new questions | L-22 | 100 `evals_sector_packs` | todo | | |
 | 7 | L-26 | Expert review: request to reviewed report | L-17 | 101 `evals_review_orders` | todo | | |
 | 7 | L-27 | Bring your own provider key | L-11, L-15 | 102 `billing_byok` | todo | | |
 | 7 | L-28 | Partner workspaces and referral codes | L-02, L-14, L-17 | 103 `evals_partners` | todo | | |
 | 7 | L-31 | Opt-in public results page, anonymous index | L-17, L-21 | 104 `evals_publication_consent` | todo | | |
-| 7 | L-32 | Data controls: retention and export | — | 105 `evals_retention_setting` | todo | | |
+| 7 | L-32 | Data controls: retention and export | — | 105 `evals_retention_setting` | todo | | Also builds the L-30 follow-up: ops upload of a countersigned DPA PDF (migration 108 `evals_dpa_countersigned`). |
 | 7 | L-36 | "Pregunta a tu informe" (Ask your report) | L-11, L-17, L-33 | 106 `evals_report_questions` | todo | | |
 
 Migration numbers are reserved up front so parallel packages never collide. An unused number (a package that needs no migration) stays a gap.
@@ -141,3 +141,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-13 | L-30 done (`7151995`, no migration, no flag): public site refresh in EN and ES and the Settings DPA click-through; app and workers deployed; production public-route suite 76 passed. Founder action added: bring Blog and Newsletter back once their content is live. |
 | 2026-10-13 | L-29 done (`2ed6c5a`, no migration): AI-disclosure check (Art. 50 evidence) in demo and product runs, stored beside the answers (demo) and on the first case observation and report snapshot (product), never in the score. App and workers deployed; one production demo against our synthetic API with `AI_DISCLOSURE_CHECK=true` for the check (Disclosed by the judge, shown on the report, score 0/8 as before), then off. `DEMO_RUNS_PER_VISITOR` and `DEMO_RUNS_PER_SITE` raised to 5 for it and restored to 1 and 3. Founder action extended: lawyer review of the wording, then switch on. |
 | 2026-10-13 | Usage limits hit at ~21:00 and ~02:00 UTC; agents resumed at 01:11 and 07:25. L-17, L-12 and L-06 done; Gate A packages all deployed. Agents started for L-13, L-14 and L-22. Brief: merge lock is acquired only in the foreground. |
+| 2026-10-13 | L-30 done (`7151995`). Migration 108 reserved for the countersigned-DPA upload, built with L-32. Agent started for L-35. |
