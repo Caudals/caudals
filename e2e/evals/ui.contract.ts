@@ -33,7 +33,9 @@ test(`manual connector repairs retain every Fix action and Test again until pers
   await page.goto("/workspace/web-app-fixture?owner");
   await page.getByRole("button", { name: "Open live browser" }).click();
   const studio = page.getByRole("dialog", { name: "Web app connection" });
-  await studio.getByRole("button", { name: "Connect system", exact: true }).click();
+  // The fixture already knows both parts, so once the first state arrives the
+  // button reads "Connect again"; before it, "Connect system" (disabled).
+  await studio.getByRole("button", { name: /^Connect (system|again)$/ }).click();
   await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toBeVisible();
   if (failure === "website_usage_limit") await expect(studio.getByText("This website has reached its interaction or credit limit.", { exact: false })).toBeVisible();
   await studio.getByRole("listitem").filter({ hasText: "Reply" }).getByRole("button", { name: "Fix" }).click();
