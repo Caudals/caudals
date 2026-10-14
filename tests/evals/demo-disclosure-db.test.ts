@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeAskApi, fakeModelFetch, fakeReadSite } from "../../scripts/demo/fake-demo";
 import { OPENING_MESSAGE, PERSON_QUESTION } from "@/lib/evals/scoring/disclosure";
+import { testDatabaseUrls } from "../helpers/test-database";
 
 // The AI-disclosure check in the demo engine (launch L-29), on the production
 // schema with fake pages, a fake assistant and a fake model. Events and email
@@ -10,8 +11,7 @@ import { OPENING_MESSAGE, PERSON_QUESTION } from "@/lib/evals/scoring/disclosure
 vi.mock("@/lib/demo/events", () => ({ demoStarted: () => {}, demoFinished: () => {} }));
 vi.mock("@/lib/resend/client", () => ({ getResendClient: () => ({ emails: { send: async () => ({ data: { id: "fake" }, error: null }) } }) }));
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
-const runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("demo_disclosure");
 const PRIMARY = "http://primary.demo.test/v1";
 const FALLBACK = "https://fallback.demo.test/api/v1";
 

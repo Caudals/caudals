@@ -222,6 +222,13 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`
 - **Test-set review** (`TestSetReview` in `components/evals/preparation-parts.tsx`): free and pay-as-you-go workspaces open on a spot check of 10 questions (spread across source pages, most severe first; `lib/evals/review/spot-check.ts`), each marked "Looks right", edited in place or removed; "Approve and run" (or "Approve without running") unlocks when all are checked and says the report will be preliminary. "Review all N questions" opens the full review, the only mode for managed workspaces: search, difficulty chips, a source-page filter, select (one or all shown), "Mark as checked", "Remove selected" (one request, confirmed) and inline edit. The approval sends `review` (mode and checked ids) for the audit trail. Spot-check progress survives a reload in the tab (`sessionStorage`).
 - **Review keyboard shortcuts** (while no field, dialog or menu has the keyboard; "Keyboard shortcuts" or `?` lists them): `j` next question, `k` previous, `c` mark as right (or undo), `x` select (full review), `e` edit, `r` remove (asks first), `/` search (opens the full review from the spot check), `?` show the list.
 
+### Accessibility and performance budgets (launch L-24)
+
+- **Accessibility gate (P-46).** `e2e/evals/a11y.contract.ts` (in `ui.config.ts`) runs axe (`e2e/evals/axe.ts`: WCAG 2.0–2.2 A/AA plus best practices, serious and critical only, colours checked at rest) on the core screens: landing (EN/ES), demo start, live and report, sign-up from the demo, direct sign-up, sign-in, evaluations list, new evaluation, the evaluation page (running and paused for credits), the report's overview and results, billing, top up and the estimate and top-up dialogs. It also checks that dialogs take, keep and return focus, that progress is announced (`aria-live`, `progressbar` values), that nothing moves under reduced motion, and that the funnel (landing → demo → report → sign-up) can be completed with the keyboard alone, with a visible focus indicator on every stop. `e2e/a11y-public.spec.ts` runs the same axe pass on served pages (a production build in CI, or production with `PLAYWRIGHT_BASE_URL`/`PLAYWRIGHT_APP_URL`). The harness serves the landing at `/en` and `/es` and the demo at `/en/demo` and `/es/demo` with the front door on.
+- **Performance budgets (P-47).** `lighthouserc.js`: the landing (`/en`), the demo (`/en/demo`) and direct sign-up (`/workspace/start`), mobile (default) and desktop (`LHCI_FORM_FACTOR=desktop`), three runs, median asserted. CLS < 0.1 and TBT < 200 ms are errors everywhere; LCP < 2.5 s is an error for sign-up and on desktop, and a warning plus a regression ceiling for the mobile landing and demo until the public-site weight follow-up (L-24.md). CI's `budgets` job builds the app and runs both, only when files that reach those pages change.
+- **Public pages stay light.** Everything on the public site is paid for on a phone's first visit: no animation or motion library (CSS keyframes, as the cookie notice), no session client (`RootDocument session={false}` in the public layout: nothing public depends on who is signed in), and the largest text renders on the server at full opacity (`.lp-lift` for the hero headline and standfirst; the demo's start view is server-rendered, and a run's private link hides it before the first paint).
+- **The demo's proof of work** runs in a Blob worker built from `powKernel`'s source and read back by property name (`components/demo/pow.ts`), so minification cannot break it; it starts when the visitor engages with the form, and the main-thread fallback works in slices of at most 8 ms. `lib/demo/demo.test.ts` runs the worker source from an esbuild-minified bundle.
+
 ## Implementation Rules
 
 1. Start from existing design tokens and shared primitives.
@@ -234,8 +241,8 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`
    serves the real components with fixture data on `127.0.0.1:4187`. It bundles
    `platform.css` + `evaluation.css`, so it is the fastest way to see a design
    change without a database or a session. `npx playwright test
-   --config=e2e/evals/ui.config.ts` runs the UI contracts against it (48 tests:
-   flows, focus, 390/768/1440 layouts, secrets never rendered). The harness
+   --config=e2e/evals/ui.config.ts` runs the UI contracts against it (312 tests
+   on 2026-10-14: flows, focus, 390/768/1440 layouts, axe, secrets never rendered). The harness
    mounts the client `ShellFrame` directly, because `EvalShell` reads server
    environment flags.
 

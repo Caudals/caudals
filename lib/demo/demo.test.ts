@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
+import path from "node:path";
+import { runInNewContext } from "node:vm";
+import { build } from "esbuild";
 import { describe, expect, it, vi } from "vitest";
-import { firstWord, search } from "@/components/demo/pow";
+import { firstWord, search, WORKER_SOURCE } from "@/components/demo/pow";
 import { plainAnswer } from "@/components/demo/answer-text";
 import { addressBucket, clientAddress } from "./client";
 import { acceptTest, buildExcerpts, completeObjects } from "./generate";
@@ -41,6 +44,28 @@ describe("proof of work", () => {
     expect(verifyChallenge(challenge, solved, "someone-else")).toBeNull();
     expect(verifyChallenge({ ...challenge, expires: challenge.expires + 1 }, solved, "visitor")).toBeNull();
     expect(verifyChallenge(challenge, solved, "visitor", challenge.expires + 1)).toBeNull();
+  });
+  /** Runs a worker source the way a browser worker would: its own global scope, one message in, one out. */
+  function runWorker(source: string, data: { salt: string; bits: number }) {
+    const posted: unknown[] = [];
+    const scope: { postMessage: (value: unknown) => void; onmessage?: (event: { data: unknown }) => void } = { postMessage: (value) => posted.push(value) };
+    runInNewContext(source, scope);
+    scope.onmessage!({ data });
+    return posted;
+  }
+  it("the worker solves the challenge from its own source", () => {
+    const salt = "0123456789abcdef0123456789abcdef";
+    expect(runWorker(WORKER_SOURCE, { salt, bits: 12 })).toEqual([search(salt, 12)]);
+  });
+  it("the worker still solves after the bundle is minified (L-24: production renamed `search` and every worker failed)", async () => {
+    const result = await build({ entryPoints: [path.resolve(__dirname, "../../components/demo/pow.ts")], bundle: true, minify: true, format: "cjs", platform: "neutral", write: false, logLevel: "silent" });
+    const bundle = result.outputFiles[0].text;
+    const exported: { exports: Record<string, unknown> } = { exports: {} };
+    new Function("module", "exports", bundle)(exported, exported.exports);
+    const source = exported.exports.WORKER_SOURCE as string;
+    expect(source).not.toMatch(/function search\(/);
+    const salt = "fedcba9876543210fedcba9876543210";
+    expect(runWorker(source, { salt, bits: 12 })).toEqual([search(salt, 12)]);
   });
 });
 

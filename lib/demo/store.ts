@@ -208,8 +208,9 @@ export async function recordModelUse(id: string, use: { model: string; costEur: 
   );
 }
 
+/** Adds one question, stamped with the database time it was written (`at`: time to first question, launch L-24). */
 export async function appendCase(id: string, item: DemoCase) {
-  await db().query("UPDATE demo.run SET cases = cases || $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 AND phase NOT IN ('done','failed')", [id, JSON.stringify([item])]);
+  await db().query("UPDATE demo.run SET cases = cases || jsonb_build_array($2::jsonb || jsonb_build_object('at', now())), version = version + 1, updated_at = now() WHERE id = $1 AND phase NOT IN ('done','failed')", [id, JSON.stringify(item)]);
 }
 
 export async function setAnswer(id: string, caseId: string, answer: DemoAnswer) {

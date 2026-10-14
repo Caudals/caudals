@@ -7,7 +7,7 @@
  * real private storage) and the owner download, live versus test documents,
  * roles and RLS, the monthly export with its reconciliation fixtures, and the
  * rollback refusal. Stripe and the email provider are fakes; the database and
- * object storage are scripts/evals/test-db.sh. Run this file on its own (I-12).
+ * object storage are scripts/evals/test-db.sh. It runs on its own copy of the database (I-12, tests/helpers/test-database.ts).
  */
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -37,9 +37,9 @@ import { runInvoicing } from "../../lib/billing/invoicing/jobs";
 import { accountantExport, claimInvoicing, getDocument, issueDocument, listDocuments, voidDocument } from "../../lib/billing/invoicing/store";
 import { reconcileStripe, renderExport, type AccountantExport, type BalanceTransaction } from "../../lib/billing/invoicing/export";
 import { adminInvoiceAction, invoicePdf, listInvoices } from "../../lib/billing/invoicing/api";
+import { testDatabaseUrls } from "../helpers/test-database";
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
-const runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("invoicing");
 const s3 = process.env.EVALS_TEST_S3_ENDPOINT;
 const SCHEDULER = "service:evals-scheduler";
 const c = (credits: number) => creditsToUcr(credits);

@@ -14,11 +14,12 @@ import { createEvaluation } from "@/lib/evals/repositories/managed";
 import { getGrowth } from "@/lib/analytics/growth";
 import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
+import { testDatabaseUrls } from "../helpers/test-database";
 const mail = vi.hoisted(() => vi.fn(async () => ({data:{id:"fake"},error:null})));
 vi.mock("@/lib/resend/client", () => ({getResendClient: () => ({emails:{send:mail}})}));
 vi.mock("@/lib/demo/import", () => ({importDemo: vi.fn(async () => ({evaluationId:null}))}));
 vi.mock("@/lib/security/rate-limit", () => ({consumeRateLimit: vi.fn(async () => ({allowed:true}))}));
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL, runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("analytics_growth");
 describe.skipIf(!ownerUrl || !runtimeUrl)("analytics real-schema journey and operator growth", () => {
   const owner = new Pool({connectionString:ownerUrl,max:1});
   let operator: EvalIdentity, member: EvalIdentity, orgId: string;

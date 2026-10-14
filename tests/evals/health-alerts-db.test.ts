@@ -2,8 +2,9 @@
  * Launch alert signals (L-08, spec P-48) on the production schema: the real
  * scripts/evals/health-alerts.sh runs against the disposable database with
  * host checks off and a local stand-in for the email API, so detection, the
- * runbook links, open/resolve state and the drill are all exercised. Run this
- * file on its own: its counts are database-wide, as in production.
+ * runbook links, open/resolve state and the drill are all exercised. Its
+ * counts are database-wide, as in production, so it runs on its own copy of
+ * the database (I-12, tests/helpers/test-database.ts).
  */
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -14,8 +15,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { testDatabaseUrls } from "../helpers/test-database";
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
+const { ownerUrl } = testDatabaseUrls("health_alerts");
 const run = promisify(execFile);
 const script = path.resolve(__dirname, "../../scripts/evals/health-alerts.sh");
 const hex = () => createHash("sha256").update(randomUUID()).digest("hex");
@@ -71,6 +73,7 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
         CAUDALS_ALERT_RESEND_URL: endpoint,
         CAUDALS_ALERT_PSQL: `psql -h ${url.hostname} -p ${url.port} -U ${decodeURIComponent(url.username)}`,
         PGPASSWORD: decodeURIComponent(url.password),
+        CAUDALS_ALERT_DATABASE: url.pathname.slice(1),
         CAUDALS_ALERT_QUEUE_DATABASE: url.pathname.slice(1),
         CAUDALS_ALERT_QUEUE_SCHEMA: "alerts_fixture_boss",
         ...extra,

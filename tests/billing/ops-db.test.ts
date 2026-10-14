@@ -7,8 +7,8 @@
  * refuses large person-written entries without an approval, requests expire;
  * a money refund above €100 through a second approver (Stripe is a fake);
  * freeze, extend expiry, account view, search, credit usage, the fraud queue
- * and credits per run. The database is scripts/evals/test-db.sh. Run this
- * file on its own (I-12).
+ * and credits per run. The database is scripts/evals/test-db.sh; the file
+ * runs on its own copy of it (I-12, tests/helpers/test-database.ts).
  */
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
@@ -25,9 +25,9 @@ import {
   accountForAdmin, approveForAdmin, closeApprovalForAdmin, creditActionForAdmin, creditUsageForPlatform, extendExpiryForAdmin, fraudQueueForAdmin,
   freezeForAdmin, listApprovalsForAdmin, moneyRefundForAdmin, runCreditsForPlatform, searchAccountsForAdmin,
 } from "../../lib/billing/ops";
+import { testDatabaseUrls } from "../helpers/test-database";
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
-const runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("billing_ops");
 const SCHEDULER = "service:evals-scheduler";
 const c = (credits: number) => creditsToUcr(credits);
 process.env.BILLING_STRIPE_MODE = "test";

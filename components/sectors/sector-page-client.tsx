@@ -101,12 +101,12 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
       <section className="lp-wrap lp-hero sx-hero">
         <div>
           <p className="lp-label lp-rise">{copy.audience}</p>
-          <h1 className="lp-h1 sx-h1 lp-rise" style={{ ["--d" as string]: 0.04 }}>
+          <h1 className="lp-h1 sx-h1 lp-lift" style={{ ["--d" as string]: 0.04 }}>
             {headline.before}
             {headline.marked ? <em>{headline.marked}</em> : null}
             {headline.after}
           </h1>
-          <p className="lp-sub lp-rise" style={{ ["--d" as string]: 0.08 }}>
+          <p className="lp-sub lp-lift" style={{ ["--d" as string]: 0.08 }}>
             {copy.subtitle}
           </p>
           <div className="lp-hero-act lp-rise" style={{ ["--d" as string]: 0.16 }}>

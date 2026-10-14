@@ -78,6 +78,17 @@ DO $$ BEGIN
   END IF;
 END $$;
 SQL
+# Decision I-12 (launch L-24): suites whose functions or assertions are
+# database-wide (alerts, the ops digest, the demo runner's queue, growth counts,
+# the invoicing job, the daily reconciliation, ops billing and global price-book
+# revisions) get their own copy of the migrated database, so every suite passes
+# in one parallel run. tests/helpers/test-database.ts points a
+# listed suite at caudals_<suite>; roles and grants are cluster-wide.
+isolated="analytics_growth billing_ops demo_disclosure demo_queue health_alerts invoicing price_notice prospect_snapshots reconcile"
+for suite in $isolated; do
+  # From the maintenance database: a template must have no open sessions.
+  docker exec -i "$name" psql -v ON_ERROR_STOP=1 -q -U postgres -d postgres -c "CREATE DATABASE caudals_$suite TEMPLATE caudals" >&2
+done
 # Disposable private object storage for storage, lifecycle and export fixtures.
 s3_port="${EVALS_TEST_S3_PORT:-55440}"
 docker rm -f "$name-s3" >/dev/null 2>&1 || true
@@ -91,3 +102,4 @@ echo "export EVALS_TEST_DATABASE_URL=postgres://evals_test_runtime:runtime@127.0
 echo "export EVALS_TEST_DOCUMENTS_DATABASE_URL=postgres://evals_test_documents:documents@127.0.0.1:$port/caudals"
 echo "export EVALS_TEST_ADMIN_URL=postgres://evals_test_admin:admin@127.0.0.1:$port/caudals"
 echo "export EVALS_TEST_SCHEDULER_URL=postgres://evals_test_scheduler:scheduler@127.0.0.1:$port/caudals"
+echo "export EVALS_TEST_ISOLATED_DATABASES=$(echo $isolated | tr ' ' ',')"

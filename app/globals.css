@@ -175,3 +175,25 @@
     display: none !important;
   }
 }
+
+/* The cookie banner's entrance (components/legal/cookie-consent-banner.tsx):
+   rises and fades in; under reduced motion it only fades (launch L-24). */
+@keyframes cookie-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes cookie-banner-fade {
+  from {
+    opacity: 0;
+  }
+}
+.cookie-banner {
+  animation: cookie-banner-fade 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cookie-banner {
+    animation-name: cookie-banner-in;
+  }
+}

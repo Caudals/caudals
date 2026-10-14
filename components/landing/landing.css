@@ -150,10 +150,22 @@
     animation: lp-rise 0.9s var(--ease) both;
     animation-delay: calc(var(--d, 0) * 1s);
   }
+  /* The hero headline and standfirst rise without fading: they are the
+     page's largest paint, so they show at full opacity from the first frame
+     (launch L-24, mobile LCP). */
+  .lp-lift {
+    animation: lp-lift 0.9s var(--ease) both;
+    animation-delay: calc(var(--d, 0) * 1s);
+  }
 }
 @keyframes lp-rise {
   from {
     opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes lp-lift {
+  from {
     transform: translateY(14px);
   }
 }

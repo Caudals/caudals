@@ -9,6 +9,7 @@ import { genericGroundedQaPack, syntheticAccountingFixture } from "@/lib/evals/g
 import { getEvalsPool, withTenant } from "@/lib/evals/repositories/db";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 import type { OpsDigestData } from "@/lib/analytics/targets";
+import { testDatabaseUrls } from "../helpers/test-database";
 
 /**
  * Launch L-21 on the real schema: the sandbox and its basis record, the daily
@@ -16,7 +17,7 @@ import type { OpsDigestData } from "@/lib/analytics/targets";
  * labelled 30-day links), the explicit CRM draft, operator-only RLS, the
  * growth details and the weekly digest's numbers and once-a-week send.
  */
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL, runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("prospect_snapshots");
 const SCHEDULER = "service:evals-scheduler";
 
 describe.skipIf(!ownerUrl || !runtimeUrl)("prospect snapshots and the ops digest on PostgreSQL", () => {

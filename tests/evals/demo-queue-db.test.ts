@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeAskApi, fakeModelFetch, fakeReadSite } from "../../scripts/demo/fake-demo";
+import { testDatabaseUrls } from "../helpers/test-database";
 
 // Events and email are observed, never sent.
 const events = vi.hoisted(() => [] as Array<{ name: string; id: string; payload: Record<string, unknown> }>);
@@ -22,8 +23,7 @@ vi.mock("@/lib/resend/client", () => ({
   } } }),
 }));
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
-const runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("demo_queue");
 
 const PRIMARY = "http://primary.demo.test/v1";
 const FALLBACK = "https://fallback.demo.test/api/v1";
@@ -255,6 +255,10 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("demo queue, fallback cap and report e
     await until(async () => (await row(id)).phase === "done");
     const done = await row(id);
     expect(done.model_used).toBe("google/gemini-3.1-flash-lite");
+    // Every question carries the time it was written (launch L-24: time to the first question).
+    const written = (done.cases as Array<{ at?: string }>).map((item) => Date.parse(item.at ?? ""));
+    expect(written.length).toBeGreaterThan(0);
+    expect(written.every((at) => at >= new Date(done.created_at).getTime() && at <= new Date(done.finished_at).getTime())).toBe(true);
     expect(events.filter((event) => event.id === id).map((event) => event.name)).toEqual(["demo_started", "demo_finished"]);
     vi.unstubAllGlobals();
   }, 120_000);

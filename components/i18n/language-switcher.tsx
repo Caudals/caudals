@@ -50,7 +50,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
               className={cn(
                 "rounded px-1 py-0.5 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30",
-                isActive ? "text-[#141413]" : "text-[#8c8b84] hover:text-[#141413]",
+                isActive ? "text-[#141413]" : "text-[#6b6a63] hover:text-[#141413]",
               )}
             >
               {localeShortLabels[locale]}

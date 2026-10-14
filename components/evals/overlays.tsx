@@ -5,7 +5,7 @@
  * show-once secret field and toasts. Built directly on Radix so the platform
  * classes are the only styling layer. Visual contract: packages/brand/platform.css.
  */
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as MenuPrimitive from "@radix-ui/react-dropdown-menu";
@@ -35,11 +35,30 @@ export function Modal({
   alert?: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
+  // Modals open from state, not a Radix trigger, so Radix has nowhere to send
+  // focus when they close. Remember what had focus as the dialog opened and
+  // give it back (WCAG 2.4.3, launch L-24).
+  const opener = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const active = document.activeElement;
+    opener.current = active instanceof HTMLElement && active !== document.body ? active : null;
+  }, [open]);
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="p-scrim" />
-        <DialogPrimitive.Content className="p-root p-modal" data-size={size}>
+        <DialogPrimitive.Content
+          className="p-root p-modal"
+          data-size={size}
+          onCloseAutoFocus={(event) => {
+            const target = opener.current;
+            opener.current = null;
+            if (!target?.isConnected) return;
+            event.preventDefault();
+            target.focus();
+          }}
+        >
           <div className="p-modal-head">
             <DialogPrimitive.Title className="p-modal-title">{title}</DialogPrimitive.Title>
             {description ? (

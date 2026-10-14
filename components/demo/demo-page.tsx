@@ -62,13 +62,23 @@ function kindOf(value: string): "website" | "openai" | "curl" | null {
   } catch { return null; }
 }
 
+/**
+ * Set before the first paint when the address is a run's private link, so the
+ * start view (rendered on the server for every visitor, launch L-24) stays
+ * hidden until the run view replaces it. Inline: it must run before React.
+ */
+const RUN_LINK_SCRIPT = `if(/^#r=/.test(location.hash))document.documentElement.setAttribute("data-demo-run","")`;
+
 export function DemoPage() {
   const t = useTranslations("demo");
   const [handle, setHandle] = useState<Handle | null>(null);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const sync = () => { setHandle(readHandle()); setReady(true); };
+    const sync = () => {
+      setHandle(readHandle());
+      // From here React decides which view shows.
+      document.documentElement.removeAttribute("data-demo-run");
+    };
     sync();
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
@@ -81,21 +91,24 @@ export function DemoPage() {
   }, []);
 
   const headline = splitMarked(t("headline"));
+  // The start view is server-rendered, so the headline is the first paint
+  // (largest contentful paint) and nothing shifts when the page hydrates.
   return (
     <div className="lp-wrap">
       <div className="dm">
-        {!ready ? null : handle ? (
+        {handle ? (
           <RunView handle={handle} onReset={() => open(null)} />
         ) : (
-          <>
-            <h1 className="dm-h1 lp-rise">
+          <div className="dm-start">
+            <script dangerouslySetInnerHTML={{ __html: RUN_LINK_SCRIPT }} />
+            <h1 className="dm-h1 lp-lift">
               {headline.before}
               {headline.marked ? <em>{headline.marked}</em> : null}
               {headline.after}
             </h1>
-            <p className="dm-sub lp-rise" style={{ ["--d" as string]: 0.06 }}>{t("subtitle")}</p>
+            <p className="dm-sub lp-lift" style={{ ["--d" as string]: 0.06 }}>{t("subtitle")}</p>
             <StartForm onStarted={open} />
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -116,24 +129,37 @@ function StartForm({ onStarted }: { onStarted: (handle: Handle) => void }) {
   const [docsOpen, setDocsOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ code: string; host?: string } | null>(null);
-  const solution = useRef<{ challenge: Challenge; nonce: Promise<string> } | null>(null);
+  const solution = useRef<{ challenge: Challenge; nonce: Promise<string> | null } | null>(null);
+  const engaged = useRef(false);
   const field = useRef<HTMLTextAreaElement>(null);
+
+  // The proof of work starts once the visitor engages with the form (focus,
+  // a tap or typing), in a worker, so loading the page costs it nothing; it
+  // is usually solved before they finish pasting (launch L-24).
+  const solve = useCallback(() => {
+    engaged.current = true;
+    const current = solution.current;
+    if (!current) return null;
+    if (!current.nonce) {
+      current.nonce = solveChallenge(current.challenge.salt, current.challenge.bits);
+      current.nonce.catch(() => {});
+    }
+    return current.nonce;
+  }, []);
 
   const loadChallenge = useCallback(async () => {
     try {
       const response = await fetch("/api/demo/challenge", { cache: "no-store" });
       const data = (await response.json()) as Intro;
       setIntro(data);
-      if (data.challenge) {
-        const nonce = solveChallenge(data.challenge.salt, data.challenge.bits);
-        nonce.catch(() => {});
-        solution.current = { challenge: data.challenge, nonce };
-      }
+      solution.current = data.challenge ? { challenge: data.challenge, nonce: null } : null;
+      if (engaged.current) solve();
     } catch {
       setIntro({ open: false, reason: "closed", challenge: null, last: null });
     }
-  }, []);
-  useEffect(() => { void loadChallenge(); }, [loadChallenge]);
+  }, [solve]);
+  // A run's private link shows the run instead; it needs no challenge.
+  useEffect(() => { if (!readHandle()) void loadChallenge(); }, [loadChallenge]);
 
   // The field grows with a pasted curl command.
   useEffect(() => {
@@ -156,7 +182,8 @@ function StartForm({ onStarted }: { onStarted: (handle: Handle) => void }) {
     setPending(true);
     setError(null);
     try {
-      const { challenge, nonce } = solution.current;
+      const { challenge } = solution.current;
+      const nonce = solve()!;
       const response = await fetch("/api/demo/runs", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -189,7 +216,7 @@ function StartForm({ onStarted }: { onStarted: (handle: Handle) => void }) {
   const hint = !kind ? t("hintEmpty") : kind === "website" ? t("hintWebsite", { host }) : kind === "openai" ? t("hintOpenai") : t("hintCurl");
 
   return (
-    <form className="dm-form lp-rise" style={{ ["--d" as string]: 0.12 }} onSubmit={submit} noValidate>
+    <form className="dm-form lp-rise" style={{ ["--d" as string]: 0.12 }} onSubmit={submit} onFocus={solve} onPointerDown={solve} noValidate>
       {intro?.last ? (
         <p className="dm-last">
           {t("lastRun", { host: intro.last.host })}{" "}

@@ -36,6 +36,7 @@ import { WorkspaceHome } from "../../components/evals/workspace-home";
 import { WorkspaceSystems } from "../../components/evals/workspace-systems";
 import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
+import { HomePageClient } from "../../components/landing/home-page-client";
 import { LocaleProvider } from "../../lib/i18n/context";
 import { FrontDoorProvider } from "../../components/public/front-door";
 import { ExampleEvaluation } from "../../components/evals/example-evaluation";
@@ -149,7 +150,14 @@ const identity = {
     ...(params.has("two-workspaces") ? [{ id: "00000000-0000-4000-8000-000000000002", name: "Second client", role: "owner" as const }] : []),
   ],
 };
-const demoPage = location.pathname === "/demo";
+const demoPage = location.pathname === "/demo" || /^\/(en|es)\/demo$/.test(location.pathname);
+/**
+ * The public landing at its real paths, `/en` and `/es` (launch L-24: the
+ * keyboard-only funnel and axe start here). The localized paths render the
+ * front door as production does (DEMO_PUBLIC on); `/demo` keeps `?public`.
+ */
+const landingPage = /^\/(en|es)$/.test(location.pathname);
+const localizedPublic = /^\/(en|es)(\/|$)/.exec(location.pathname)?.[1] as "en" | "es" | undefined;
 /** A privately shared report (launch L-17): no shell, the public frame only; its API is routed by each test. */
 const sharePage = location.pathname === "/share";
 /** The public sample report (launch L-33), in the Paper frame without the platform shell. */
@@ -201,11 +209,17 @@ const content =
     </LocaleProvider>
   ) : location.pathname === "/workspace/example" ? (
     <ExampleEvaluation view={exampleView(getLocale())} pdfHref={samplePdfHref(getLocale())} readoutMode={readoutMode} />
+  ) : landingPage ? (
+    <LocaleProvider locale={localizedPublic!}>
+      <FrontDoorProvider value={{ demoPublic: true, signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
+        <HomePageClient />
+      </FrontDoorProvider>
+    </LocaleProvider>
   ) : demoPage ? (
     // The public demo, in the landing's Paper frame (its API is routed by each test).
     // `?public` renders it as the public front door (DEMO_PUBLIC, launch L-04).
-    <LocaleProvider locale={params.get("locale") === "es" ? "es" : "en"}>
-      <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
+    <LocaleProvider locale={localizedPublic ?? (params.get("locale") === "es" ? "es" : "en")}>
+      <FrontDoorProvider value={{ demoPublic: Boolean(localizedPublic) || params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
         <div className="lp min-h-screen"><main><DemoPage /></main></div>
       </FrontDoorProvider>
     </LocaleProvider>
@@ -301,7 +315,7 @@ const content =
     <WorkspaceEvaluations />
   );
 createRoot(document.getElementById("root")!).render(
-  authPage || demoPage || sampleReportPage || sharePage || methodologyPage ? (
+  authPage || demoPage || landingPage || sampleReportPage || sharePage || methodologyPage ? (
     content
   ) : anonymous ? (
     <div className="p-root">

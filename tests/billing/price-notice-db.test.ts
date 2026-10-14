@@ -8,7 +8,9 @@
  * 90 days (contract workspaces excluded), decreases apply at once, and the
  * console's notice API sends tests only to the internal address unless
  * BILLING_PRICE_NOTICES=owners. Database rules run in transactions that are
- * rolled back; the API test cleans up after itself. Run on its own (I-12).
+ * rolled back; the API test cleans up after itself. Price-book revisions are
+ * global, so the file runs on its own copy of the database (I-12,
+ * tests/helpers/test-database.ts).
  */
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
@@ -17,9 +19,9 @@ import { createPrefixedId } from "../../lib/operator/ids";
 import type { EvalIdentity } from "../../lib/evals/domain/identity";
 import { createPriceBookDraft } from "../../lib/billing/price-book";
 import { noticeActionForAdmin, noticeSatisfied, noticeState, type SendEmail } from "../../lib/billing/price-notice";
+import { testDatabaseUrls } from "../helpers/test-database";
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
-const runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("price_notice");
 const REV1 = "6a1f0c4e-8b2d-4f37-9c51-2e7d1a0b3c88";
 const REV2 = "9d3e5b70-1c4a-4e2b-8f6d-7a2c9e1b4d05";
 const BOOK_FX = { usdPerEur: "1.1605", date: "2026-08-19", source: "ECB reference rate" };

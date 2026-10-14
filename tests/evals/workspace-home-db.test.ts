@@ -24,10 +24,26 @@ vi.mock("@/lib/evals/domain/identity", async (importOriginal) => ({
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL, runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
 const headers = { host: "localhost", origin: "http://localhost", "content-type": "application/json" };
 
-type Fixture = Awaited<ReturnType<typeof createFixture>>;
+type Fixture = Awaited<ReturnType<typeof createFixtureOnce>>;
+
+/**
+ * The fixture in one transaction, retried when PostgreSQL picks it as a
+ * deadlock victim (SQLSTATE 40P01): the other real-schema suites write to the
+ * same tables in parallel (I-12, launch L-24), and a retry is PostgreSQL's
+ * documented answer. Fresh ids each attempt.
+ */
+async function createFixture(owner: Pool, plan: "free" | "payg" | "managed") {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await createFixtureOnce(owner, plan);
+    } catch (error) {
+      if ((error as { code?: string }).code !== "40P01" || attempt >= 3) throw error;
+    }
+  }
+}
 
 /** One workspace on `plan` with a generated, frozen 12-question test set awaiting review, an API system and a scored run. */
-async function createFixture(owner: Pool, plan: "free" | "payg" | "managed") {
+async function createFixtureOnce(owner: Pool, plan: "free" | "payg" | "managed") {
   const actorId = createPrefixedId("au"), viewerId = createPrefixedId("au"), outsiderId = createPrefixedId("au");
   const orgId = randomUUID(), projectId = randomUUID(), artifactId = randomUUID(), suiteId = randomUUID(), suiteVersionId = randomUUID();
   const evaluationId = randomUUID(), scoredEvaluationId = randomUUID(), targetId = randomUUID(), targetRevisionId = randomUUID();

@@ -29,6 +29,8 @@ backup_dir="${CAUDALS_BACKUP_DIR:-/root/.caudals/backups}"
 dry_run="${CAUDALS_ALERT_DRY_RUN:-false}"
 drill="${CAUDALS_ALERT_DRILL:-}"
 runbooks="${CAUDALS_RUNBOOK_URL:-https://github.com/Caudals/caudals/blob/main/docs/evals/runbooks.md}"
+# The application database (a test fixture runs on its own copy, I-12).
+app_database="${CAUDALS_ALERT_DATABASE:-caudals}"
 queue_database="${CAUDALS_ALERT_QUEUE_DATABASE:-caudals_evals_queue}"
 queue_schema="${CAUDALS_ALERT_QUEUE_SCHEMA:-evals_queue_prod}"
 demo_failure_percent="${CAUDALS_ALERT_DEMO_FAILURE_PERCENT:-20}"
@@ -109,7 +111,7 @@ optional_count() { # <regclass> <required columns, comma-separated> <query retur
 
 # Evaluation signals (aggregates only, across tenants, as the database owner).
 if (( ${#psql_cmd[@]} )); then
-  read -r stuck expired unknown providers budget renders < <(sql caudals "
+  read -r stuck expired unknown providers budget renders < <(sql "$app_database" "
     SELECT
       (SELECT count(*) FROM evals.outbox_event WHERE delivered_at IS NULL AND available_at < now()-interval '15 minutes'),
       (SELECT count(*) FROM evals.workflow_step WHERE status='running' AND lease_until < now()-interval '10 minutes'),
@@ -135,7 +137,7 @@ if (( ${#psql_cmd[@]} )); then
 
   # Launch signals (L-08). Demo failures count only service-side causes: a
   # visitor's unreachable, blocked or thin site is not our outage.
-  read -r demo_finished demo_failed demo_waiting demo_wait_minutes webhooks_failed stripe_failed holds shadow_drift < <(sql caudals "
+  read -r demo_finished demo_failed demo_waiting demo_wait_minutes webhooks_failed stripe_failed holds shadow_drift < <(sql "$app_database" "
     SELECT
       (SELECT count(*) FROM demo.run WHERE finished_at > now()-interval '1 hour' AND phase IN ('done','failed')),
       (SELECT count(*) FROM demo.run WHERE finished_at > now()-interval '1 hour' AND phase='failed'
@@ -162,7 +164,7 @@ if (( ${#psql_cmd[@]} )); then
   # one never attempted for a day (invoicing off while orders are paid).
   stalled_sql="SELECT count(*) AS c FROM billing.%s WHERE status='queued' AND ((attempts > 0 AND created_at < now()-interval '1 hour') OR created_at < now()-interval '24 hours')"
   # shellcheck disable=SC2059
-  invoices_stalled=$(sql caudals "SELECT $(optional_count billing.invoice status,attempts,created_at "$(printf "$stalled_sql" invoice)") + $(optional_count billing.credit_note status,attempts,created_at "$(printf "$stalled_sql" credit_note)")" 2>/dev/null || echo x)
+  invoices_stalled=$(sql "$app_database" "SELECT $(optional_count billing.invoice status,attempts,created_at "$(printf "$stalled_sql" invoice)") + $(optional_count billing.credit_note status,attempts,created_at "$(printf "$stalled_sql" credit_note)")" 2>/dev/null || echo x)
   if [[ $invoices_stalled == x ]]; then
     flag database_unreadable "Invoicing signals could not be read from PostgreSQL."
   elif (( invoices_stalled > 0 )); then
@@ -173,7 +175,7 @@ if (( ${#psql_cmd[@]} )); then
   # is due within 7 days or was missed (it then cannot take effect).
   reconcile_sql="SELECT coalesce((SELECT discrepancies FROM billing.reconciliation_report WHERE generated_at > now()-interval '26 hours' ORDER BY day DESC, generated_at DESC LIMIT 1),0) AS c"
   notice_sql="SELECT count(*) AS c FROM billing.price_book_revision WHERE status='scheduled' AND raises_prices AND notice_sent_at IS NULL AND effective_at - interval '30 days' < now() + interval '7 days'"
-  read -r reconcile_diff notice_due < <(sql caudals "SELECT $(optional_count billing.reconciliation_report discrepancies,generated_at "$reconcile_sql"), $(optional_count billing.price_book_revision notice_sent_at,raises_prices "$notice_sql")" 2>/dev/null || echo "x x")
+  read -r reconcile_diff notice_due < <(sql "$app_database" "SELECT $(optional_count billing.reconciliation_report discrepancies,generated_at "$reconcile_sql"), $(optional_count billing.price_book_revision notice_sent_at,raises_prices "$notice_sql")" 2>/dev/null || echo "x x")
   if [[ $reconcile_diff == x ]]; then
     flag database_unreadable "Billing reconciliation signals could not be read from PostgreSQL."
   else

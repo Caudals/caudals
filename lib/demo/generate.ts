@@ -15,6 +15,8 @@ export type DemoCase = {
   quote: string;
   page: number;
   severity: "low" | "medium" | "high";
+  /** When the question was stored (database time), so the time to the first visible question can be measured (launch L-24). */
+  at?: string;
 };
 
 /** Splits pages into short numbered excerpts and keeps a balanced share of each page. */

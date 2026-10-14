@@ -77,3 +77,7 @@ inspect.json
 
 # Linkedin post banners images
 /public/linkedin-banners/
+
+# Lighthouse CI runs and reports (launch L-24)
+.lighthouseci/
+lighthouse-reports/

@@ -95,11 +95,18 @@ export const rootMetadata: Metadata = {
 export function RootDocument({
   lang,
   head,
+  session = true,
   children,
 }: {
   lang: string;
   /** Extra head content for a surface (for example the app's locale boot script). */
   head?: ReactNode;
+  /**
+   * Whether the page reads the signed-in session in the browser. The public
+   * site does not (nothing on it depends on who is signed in), so it skips the
+   * auth client and its session request on every first visit (launch L-24).
+   */
+  session?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -108,10 +115,17 @@ export function RootDocument({
       {/* eslint-disable-next-line @next/next/no-head-element */}
       {head ? <head>{head}</head> : null}
       <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-          <Toaster richColors position="top-right" closeButton={false} />
-        </AuthProvider>
+        {session ? (
+          <AuthProvider>
+            {children}
+            <Toaster richColors position="top-right" closeButton={false} />
+          </AuthProvider>
+        ) : (
+          <>
+            {children}
+            <Toaster richColors position="top-right" closeButton={false} />
+          </>
+        )}
         <SiteAnalytics />
       </body>
     </html>

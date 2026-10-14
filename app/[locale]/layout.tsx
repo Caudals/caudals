@@ -88,7 +88,7 @@ export default async function LocaleLayout({
   const locale: Locale = resolveLocale(rawLocale);
 
   return (
-    <RootDocument lang={localeHtmlLang[locale]}>
+    <RootDocument lang={localeHtmlLang[locale]} session={false}>
       <LocaleProvider locale={locale}>
         <FrontDoorProvider value={frontDoor()}>
           {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. */}

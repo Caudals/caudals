@@ -115,7 +115,7 @@ Rules:
 | `--p-surface-3` | `#edece9` | Active nav pill, pressed state |
 | `--p-text` | `#0c0c0b` | Primary type, primary action fill |
 | `--p-text-secondary` | `#6d6d68` | Descriptions, table headers, idle nav |
-| `--p-text-tertiary` | `#9a9a94` | Placeholders, group labels, timestamps |
+| `--p-text-tertiary` | `#6f6e68` | Placeholders, group labels, timestamps. Meets WCAG AA (4.6:1 on the chrome, 5.1:1 on the canvas; launch L-24, was `#9a9a94` at 2.5:1): the tier is set apart by size and weight, not a paler grey |
 | `--p-action` | `#0c0c0b` | Primary button, focus ring, active indicator |
 
 Greys are **warm** (a green-red bias, not blue). A cool grey against `#f3f3f1` reads dirty.
@@ -289,7 +289,7 @@ Rules:
 - **Name the properties.** `transition-property: box-shadow`, never `transition: all`.
 - **Gate hover behind** `@media (hover: hover) and (pointer: fine)`. Touch devices fire hover on tap.
 - Nothing over `300ms` for an interactive change.
-- Reduced motion means *fewer and gentler*, not none: opacity and colour survive because they carry meaning; movement and scale do not.
+- Reduced motion means *fewer and gentler*, not none: opacity and colour survive because they carry meaning; movement and scale do not. Spinners (`.p-spinner`, the jobs pill, a running job) pulse in opacity instead of turning (launch L-24).
 
 **The sidebar collapse** is the one place two easings meet, and the split is deliberate. The rail *morphs* on screen, so `grid-template-columns` takes `--p-ease-in-out` over `--p-dur-modal`. The labels inside it are *exiting*, so they take `--p-ease-out` and go faster — `90ms` out — so text is gone before the rail finishes narrowing and never clips mid-glyph.
 
@@ -304,6 +304,8 @@ Rules:
 - Every icon-only control has an `aria-label`. Every decorative icon has `aria-hidden="true"`.
 - Tables use `<caption class="sr-only">` and `<th scope>`.
 - Live regions: `role="status"` for progress, `role="alert"` for errors, `aria-live="polite"` on run progress.
+- `Modal` gives focus back to whatever had it when the dialog opened (Radix only does that for its own trigger); side panels take a `returnFocus` (launch L-24).
+- Every text colour meets WCAG 2.2 AA (4.5:1, 3:1 for large text) on the surface it sits on. `e2e/evals/a11y.contract.ts` (UI harness) and `e2e/a11y-public.spec.ts` (served pages) run axe with the WCAG 2.0–2.2 A/AA and best-practice rules and fail on any serious or critical issue on the core screens (launch L-24).
 - The skip link (`.p-skip`) is first in the shell and lands on `#p-main`.
 - Colour never carries meaning alone (§1.6).
 
@@ -340,7 +342,7 @@ Two selector techniques appear throughout and are deliberate:
 - Footer: brand and contact, Explore, Sectors, Trust (Security, DPA, Sub-processors) and Legal (Terms, Privacy, Cookies, Legal notice) as five equal columns from 1024px, two below; every legal page appears once.
 - `/contact` keeps the quiet underline form, cut to five fields; the free test line ("Prefer to try it yourself? Run the free test") sits in ink above the muted call link. `/call` adds a three-line agenda as hairline rows with muted numerals in a 28rem column above the scheduler, and a confirmation sheet (white, hairline border, 14px radius) that replaces the scheduler after a booking. The 404 puts the test pill first and the home page and sectors as underlined lines.
 - Figures sit on the canvas with no card: line drawings map their paper fills to the canvas (`.dg-bare`). Diagrams that do not scale to a phone ship a mobile drawing (`.dg-desk` / `.dg-mob`); charts are HTML so text stays legible.
-- Motion: one ease, `cubic-bezier(0.22, 1, 0.36, 1)`. Entrances rise 14–26px and fade. Anything that advances on its own (hero sectors, step 2 causes) pauses on hover, focus and when off screen; the hero's sector indicator lets a visitor pick one. Under reduced motion nothing moves; the hero still changes sector, and its new conversation fades in bubble by bubble (opacity only). With motion allowed, each bubble rises 8px out of a 3px blur, question then answer.
+- Motion: one ease, `cubic-bezier(0.22, 1, 0.36, 1)`. Entrances rise 14–26px and fade, except the hero headline and standfirst (landing, sector pages, demo): they are the largest paint, so they rise without fading (`.lp-lift`) and show at full opacity from the first frame (launch L-24, mobile LCP). Anything that advances on its own (hero sectors, step 2 causes) pauses on hover, focus and when off screen; the hero's sector indicator lets a visitor pick one. Under reduced motion nothing moves; the hero still changes sector, and its new conversation fades in bubble by bubble (opacity only). With motion allowed, each bubble rises 8px out of a 3px blur, question then answer.
 - Container `max-width: 1200px`, gutters `clamp(16px, 4vw, 40px)`. No emoji, no gradients as decoration, no parallax.
 - Offers come from `lib/public/evaluation-offers.ts` and appear only in `/llms.txt`, agent markdown and structured data; the landing shows no prices.
 - Sector pages share the landing's frame (`components/landing/landing-shell.tsx`) and order: breadcrumb, hero (audience label, headline with one serif word, the sector's own checked conversation), the stakes in two serif sentences, three numbered steps (what we test as two hairline lists · failure modes with the sector's examples · the sector's experts and datasets), a hairline FAQ (`<details>`, a plus that turns into a minus), cards to the other sectors, the closing CTA. The hub lists every sector as a hairline row. Share images use the same canvas, ink and type.
@@ -363,6 +365,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-14 | Accessibility and performance budgets (L-24): `--p-text-tertiary` darkened to meet AA, `Modal` returns focus, spinners pulse under reduced motion, the Paper hero text rises without fading (`.lp-lift`) and the cookie notice enters with CSS. |
 | 2026-10-14 | Expert review (L-26): `.eval-review-request`, `.eval-review-scopes`, `.eval-save-state`, `.eval-shortcuts`; the "Expert review" summary status row. |
 | 2026-10-13 | Sector packs and monthly new questions (L-25): the Sector packs library tab and expert screen (pack table, draft banner, review progress, question panel with excerpt, rights and review), `.p-sector-card` in Prepare and on test sets, and the monthly proposals panel (`.p-monthly`, `.p-proposal`). |
 | 2026-10-13 | Better document intake (L-34): the drop zone answers a drag (`data-dragging`) and lists every file of a batch with its own badge, progress and retry (`.p-intake-*`); the scanned-PDF ask under its source row (`.p-files-notice`); the help-centre page list with checkboxes and the estimate (`.p-import-*`); "What we understood about your assistant" (`.p-ctx-*`: one row per field, low confidence flagged by a "Check this" badge and a warn edge, sources one click away, inline edits marked "Corrected"). |

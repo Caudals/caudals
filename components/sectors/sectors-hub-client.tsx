@@ -26,12 +26,12 @@ export function SectorsHubClient({ sectors }: { sectors: readonly HubSector[] })
 
       <section className="lp-wrap lp-hero sx-hero">
         <div>
-          <h1 className="lp-h1 sx-h1 lp-rise">
+          <h1 className="lp-h1 sx-h1 lp-lift">
             {headline.before}
             {headline.marked ? <em>{headline.marked}</em> : null}
             {headline.after}
           </h1>
-          <p className="lp-sub lp-rise" style={{ ["--d" as string]: 0.08 }}>
+          <p className="lp-sub lp-lift" style={{ ["--d" as string]: 0.08 }}>
             {t("hubSubtitle")}
           </p>
           <div className="lp-hero-act lp-rise" style={{ ["--d" as string]: 0.16 }}>

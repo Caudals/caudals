@@ -47,7 +47,9 @@
      reading blue against it. */
   --p-text: #0c0c0b;
   --p-text-secondary: #6d6d68;
-  --p-text-tertiary: #9a9a94;
+  /* Tertiary text still meets WCAG AA (4.6:1 on the chrome, 5.1:1 on the
+     canvas, launch L-24): hierarchy comes from size and weight, not a paler grey. */
+  --p-text-tertiary: #6f6e68;
   --p-text-inverse: #ffffff;
 
   /* --- Action -------------------------------------------------------------
@@ -5121,9 +5123,17 @@
   .p-root :where(.p-btn, .p-chip, .p-choice, .p-card-interactive):active {
     transform: none;
   }
-  .p-spinner {
-    animation-duration: 900ms !important;
-    animation-iteration-count: infinite !important;
+  /* Activity stays visible without movement: spinners pulse instead of
+     turning (launch L-24). */
+  .p-spinner,
+  .p-jobs-pill svg,
+  .p-job-head > svg[data-spin="true"] {
+    animation: p-pulse 900ms ease-in-out infinite alternate !important;
+  }
+}
+@keyframes p-pulse {
+  to {
+    opacity: 0.35;
   }
 }
 

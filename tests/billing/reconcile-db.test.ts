@@ -5,8 +5,9 @@
  * zero differences and is stored; injected order, ledger, invoice and Stripe
  * mismatches are flagged with their ids; the admin API reads the stored
  * reports and the clean-day streak and needs a recent sign-in to run one.
- * Stripe is a fake. Run this file on its own on a fresh database (I-12): it
- * reconciles the whole database and leaves injected differences behind.
+ * Stripe is a fake. It reconciles the whole database and leaves injected
+ * differences behind, so it runs on its own copy of the database (I-12,
+ * tests/helpers/test-database.ts).
  */
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
@@ -21,9 +22,9 @@ import { refundTopUp } from "../../lib/billing/refunds";
 import { runReconciliation } from "../../lib/billing/reconcile";
 import { reconciliationForAdmin, runReconciliationForAdmin } from "../../lib/billing/ops-reports";
 import type { BalanceTransaction } from "../../lib/billing/invoicing/export";
+import { testDatabaseUrls } from "../helpers/test-database";
 
-const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
-const runtimeUrl = process.env.EVALS_TEST_RUNTIME_DATABASE_URL;
+const { ownerUrl, runtimeUrl } = testDatabaseUrls("reconcile");
 const SCHEDULER = "service:evals-scheduler";
 process.env.BILLING_STRIPE_MODE = "test";
 
