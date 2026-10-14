@@ -149,7 +149,8 @@ export async function createWebsiteCaptureArtifact(scope:EvidenceScope,jobId:str
   const firstPath="sources/website-"+job.source_id+".md";
   const taken=(await db.query("SELECT 1 FROM evals.artifact WHERE org_id=$1 AND export_path=$2",[scope.orgId,firstPath])).rowCount;
   const artifact=required((await db.query("INSERT INTO evals.artifact(id,org_id,project_id,object_key,sha256,byte_size,media_type,export_path,visibility) VALUES($1,$2,(SELECT project_id FROM evals.source WHERE org_id=$2 AND id=$3),$4,$5,$6,'text/markdown',$7,'internal') RETURNING id,object_key,sha256,byte_size,media_type,export_path,visibility",[artifactId,scope.orgId,job.source_id,storageKey,digest,bytes.length,taken?"sources/website-"+job.source_id+"-"+job.id+".md":firstPath])).rows[0]);
-  await db.query("INSERT INTO evals.source_upload(org_id,source_id,artifact_id) VALUES($1,$2,$3)",[scope.orgId,job.source_id,artifact.id]);
+  // One upload record per source: a later reading keeps the first one (the job links its own artifact).
+  await db.query("INSERT INTO evals.source_upload(org_id,source_id,artifact_id) VALUES($1,$2,$3) ON CONFLICT(org_id,source_id) DO NOTHING",[scope.orgId,job.source_id,artifact.id]);
   await db.query("UPDATE evals.website_source_job SET artifact_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,artifact.id]);
   return artifact;
  });

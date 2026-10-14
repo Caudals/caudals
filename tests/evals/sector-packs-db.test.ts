@@ -62,9 +62,10 @@ function website(sourceId: string, pages: Array<[string, string]>, path: string)
   }));
   return { document, bytes };
 }
-async function insertRevision(db: PoolClient, orgId: string, projectId: string, document: Source) {
-  const artifactId = randomUUID();
-  await db.query("INSERT INTO evals.artifact(id,org_id,project_id,export_path,object_key,sha256,byte_size,media_type,state,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,'text/markdown','ready',now()+interval '30 days')",
+async function insertRevision(db: PoolClient, orgId: string, projectId: string, document: Source, existingArtifactId?: string) {
+  const artifactId = existingArtifactId ?? randomUUID();
+  if (existingArtifactId) await db.query("UPDATE evals.artifact SET state='ready',object_key=$3,expires_at=now()+interval '30 days' WHERE org_id=$1 AND id=$2", [orgId, artifactId, `test/${artifactId}`]);
+  else await db.query("INSERT INTO evals.artifact(id,org_id,project_id,export_path,object_key,sha256,byte_size,media_type,state,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,'text/markdown','ready',now()+interval '30 days')",
     [artifactId, orgId, projectId, document.artifact.path, `test/${artifactId}`, document.artifact.sha256, document.artifact.size_bytes]);
   await db.query("INSERT INTO evals.source_revision(id,org_id,source_id,artifact_id,content_hash,document,extraction_version) VALUES($1,$2,$3,$4,$5,$6,'website-v1')",
     [document.revision_id, orgId, document.source_id, artifactId, document.content_hash, document]);
@@ -72,6 +73,7 @@ async function insertRevision(db: PoolClient, orgId: string, projectId: string, 
     const [, start, end] = anchor.locator.split(":");
     await db.query("INSERT INTO evals.source_chunk(id,org_id,source_revision_id,ordinal,excerpt,anchor) VALUES($1,$2,$3,$4,$5,$6)", [anchor.id, orgId, document.revision_id, ordinal, anchor.excerpt, { start: Number(start), end: Number(end) }]);
   }
+  return artifactId;
 }
 
 /** A workspace with a frozen, source-grounded test set built from a captured website. */
@@ -99,7 +101,8 @@ async function workspaceFixture(owner: Pool, ownerId: string, pages: Array<[stri
     await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'owner')", [orgId, ownerId]);
     await db.query("INSERT INTO evals.project(id,org_id,title,description) VALUES($1,$2,'Sector fixture','Answers customer questions about the account')", [projectId, orgId]);
     await db.query("INSERT INTO evals.source(id,org_id,project_id,title,rights) VALUES($1,$2,$3,'help.example.com','customer_owned')", [sourceId, orgId, projectId]);
-    await insertRevision(db, orgId, projectId, document);
+    const firstArtifact = await insertRevision(db, orgId, projectId, document);
+    await db.query("INSERT INTO evals.source_upload(org_id,source_id,artifact_id) VALUES($1,$2,$3)", [orgId, sourceId, firstArtifact]);
     await db.query("INSERT INTO evals.rubric_revision(id,org_id,project_id,content_hash,document) VALUES($1,$2,$3,$4,$5)", [pack.rubric.revision_id, orgId, projectId, pack.rubric.content_hash, pack.rubric]);
     for (const item of pack.cases) {
       await db.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)', [item.case_id, orgId, projectId]);
@@ -299,15 +302,27 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("sector packs and monthly new question
     const job = await withTenant(scope, async (db) => (await db.query("SELECT * FROM evals.website_source_job WHERE org_id=$1 AND id=$2", [fixture.orgId, refresh.website_job_id])).rows[0]);
     expect(job).toMatchObject({ status: "queued", start_url: "https://help.example.com/", page_limit: 25, source_id: fixture.sourceId });
     // The reader captures a changed fee page, the same limits page and a new page.
-    const next = website(fixture.sourceId, [
+    const reread = website(fixture.sourceId, [
       ["https://help.example.com/fees", "The account fee is 7 euros a month. Debit cards are free of charge for every account holder."],
       pages[1],
       ["https://help.example.com/instant", "Instant transfers cost 0.50 euros each and arrive within ten seconds."],
-    ], `sources/website-${fixture.sourceId}-${job.id}.md`).document;
+    ], `sources/website-${fixture.sourceId}-${job.id}.md`);
+    const next = reread.document;
+    // The document worker's persistence step for a second reading of the same source: its own file path, the first upload record kept.
+    await tx(owner, (db) => db.query("UPDATE evals.website_source_job SET status='persisting' WHERE org_id=$1 AND id=$2", [fixture.orgId, job.id]));
+    // As the document worker's own database role (a fresh module graph, so a separate pool).
+    vi.resetModules();
+    process.env.EVALS_DATABASE_URL = process.env.EVALS_TEST_DOCUMENTS_DATABASE_URL ?? runtimeUrl!;
+    const documents = await import("../../lib/evals/repositories/evidence");
+    const documentsDb = await import("../../lib/evals/repositories/db");
+    const stored = await documents.createWebsiteCaptureArtifact({ orgId: fixture.orgId, actorId: "service:evals-documents" }, job.id, reread.bytes);
+    await documentsDb.getEvalsPool().end();
+    process.env.EVALS_DATABASE_URL = runtimeUrl!;
+    expect(stored).toMatchObject({ export_path: `sources/website-${fixture.sourceId}-${job.id}.md`, sha256: next.artifact.sha256, byte_size: next.artifact.size_bytes });
     // Fixture: the browser and document workers' result, then a generator route on the DGX.
     const providerId = randomUUID(), priceId = randomUUID(), accountId = randomUUID();
     await tx(owner, async (db) => {
-      await insertRevision(db, fixture.orgId, fixture.projectId, next);
+      await insertRevision(db, fixture.orgId, fixture.projectId, next, stored.id);
       await db.query("UPDATE evals.website_source_job SET status='completed',source_revision_id=$3 WHERE org_id=$1 AND id=$2", [fixture.orgId, job.id, next.revision_id]);
       await db.query("INSERT INTO evals.provider_account(id,name,currency,ceiling,enabled) VALUES($1,'sector fixture','EUR',100,true)", [accountId]);
       await db.query(`INSERT INTO evals.provider_revision(id,account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,rpm,tpm,concurrency_limit)
