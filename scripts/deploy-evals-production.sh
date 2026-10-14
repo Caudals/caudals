@@ -70,6 +70,12 @@ BILLING_UI_ENABLED=$(credential BILLING_UI_ENABLED)
 BILLING_UI_ENABLED=${BILLING_UI_ENABLED:-false}
 [[ $BILLING_UI_ENABLED == true || $BILLING_UI_ENABLED == false ]] || { echo 'BILLING_UI_ENABLED must be true or false' >&2; exit 1; }
 export BILLING_UI_ENABLED
+# Sector packs and monthly new questions (launch L-25): the scheduler's monthly
+# source re-reads and proposals, from the app credentials like the web app.
+SECTOR_PACKS_ENABLED=$(credential SECTOR_PACKS_ENABLED)
+SECTOR_PACKS_ENABLED=${SECTOR_PACKS_ENABLED:-false}
+[[ $SECTOR_PACKS_ENABLED == true || $SECTOR_PACKS_ENABLED == false ]] || { echo 'SECTOR_PACKS_ENABLED must be true or false' >&2; exit 1; }
+export SECTOR_PACKS_ENABLED
 # Weekly ops digest (launch L-21): off unless the app credentials say true.
 OPS_DIGEST_ENABLED=$(credential OPS_DIGEST_ENABLED)
 OPS_DIGEST_ENABLED=${OPS_DIGEST_ENABLED:-false}

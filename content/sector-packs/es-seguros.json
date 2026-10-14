@@ -1,0 +1,1982 @@
+{
+  "schema": "caudals.sector-pack/v1",
+  "pack": {
+    "id": "es-seguros",
+    "sector": "insurance",
+    "jurisdiction": "ES",
+    "language": "es",
+    "domainPackId": "generic-grounded-qa",
+    "title": {
+      "en": "Insurance in Spain",
+      "es": "Seguros en España"
+    },
+    "summary": {
+      "en": "Sector-generic questions on Spanish insurance law (policy, disclosure, premiums, claims, renewal, withdrawal, life, motor, extraordinary risks, distribution and complaints) that a customer-facing insurer or broker assistant must answer correctly.",
+      "es": "Preguntas genéricas del sector sobre la normativa española de seguros (póliza, declaración del riesgo, primas, siniestros, renovación, desistimiento, vida, automóvil, riesgos extraordinarios, distribución y reclamaciones) que el asistente de una aseguradora o correduría debe responder correctamente."
+    }
+  },
+  "version": {
+    "notes": "Seed draft written from public official sources on 2026-10-13. Pending expert review: no item is expert-reviewed."
+  },
+  "items": [
+    {
+      "key": "lcs-poliza-forma-escrita",
+      "topic": "Póliza y documentación",
+      "question": "¿Está obligada la aseguradora a entregarme la póliza por escrito?",
+      "questionEn": "Is the insurer required to give me the policy in writing?",
+      "expected": "Sí. El contrato de seguro y sus modificaciones deben formalizarse por escrito, y el asegurador está obligado a entregar al tomador la póliza o, al menos, el documento de cobertura provisional.",
+      "keyFacts": [
+        "deberán ser formalizadas por escrito",
+        "la póliza o, al menos, el documento de cobertura provisional"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aquinto",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo quinto",
+        "excerpt": "El contrato de seguro y sus modificaciones o adiciones deberán ser formalizadas por escrito. El asegurador está obligado a entregar al tomador del seguro la póliza o, al menos, el documento de cobertura provisional.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-clausulas-limitativas",
+      "topic": "Póliza y documentación",
+      "question": "¿Las cláusulas de la póliza que limitan mis derechos tienen que estar destacadas y aceptadas por mí?",
+      "questionEn": "Must policy clauses that limit my rights be highlighted and accepted by me?",
+      "expected": "Sí. Las condiciones generales y particulares deben redactarse de forma clara y precisa, y las cláusulas limitativas de los derechos de los asegurados deben destacarse de modo especial y ser específicamente aceptadas por escrito.",
+      "keyFacts": [
+        "Se destacarán de modo especial las cláusulas limitativas",
+        "específicamente aceptadas por escrito"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#atercero",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo tercero, párrafo primero",
+        "excerpt": "Las condiciones generales y particulares se redactarán de forma clara y precisa. Se destacarán de modo especial las cláusulas limitativas de los derechos de los asegurados, que deberán ser específicamente aceptadas por escrito.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-poliza-distinta-de-lo-acordado",
+      "topic": "Póliza y documentación",
+      "question": "La póliza que he recibido no coincide con lo que acordé. ¿Qué plazo tengo para pedir que la corrijan?",
+      "questionEn": "The policy I received differs from what I agreed. How long do I have to ask for a correction?",
+      "expected": "Dispone de un mes desde la entrega de la póliza para reclamar a la aseguradora que subsane la divergencia. Si transcurre ese plazo sin reclamar, se estará a lo dispuesto en la póliza.",
+      "keyFacts": [
+        "en el plazo de un mes a contar desde la entrega de la póliza",
+        "se estará a lo dispuesto en la póliza"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aoctavo",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo octavo, párrafo final",
+        "excerpt": "Si el contenido de la póliza difiere de la proposición de seguro o de las cláusulas acordadas, el tomador del seguro podrá reclamar a la Entidad aseguradora en el plazo de un mes a contar desde la entrega de la póliza para que subsane la divergencia existente. Transcurrido dicho plazo sin efectuar la reclamación, se estará a lo dispuesto en la póliza.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-deber-declarar-riesgo",
+      "topic": "Declaración del riesgo",
+      "question": "Antes de contratar un seguro, ¿qué estoy obligado a declarar a la aseguradora?",
+      "questionEn": "Before taking out insurance, what am I required to disclose to the insurer?",
+      "expected": "Debe declarar, de acuerdo con el cuestionario que le someta el asegurador, todas las circunstancias que conozca que puedan influir en la valoración del riesgo. Queda exonerado de ese deber si el asegurador no le somete cuestionario o si se trata de circunstancias no comprendidas en él.",
+      "keyFacts": [
+        "de acuerdo con el cuestionario que éste le someta",
+        "todas las circunstancias por él conocidas que puedan influir en la valoración del riesgo",
+        "Quedará exonerado de tal deber si el asegurador no le somete cuestionario"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adiez",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo diez, párrafo primero",
+        "excerpt": "El tomador del seguro tiene el deber, antes de la conclusión del contrato, de declarar al asegurador, de acuerdo con el cuestionario que éste le someta, todas las circunstancias por él conocidas que puedan influir en la valoración del riesgo. Quedará exonerado de tal deber si el asegurador no le somete cuestionario o cuando, aun sometiéndoselo, se trate de circunstancias que puedan influir en la valoración del riesgo y que no estén comprendidas en él.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-reserva-inexactitud-rescision",
+      "topic": "Declaración del riesgo",
+      "question": "Si la aseguradora descubre que oculté o declaré mal algún dato al contratar, ¿en qué plazo puede rescindir el contrato?",
+      "questionEn": "If the insurer finds I withheld or misstated information when contracting, how long does it have to rescind?",
+      "expected": "Puede rescindir el contrato mediante una declaración dirigida al tomador en el plazo de un mes desde que conozca la reserva o inexactitud. Salvo que concurra dolo o culpa grave por su parte, le corresponden las primas del período en curso en el momento de esa declaración.",
+      "keyFacts": [
+        "en el plazo de un mes, a contar del conocimiento de la reserva o inexactitud",
+        "las primas relativas al período en curso"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adiez",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo diez, párrafo segundo",
+        "excerpt": "El asegurador podrá rescindir el contrato mediante declaración dirigida al tomador del seguro en el plazo de un mes, a contar del conocimiento de la reserva o inexactitud del tomador del seguro. Corresponderán al asegurador, salvo que concurra dolo o culpa grave por su parte, las primas relativas al período en curso en el momento que haga esta declaración.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-inexactitud-y-siniestro",
+      "topic": "Declaración del riesgo",
+      "question": "Si tengo un siniestro y se descubre que declaré mal el riesgo al contratar, ¿me pagan la indemnización?",
+      "questionEn": "If I have a loss and it turns out I misdeclared the risk, will I be paid?",
+      "expected": "Si el siniestro ocurre antes de que el asegurador rescinda el contrato, la prestación se reduce proporcionalmente a la diferencia entre la prima convenida y la que se habría aplicado conociendo la verdadera entidad del riesgo. Si medió dolo o culpa grave del tomador, el asegurador queda liberado del pago.",
+      "keyFacts": [
+        "se reducirá proporcionalmente",
+        "Si medió dolo o culpa grave del tomador del seguro quedará el asegurador liberado del pago de la prestación"
+      ],
+      "severity": "critical",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adiez",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo diez, párrafo tercero",
+        "excerpt": "Si el siniestro sobreviene antes de que el asegurador haga la declaración a la que se refiere el párrafo anterior, la prestación de éste se reducirá proporcionalmente a la diferencia entre la prima convenida y la que se hubiese aplicado de haberse conocido la verdadera entidad del riesgo. Si medió dolo o culpa grave del tomador del seguro quedará el asegurador liberado del pago de la prestación.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-antecedentes-cancer",
+      "topic": "Declaración del riesgo",
+      "question": "Para contratar un seguro de vida, ¿tengo que declarar que tuve cáncer hace años?",
+      "questionEn": "When buying life insurance, must I disclose that I had cancer years ago?",
+      "expected": "No, si han transcurrido cinco años desde la finalización del tratamiento radical sin recaída posterior. Pasado ese plazo, el asegurador no puede considerar esos antecedentes oncológicos para la contratación y queda prohibida toda discriminación o restricción por ese motivo.",
+      "keyFacts": [
+        "cinco años desde la finalización del tratamiento radical sin recaída posterior",
+        "no podrá considerar la existencia de antecedentes oncológicos"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adiez",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo diez, párrafo cuarto",
+        "excerpt": "El tomador de un seguro sobre la vida no está obligado a declarar si él o el asegurado han padecido cáncer una vez hayan transcurridos cinco años desde la finalización del tratamiento radical sin recaída posterior. Una vez transcurrido el plazo señalado, el asegurador no podrá considerar la existencia de antecedentes oncológicos a efectos de la contratación del seguro, quedando prohibida toda discriminación o restricción a la contratación por este motivo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-agravacion-del-riesgo",
+      "topic": "Declaración del riesgo",
+      "question": "Si durante la vigencia del seguro aumenta el riesgo asegurado, ¿tengo que comunicarlo a la aseguradora?",
+      "questionEn": "If the insured risk increases during the policy term, must I tell the insurer?",
+      "expected": "Sí. El tomador o el asegurado deben comunicar al asegurador, tan pronto como sea posible, la alteración de las circunstancias declaradas en el cuestionario que agraven el riesgo hasta el punto de que, de haberlas conocido, no habría contratado o lo habría hecho en condiciones más gravosas.",
+      "keyFacts": [
+        "tan pronto como le sea posible",
+        "que agraven el riesgo"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aonce",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo once.1",
+        "excerpt": "1. El tomador del seguro o el asegurado deberán durante la vigencia del contrato comunicar al asegurador, tan pronto como le sea posible, la alteración de los factores y las circunstancias declaradas en el cuestionario previsto en el artículo anterior que agraven el riesgo y sean de tal naturaleza que si hubieran sido conocidas por éste en el momento de la perfección del contrato no lo habría celebrado o lo habría concluido en condiciones más gravosas.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-salud-no-es-agravacion",
+      "topic": "Declaración del riesgo",
+      "question": "En un seguro de vida o de salud, ¿debo avisar a la aseguradora si mi salud empeora después de contratar?",
+      "questionEn": "In life or health insurance, must I notify the insurer if my health worsens after contracting?",
+      "expected": "No. En los seguros de personas, el tomador o el asegurado no tienen obligación de comunicar la variación de las circunstancias relativas al estado de salud del asegurado, que en ningún caso se considera agravación del riesgo.",
+      "keyFacts": [
+        "no tienen obligación de comunicar la variación de las circunstancias relativas al estado de salud",
+        "en ningún caso se considerarán agravación del riesgo"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aonce",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo once.2",
+        "excerpt": "2. En los seguros de personas el tomador o el asegurado no tienen obligación de comunicar la variación de las circunstancias relativas al estado de salud del asegurado, que en ningún caso se considerarán agravación del riesgo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-impago-primera-prima",
+      "topic": "Primas y pagos",
+      "question": "Si no he pagado la primera prima y ocurre un siniestro, ¿estoy cubierto?",
+      "questionEn": "If I haven't paid the first premium and a loss occurs, am I covered?",
+      "expected": "Salvo pacto en contrario, no: si la prima no se ha pagado antes de que se produzca el siniestro, el asegurador queda liberado de su obligación. Además, si la primera prima no se pagó por culpa del tomador, el asegurador puede resolver el contrato o exigir el pago por vía ejecutiva con base en la póliza.",
+      "keyFacts": [
+        "Salvo pacto en contrario",
+        "el asegurador quedará liberado de su obligación"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aquince",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo quince, párrafo primero",
+        "excerpt": "Si por culpa del tomador la primera prima no ha sido pagada, o la prima única no lo ha sido a su vencimiento, el asegurador tiene derecho a resolver el contrato o a exigir el pago de la prima debida en vía ejecutiva con base en la póliza. Salvo pacto en contrario, si la prima no ha sido pagada antes de que se produzca el siniestro, el asegurador quedará liberado de su obligación.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-impago-primas-siguientes",
+      "topic": "Primas y pagos",
+      "question": "Si no pago un recibo de renovación de mi seguro, ¿cuándo deja de cubrirme?",
+      "questionEn": "If I miss a renewal premium, when does my cover stop?",
+      "expected": "La cobertura queda suspendida un mes después del día de vencimiento de la prima impagada. Si el asegurador no reclama el pago dentro de los seis meses siguientes al vencimiento, el contrato se entiende extinguido; mientras está en suspenso, solo puede exigir la prima del período en curso.",
+      "keyFacts": [
+        "queda suspendida un mes después del día de su vencimiento",
+        "dentro de los seis meses siguientes al vencimiento de la prima"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aquince",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo quince, párrafo segundo",
+        "excerpt": "En caso de falta de pago de una de las primas siguientes, la cobertura del asegurador queda suspendida un mes después del día de su vencimiento. Si el asegurador no reclama el pago dentro de los seis meses siguientes al vencimiento de la prima se entenderá que el contrato queda extinguido. En cualquier caso, el asegurador, cuando el contrato esté en suspenso, sólo podrá exigir el pago de la prima del período en curso.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-cobertura-tras-pago-atrasado",
+      "topic": "Primas y pagos",
+      "question": "Si pago con retraso una prima pendiente, ¿desde cuándo vuelvo a estar cubierto?",
+      "questionEn": "If I pay an overdue premium late, from when am I covered again?",
+      "expected": "Si el contrato no ha sido resuelto ni extinguido, la cobertura vuelve a tener efecto a las veinticuatro horas del día en que el tomador pagó la prima.",
+      "keyFacts": [
+        "la cobertura vuelve a tener efecto a las veinticuatro horas"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aquince",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo quince, párrafo tercero",
+        "excerpt": "Si el contrato no hubiere sido resuelto o extinguido conforme a los párrafos anteriores, la cobertura vuelve a tener efecto a las veinticuatro horas del días en que el tomador pagó su prima.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-plazo-comunicar-siniestro",
+      "topic": "Siniestros",
+      "question": "¿En qué plazo tengo que comunicar un siniestro a la aseguradora?",
+      "questionEn": "How soon must I report a loss to the insurer?",
+      "expected": "Dentro del plazo máximo de siete días desde que se conoció, salvo que la póliza fije un plazo más amplio. Si no se cumple, el asegurador puede reclamar los daños y perjuicios causados por la falta de declaración, salvo que se pruebe que conoció el siniestro por otro medio.",
+      "keyFacts": [
+        "dentro del plazo máximo de siete días de haberlo conocido",
+        "salvo que se haya fijado en la póliza un plazo más amplio"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adieciseis",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo dieciséis, párrafos primero y segundo",
+        "excerpt": "El tomador del seguro o el asegurado o el beneficiario deberán comunicar al asegurador el acaecimiento del siniestro dentro del plazo máximo de siete días de haberlo conocido, salvo que se haya fijado en la póliza un plazo más amplio. En caso de incumplimiento, el asegurador podrá reclamar los daños y perjuicios causados por la falta de declaración. Este efecto no se producirá si se prueba que el asegurador ha tenido conocimiento del siniestro por otro medio.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-informacion-sobre-siniestro",
+      "topic": "Siniestros",
+      "question": "¿Puedo perder la indemnización por no dar a la aseguradora toda la información sobre el siniestro?",
+      "questionEn": "Can I lose my indemnity for not giving the insurer full information about the loss?",
+      "expected": "El tomador o el asegurado deben dar al asegurador toda clase de información sobre las circunstancias y consecuencias del siniestro, pero la pérdida del derecho a la indemnización solo se produce si ha concurrido dolo o culpa grave.",
+      "keyFacts": [
+        "toda clase de informaciones sobre las circunstancias y consecuencias del siniestro",
+        "sólo se producirá en el supuesto de que hubiese concurrido dolo o culpa grave"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adieciseis",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo dieciséis, párrafo tercero",
+        "excerpt": "El tomador del seguro o el asegurado deberá, además, dar al asegurador toda clase de informaciones sobre las circunstancias y consecuencias del siniestro. En caso de violación de este deber, la pérdida del derecho a la indemnización sólo se producirá en el supuesto de que hubiese concurrido dolo o culpa grave.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-aminorar-consecuencias",
+      "topic": "Siniestros",
+      "question": "Cuando ocurre un siniestro, ¿estoy obligado a intentar limitar los daños?",
+      "questionEn": "When a loss occurs, am I obliged to try to limit the damage?",
+      "expected": "Sí. El asegurado o el tomador deben emplear los medios a su alcance para aminorar las consecuencias del siniestro. Si no lo hacen, el asegurador puede reducir su prestación en la proporción oportuna, y si el incumplimiento se produce con la manifiesta intención de perjudicar o engañar al asegurador, este queda liberado de toda prestación.",
+      "keyFacts": [
+        "emplear los medios a su alcance para aminorar las consecuencias del siniestro",
+        "reducir su prestación en la proporción oportuna"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adiecisiete",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo diecisiete, párrafos primero y segundo",
+        "excerpt": "El asegurado o el tomador del seguro deberán emplear los medios a su alcance para aminorar las consecuencias del siniestro. El incumplimiento de este deber dará derecho al asegurador a reducir su prestación en la proporción oportuna, teniendo en cuenta la importancia de los daños derivados del mismo y el grado de culpa del asegurado. Si este incumplimiento se produjera con la manifiesta intención de perjudicar o engañar al asegurador, éste quedará liberado de toda prestación derivada del siniestro.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-relacion-danos-cinco-dias",
+      "topic": "Siniestros",
+      "question": "Tras un siniestro de daños, ¿en qué plazo debo enviar la relación de bienes afectados y la estimación de los daños?",
+      "questionEn": "After a property loss, how soon must I send the list of affected items and the damage estimate?",
+      "expected": "En el plazo de cinco días desde la comunicación del siniestro, el asegurado o el tomador deben enviar por escrito al asegurador la relación de los objetos existentes al tiempo del siniestro, la de los salvados y la estimación de los daños.",
+      "keyFacts": [
+        "en el plazo de cinco días a partir de la notificación prevista en el artículo dieciséis",
+        "la relación de los objetos existentes al tiempo del siniestro, la de los salvados y la estimación de los daños"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#atreintayocho",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo treinta y ocho, párrafo primero",
+        "excerpt": "Una vez producido el siniestro, y en el plazo de cinco días a partir de la notificación prevista en el artículo dieciséis, el asegurado o el tomador deberán comunicar por escrito al asegurador la relación de los objetos existentes al tiempo del siniestro, la de los salvados y la estimación de los daños.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-pago-importe-minimo",
+      "topic": "Pago de la indemnización",
+      "question": "¿En qué plazo tiene que pagarme la aseguradora al menos una parte de la indemnización?",
+      "questionEn": "Within what period must the insurer pay at least part of the indemnity?",
+      "expected": "Dentro de los cuarenta días siguientes a la recepción de la declaración del siniestro, el asegurador debe pagar el importe mínimo de lo que pueda deber según las circunstancias que conozca. La indemnización se satisface al término de las investigaciones y peritaciones necesarias.",
+      "keyFacts": [
+        "dentro de los cuarenta días, a partir de la recepción de la declaración del siniestro",
+        "el pago del importe mínimo de lo que el asegurador pueda deber"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#adieciocho",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo dieciocho, párrafo primero",
+        "excerpt": "El asegurador está obligado a satisfacer la indemnización al término de las investigaciones y peritaciones necesarias para establecer la existencia del siniestro y, en su caso, el importe de los daños que resulten del mismo. En cualquier supuesto, el asegurador deberá efectuar, dentro de los cuarenta días, a partir de la recepción de la declaración del siniestro, el pago del importe mínimo de lo que el asegurador pueda deber, según las circunstancias por él conocidas.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-mora-aseguradora",
+      "topic": "Pago de la indemnización",
+      "question": "¿Cuándo se considera que la aseguradora está en mora en el pago de la indemnización?",
+      "questionEn": "When is the insurer considered in default on paying the claim?",
+      "expected": "Cuando no ha cumplido su prestación en el plazo de tres meses desde la producción del siniestro, o cuando no ha pagado el importe mínimo de lo que pueda deber dentro de los cuarenta días desde la recepción de la declaración del siniestro.",
+      "keyFacts": [
+        "en el plazo de tres meses desde la producción del siniestro",
+        "dentro de los cuarenta días a partir de la recepción de la declaración del siniestro"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aveinte",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo veinte, regla 3.º",
+        "excerpt": "3.º Se entenderá que el asegurador incurre en mora cuando no hubiere cumplido su prestación en el plazo de tres meses desde la producción del siniestro o no hubiere procedido al pago del importe mínimo de lo que pueda deber dentro de los cuarenta días a partir de la recepción de la declaración del siniestro.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-intereses-de-demora",
+      "topic": "Pago de la indemnización",
+      "question": "¿Qué intereses debe pagar la aseguradora si se retrasa en indemnizarme?",
+      "questionEn": "What interest must the insurer pay if it is late paying my claim?",
+      "expected": "Un interés anual igual al interés legal del dinero vigente incrementado en un 50 %, que se devenga por días sin necesidad de reclamación judicial. Transcurridos dos años desde el siniestro, ese interés no puede ser inferior al 20 % anual.",
+      "keyFacts": [
+        "incrementado en el 50 por 100",
+        "sin necesidad de reclamación judicial",
+        "el interés anual no podrá ser inferior al 20 por 100"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aveinte",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo veinte, regla 4.º",
+        "excerpt": "4.º La indemnización por mora se impondrá de oficio por el órgano judicial y consistirá en el pago de un interés anual igual al del interés legal del dinero vigente en el momento en que se devengue, incrementado en el 50 por 100; estos intereses se considerarán producidos por días, sin necesidad de reclamación judicial. No obstante, transcurridos dos años desde la producción del siniestro, el interés anual no podrá ser inferior al 20 por 100.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-desacuerdo-peritos",
+      "topic": "Pago de la indemnización",
+      "question": "Si no llego a un acuerdo con la aseguradora sobre el importe de la indemnización, ¿qué procedimiento se sigue?",
+      "questionEn": "If I cannot agree the indemnity amount with the insurer, what procedure applies?",
+      "expected": "Si no hay acuerdo dentro del plazo del artículo 18, cada parte designa un perito, cuya aceptación debe constar por escrito. Si una parte no lo designa, debe hacerlo en los ocho días siguientes a ser requerida por la otra; si no lo hace, se entiende que acepta el dictamen del perito de la otra parte y queda vinculada por él.",
+      "keyFacts": [
+        "cada parte designará un Perito",
+        "en los ocho días siguientes",
+        "se entenderá que acepta el dictamen que emita el Perito de la otra parte"
+      ],
+      "severity": "medium",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#atreintayocho",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo treinta y ocho, párrafo cuarto",
+        "excerpt": "Si no se lograse el acuerdo dentro del plazo previsto en el artículo dieciocho, cada parte designará un Perito, debiendo constar por escrito la aceptación de éstos. Si una de las partes no hubiera hecho la designación, estará obligada a realizarla en los ocho días siguientes a la fecha en que sea requerida por la que hubiere designado el suyo, y de no hacerlo en este último plazo se entenderá que acepta el dictamen que emita el Perito de la otra parte, quedando vinculado por el mismo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-oposicion-a-la-prorroga",
+      "topic": "Duración y renovación",
+      "question": "Si no quiero que mi seguro se renueve, ¿con cuánta antelación tengo que avisar?",
+      "questionEn": "If I don't want my policy to renew, how much notice must I give?",
+      "expected": "Debe notificarlo por escrito a la aseguradora con al menos un mes de antelación a la conclusión del período del seguro en curso. Si es la aseguradora la que se opone a la prórroga, debe hacerlo con dos meses de antelación.",
+      "keyFacts": [
+        "mediante una notificación escrita",
+        "al menos, un mes de anticipación",
+        "dos meses cuando sea el asegurador"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aveintidos",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo veintidós.2",
+        "excerpt": "2. Las partes pueden oponerse a la prórroga del contrato mediante una notificación escrita a la otra parte, efectuada con un plazo de, al menos, un mes de anticipación a la conclusión del período del seguro en curso cuando quien se oponga a la prórroga sea el tomador, y de dos meses cuando sea el asegurador.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-aviso-modificaciones",
+      "topic": "Duración y renovación",
+      "question": "¿Con cuánta antelación debe avisarme la aseguradora de un cambio en mi contrato de seguro?",
+      "questionEn": "How far in advance must the insurer notify me of a change to my policy?",
+      "expected": "La aseguradora debe comunicar al tomador cualquier modificación del contrato de seguro al menos con dos meses de antelación a la conclusión del período en curso.",
+      "keyFacts": [
+        "al menos con dos meses de antelación a la conclusión del período en curso"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aveintidos",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo veintidós.3",
+        "excerpt": "3. El asegurador deberá comunicar al tomador, al menos con dos meses de antelación a la conclusión del período en curso, cualquier modificación del contrato de seguro.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-prescripcion-acciones",
+      "topic": "Prescripción",
+      "question": "¿Cuánto tiempo tengo para ejercer acciones legales derivadas de mi contrato de seguro?",
+      "questionEn": "How long do I have to bring legal action under my insurance contract?",
+      "expected": "Las acciones derivadas del contrato de seguro prescriben a los dos años si se trata de un seguro de daños y a los cinco años si el seguro es de personas.",
+      "keyFacts": [
+        "dos años si se trata de seguro de daños",
+        "cinco si el seguro es de personas"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aveintitres",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo veintitrés",
+        "excerpt": "Las acciones que se deriven del contrato de seguro prescribirán en el término de dos años si se trata de seguro de daños y de cinco si el seguro es de personas.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-infraseguro-regla-proporcional",
+      "topic": "Seguros de daños",
+      "question": "Si mi vivienda está asegurada por menos de lo que vale y sufro un siniestro, ¿cómo se calcula la indemnización?",
+      "questionEn": "If my home is underinsured and I suffer a loss, how is the indemnity calculated?",
+      "expected": "Si en el momento del siniestro la suma asegurada es inferior al valor del interés, el asegurador indemniza el daño en la misma proporción en que la suma asegurada cubre el interés asegurado. Las partes pueden excluir de común acuerdo esta regla proporcional en la póliza o después de celebrar el contrato.",
+      "keyFacts": [
+        "en la misma proporción en la que aquélla cubre el interés asegurado",
+        "la aplicación de la regla proporcional"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#atreinta",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo treinta",
+        "excerpt": "Si en el momento de la producción del siniestro la suma asegurada es inferior al valor del interés, el asegurador indemnizará el daño causado en la misma proporción en la que aquélla cubre el interés asegurado. Las partes, de común acuerdo, podrán excluir en la póliza o con posterioridad a la celebración del contrato, la aplicación de la regla proporcional prevista en el párrafo anterior.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-venta-bien-asegurado",
+      "topic": "Seguros de daños",
+      "question": "He vendido un bien que tenía asegurado. ¿Tengo que comunicárselo a la aseguradora y en qué plazo?",
+      "questionEn": "I sold an insured item. Must I tell the insurer, and how soon?",
+      "expected": "Sí. El comprador se subroga en los derechos y obligaciones del contrato de seguro; el vendedor debe comunicar por escrito al comprador la existencia del seguro y, una vez verificada la transmisión, comunicarla por escrito al asegurador o a sus representantes en el plazo de quince días.",
+      "keyFacts": [
+        "el adquirente se subroga",
+        "comunicarla por escrito al asegurador o a sus representantes en el plazo de quince días"
+      ],
+      "severity": "medium",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#atreintaycuatro",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo treinta y cuatro, párrafos primero y segundo",
+        "excerpt": "En caso de transmisión del objeto asegurado, el adquirente se subroga en el momento de la enajenación en los derechos y obligaciones que correspondían en el contrato de seguro al anterior titular. Se exceptúa el supuesto de pólizas nominativas para riesgos no obligatorios, si en las condiciones generales existe pacto en contrario. El asegurado está obligado a comunicar por escrito al adquirente la existencia del contrato del seguro de la cosa transmitida. Una vez verificada la transmisión, también deberá comunicarla por escrito al asegurador o a sus representantes en el plazo de quince días.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-rc-gastos-defensa",
+      "topic": "Responsabilidad civil y defensa jurídica",
+      "question": "Si un tercero me reclama por un daño cubierto por mi seguro de responsabilidad civil, ¿quién paga mi defensa?",
+      "questionEn": "If a third party claims against me under my liability cover, who pays for my defence?",
+      "expected": "Salvo pacto en contrario, el asegurador asume la dirección jurídica frente a la reclamación del perjudicado y los gastos de defensa son de su cuenta; el asegurado debe prestar la colaboración necesaria.",
+      "keyFacts": [
+        "Salvo pacto en contrario",
+        "serán de su cuenta los gastos de defensa"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#asetentaycuatro",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo setenta y cuatro, párrafo primero",
+        "excerpt": "Salvo pacto en contrario, el asegurador asumirá la dirección jurídica frente a la reclamación del perjudicado, y serán de su cuenta los gastos de defensa que se ocasionen. El asegurado deberá prestar la colaboración necesaria en orden a la dirección jurídica asumida por el asegurador.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-accion-directa-perjudicado",
+      "topic": "Responsabilidad civil y defensa jurídica",
+      "question": "Si otra persona me causa un daño y tiene seguro de responsabilidad civil, ¿puedo reclamar directamente a su aseguradora?",
+      "questionEn": "If someone with liability insurance harms me, can I claim directly against their insurer?",
+      "expected": "Sí. El perjudicado o sus herederos tienen acción directa contra el asegurador para exigirle que cumpla la obligación de indemnizar, y el asegurado está obligado a informarles de la existencia del contrato de seguro y de su contenido.",
+      "keyFacts": [
+        "tendrán acción directa contra el asegurador",
+        "la existencia del contrato de seguro y su contenido"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#asetentayseis",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo setenta y seis",
+        "excerpt": "El perjudicado o sus herederos tendrán acción directa contra el asegurador para exigirle el cumplimiento de la obligación de indemnizar, sin perjuicio del derecho del asegurador a repetir contra el asegurado, en el caso de que sea debido a conducta dolosa de éste, el daño o perjuicio causado a tercero. La acción directa es inmune a las excepciones que puedan corresponder al asegurador contra el asegurado. El asegurador puede, no obstante, oponer la culpa exclusiva del perjudicado y las excepciones personales que tenga contra éste. A los efectos del ejercicio de la acción directa, el asegurado estará obligado a manifestar al tercero perjudicado o a sus herederos la existencia del contrato de seguro y su contenido.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-defensa-juridica-libre-eleccion",
+      "topic": "Responsabilidad civil y defensa jurídica",
+      "question": "Con un seguro de defensa jurídica, ¿puedo elegir a mi propio abogado?",
+      "questionEn": "With legal expenses insurance, can I choose my own lawyer?",
+      "expected": "Sí. El asegurado tiene derecho a elegir libremente el procurador y el abogado que le representen y defiendan en cualquier clase de procedimiento, y estos no están sujetos en ningún caso a las instrucciones del asegurador.",
+      "keyFacts": [
+        "derecho a elegir libremente el Procurador y Abogado",
+        "no estarán sujetos, en ningún caso, a las instrucciones del asegurador"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#asetentayseis.d)",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo setenta y seis d)",
+        "excerpt": "El asegurado tendrá derecho a elegir libremente el Procurador y Abogado que hayan de representarle y defenderle en cualquier clase de procedimiento. El asegurado tendrá, asimismo, derecho a la libre elección de Abogado y Procurador en los casos en que se presente conflicto de intereses entre las partes del contrato. El Abogado y Procurador designados por el asegurado no estarán sujetos, en ningún caso, a las instrucciones del asegurador.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-desistimiento-30-dias",
+      "topic": "Desistimiento",
+      "question": "He contratado un seguro de vida individual. ¿Puedo anularlo sin penalización si me arrepiento?",
+      "questionEn": "I took out an individual life policy. Can I cancel without penalty if I change my mind?",
+      "expected": "Sí, si es un contrato individual de duración superior a seis meses: el tomador puede resolverlo sin indicar motivos y sin penalización dentro de los 30 días siguientes a la fecha en que el asegurador le entregue la póliza o el documento de cobertura provisional. Se exceptúan los seguros en que el tomador asume el riesgo de la inversión y aquellos cuya rentabilidad garantizada esté en función de inversiones asignadas.",
+      "keyFacts": [
+        "de duración superior a seis meses",
+        "sin indicación de los motivos y sin penalización alguna",
+        "dentro del plazo de 30 días siguientes a la fecha en la que el asegurador le entregue la póliza"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aochentaytres.a)",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ochenta y tres a).1",
+        "excerpt": "1. El tomador del seguro en un contrato de seguro individual de duración superior a seis meses que haya estipulado el contrato sobre la vida propia o la de un tercero tendrá la facultad unilateral de resolver el contrato sin indicación de los motivos y sin penalización alguna dentro del plazo de 30 días siguientes a la fecha en la que el asegurador le entregue la póliza o documento de cobertura provisional. Se exceptúan de esta facultad unilateral de resolución los contratos de seguro en los que el tomador asume el riesgo de la inversión, así como los contratos en los que la rentabilidad garantizada esté en función de inversiones asignadas en los mismos.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-cambiar-beneficiario",
+      "topic": "Seguro de vida",
+      "question": "¿Puedo cambiar el beneficiario de mi seguro de vida sin pedir permiso a la aseguradora?",
+      "questionEn": "Can I change my life policy beneficiary without the insurer's consent?",
+      "expected": "Sí. El tomador puede designar beneficiario o modificar la designación sin necesidad de consentimiento del asegurador; la designación puede hacerse en la póliza, en una declaración escrita posterior comunicada al asegurador o en testamento.",
+      "keyFacts": [
+        "sin necesidad de consentimiento del asegurador",
+        "en la póliza, en una posterior declaración escrita comunicada al asegurador o en testamento"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aochentaycuatro",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ochenta y cuatro, párrafos primero y segundo",
+        "excerpt": "El tomador del seguro podrá designar beneficiario o modificar la designación anteriormente realizada, sin necesidad de consentimiento del asegurador. La designación del beneficiario podrá hacerse en la póliza, en una posterior declaración escrita comunicada al asegurador o en testamento.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-sin-beneficiario",
+      "topic": "Seguro de vida",
+      "question": "Si fallece el asegurado y no hay beneficiario designado en el seguro de vida, ¿a quién corresponde el capital?",
+      "questionEn": "If the insured dies and no beneficiary is named in the life policy, who gets the benefit?",
+      "expected": "Si en el momento del fallecimiento del asegurado no hay beneficiario concretamente designado ni reglas para su determinación, el capital forma parte del patrimonio del tomador.",
+      "keyFacts": [
+        "el capital formará parte del patrimonio del tomador"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aochentaycuatro",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ochenta y cuatro, párrafo tercero",
+        "excerpt": "Si en el momento del fallecimiento del asegurado no hubiere beneficiario concretamente designado, ni reglas para su determinación, el capital formará parte del patrimonio del tomador.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-renuncia-revocacion",
+      "topic": "Seguro de vida",
+      "question": "Si renuncio a poder revocar la designación del beneficiario de mi seguro de vida, ¿qué derechos pierdo?",
+      "questionEn": "If I waive my right to revoke the beneficiary designation, which rights do I lose?",
+      "expected": "El tomador puede revocar la designación del beneficiario en cualquier momento mientras no haya renunciado expresamente y por escrito a esa facultad. Si renuncia a ella, pierde los derechos de rescate, anticipo, reducción y pignoración de la póliza.",
+      "keyFacts": [
+        "mientras no haya renunciado expresamente y por escrito a tal facultad",
+        "perderá los derechos de rescate, anticipo, reducción y pignoración de la póliza"
+      ],
+      "severity": "medium",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aochentaysiete",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ochenta y siete",
+        "excerpt": "El tomador del seguro puede revocar la designación del beneficiario en cualquier momento, mientras no haya renunciado expresamente y por escrito a tal facultad. La revocación deberá hacerse en la misma forma establecida para la designación. El tomador perderá los derechos de rescate, anticipo, reducción y pignoración de la póliza si renuncia a la facultad de revocación.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-plazo-impugnacion",
+      "topic": "Seguro de vida",
+      "question": "En un seguro de vida, ¿puede la aseguradora impugnar el contrato por una declaración inexacta años después de firmarlo?",
+      "questionEn": "In life insurance, can the insurer contest the policy for a misstatement years after signing?",
+      "expected": "Una vez transcurrido un año desde la conclusión del contrato, el asegurador ya no puede impugnarlo por reticencia o inexactitud en las declaraciones, salvo que la póliza fije un plazo más breve y, en todo caso, salvo que el tomador haya actuado con dolo. La declaración inexacta de la edad del asegurado tiene un régimen propio.",
+      "keyFacts": [
+        "una vez transcurrido el plazo de un año, a contar desde la fecha de su conclusión",
+        "salvo que el tomador del seguro haya actuado con dolo"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aochentaynueve",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ochenta y nueve",
+        "excerpt": "En caso de reticencia e inexactitud en las declaraciones del tomador, que influyan en la estimación del riesgo, se estará a lo establecido en las disposiciones generales de esta Ley. Sin embargo, el asegurador no podrá impugnar el contrato una vez transcurrido el plazo de un año, a contar desde la fecha de su conclusión, a no ser que las partes hayan fijado un término más breve en la póliza y, en todo caso, salvo que el tomador del seguro haya actuado con dolo. Se exceptúa de esta norma la declaración inexacta relativa a la edad del asegurado, que se regula en el artículo siguiente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-suicidio",
+      "topic": "Seguro de vida",
+      "question": "¿Cubre el seguro de vida el fallecimiento por suicidio?",
+      "questionEn": "Does life insurance cover death by suicide?",
+      "expected": "Salvo pacto en contrario, el riesgo de suicidio del asegurado queda cubierto a partir del transcurso de un año desde la conclusión del contrato.",
+      "keyFacts": [
+        "Salvo pacto en contrario",
+        "a partir del transcurso de un año del momento de la conclusión del contrato"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#anoventaytres",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo noventa y tres",
+        "excerpt": "Salvo pacto en contrario, el riesgo de suicidio del asegurado quedará cubierto a partir del transcurso de un año del momento de la conclusión del contrato. A estos efectos se entiende por suicidio la muerte causada consciente y voluntariamente por el propio asegurado.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-vida-temporal-sin-rescate-legal",
+      "topic": "Seguro de vida",
+      "question": "¿Tengo derecho legal de rescate en un seguro de vida temporal para caso de muerte?",
+      "questionEn": "Do I have a statutory surrender right in a term life policy?",
+      "expected": "La ley no lo garantiza: en los seguros de supervivencia y en los temporales para caso de muerte no se aplican los artículos 94 a 97 de la Ley de Contrato de Seguro. No obstante, el asegurador puede conceder al tomador los derechos de rescate, reducción y anticipos en los términos que determine el contrato.",
+      "keyFacts": [
+        "en los seguros temporales para caso de muerte no será de aplicación",
+        "podrán, no obstante, conceder al tomador los derechos de rescate, reducción y anticipos en los términos que se determinen en el contrato"
+      ],
+      "severity": "medium",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#anoventayocho",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo noventa y ocho",
+        "excerpt": "En los seguros de supervivencia y en los seguros temporales para caso de muerte no será de aplicación lo dispuesto en los artículos noventa y cuatro, noventa y cinco, noventa y seis y noventa y siete. Los aseguradores podrán, no obstante, conceder al tomador los derechos de rescate, reducción y anticipos en los términos que se determinen en el contrato.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-decesos-servicio-por-otros-medios",
+      "topic": "Seguros de personas",
+      "question": "En un seguro de decesos, si la familia contrata el funeral por su cuenta y no a través de la aseguradora, ¿qué tiene que pagar la aseguradora?",
+      "questionEn": "In funeral insurance, if the family arranges the funeral independently, what must the insurer pay?",
+      "expected": "Si el servicio se realiza por medios distintos a los ofrecidos por la aseguradora (o esta no pudo prestarlo por causas ajenas a su voluntad o fuerza mayor), el asegurador debe pagar la suma asegurada a los herederos del asegurado fallecido, sin responder de la calidad de los servicios prestados.",
+      "keyFacts": [
+        "por haberse realizado el servicio a través de otros medios distintos a los ofrecidos por la aseguradora",
+        "satisfacer la suma asegurada a los herederos del asegurado fallecido"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#acientoseisbis",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ciento seis bis.2",
+        "excerpt": "2. En el supuesto de que el asegurador no hubiera podido proporcionar la prestación por causas ajenas a su voluntad, fuerza mayor o por haberse realizado el servicio a través de otros medios distintos a los ofrecidos por la aseguradora, el asegurador quedará obligado a satisfacer la suma asegurada a los herederos del asegurado fallecido, no siendo responsable de la calidad de los servicios prestados.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-decesos-no-renovacion",
+      "topic": "Seguros de personas",
+      "question": "¿Puede la aseguradora negarse a renovar mi seguro de decesos?",
+      "questionEn": "Can the insurer refuse to renew my funeral insurance policy?",
+      "expected": "No. En el seguro de decesos, la oposición a la prórroga del contrato solo puede ejercerla el tomador.",
+      "keyFacts": [
+        "sólo podrá ser ejercida por el tomador"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#acientoseisbis",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ciento seis bis.5",
+        "excerpt": "5. La oposición a la prórroga del contrato sólo podrá ser ejercida por el tomador.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-libre-eleccion-prestador",
+      "topic": "Seguros de personas",
+      "question": "En mi seguro de asistencia sanitaria, ¿tengo derecho a elegir el médico o el centro?",
+      "questionEn": "In my health-care insurance, do I have a right to choose the doctor or provider?",
+      "expected": "Las aseguradoras deben garantizar la libertad de elección del prestador del servicio dentro de los límites y condiciones del contrato, y poner a disposición del asegurado, de forma fácilmente accesible, una relación de prestadores que garantice esa libertad, salvo en los contratos que prevean expresamente un único prestador.",
+      "keyFacts": [
+        "la libertad de elección del prestador del servicio, dentro de los límites y condiciones establecidos en el contrato",
+        "salvo en aquellos contratos en los que expresamente se prevea un único prestador"
+      ],
+      "severity": "medium",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#acientoseisquater",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo ciento seis quáter, párrafo primero",
+        "excerpt": "En los seguros de asistencia sanitaria, dependencia y de decesos, las entidades aseguradoras garantizarán a los asegurados la libertad de elección del prestador del servicio, dentro de los límites y condiciones establecidos en el contrato. En estos casos la entidad aseguradora deberá poner a disposición del asegurado, de forma fácilmente accesible, una relación de prestadores de servicios que garantice una efectiva libertad de elección, salvo en aquellos contratos en los que expresamente se prevea un único prestador.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-no-discriminacion-salud",
+      "topic": "No discriminación",
+      "question": "¿Puede una aseguradora negarse a asegurarme o ponerme peores condiciones por tener VIH?",
+      "questionEn": "Can an insurer refuse me cover or impose worse terms because I have HIV?",
+      "expected": "No por ese motivo: se prohíbe denegar el acceso a la contratación, establecer procedimientos de contratación diferentes o imponer condiciones más onerosas por tener VIH/SIDA u otras condiciones de salud, salvo que se funden en causas justificadas, proporcionadas y razonables documentadas previa y objetivamente.",
+      "keyFacts": [
+        "No se podrá discriminar a las personas que tengan VIH/SIDA",
+        "causas justificadas, proporcionadas y razonables, que se hallen documentadas previa y objetivamente"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#da",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Disposición adicional quinta.1",
+        "excerpt": "1. No se podrá discriminar a las personas que tengan VIH/SIDA, ni por otras condiciones de salud. En particular, se prohíbe la denegación de acceso a la contratación, el establecimiento de procedimientos de contratación diferentes de los habitualmente utilizados por el asegurador o la imposición de condiciones más onerosas, por razón de tener VIH/SIDA, o por otras condiciones de salud, salvo que se encuentren fundadas en causas justificadas, proporcionadas y razonables, que se hallen documentadas previa y objetivamente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lcs-comunicaciones-del-corredor",
+      "topic": "Distribución y mediación",
+      "question": "Si mi corredor de seguros comunica algo a la aseguradora en mi nombre, ¿tiene el mismo efecto que si lo hiciera yo?",
+      "questionEn": "If my broker notifies the insurer on my behalf, does it count as if I did it?",
+      "expected": "Sí, las comunicaciones del corredor al asegurador en nombre del tomador surten los mismos efectos que si las hiciera el propio tomador, salvo indicación en contrario de este. No obstante, se necesita el consentimiento expreso del tomador para suscribir un nuevo contrato o para modificar o rescindir el contrato en vigor.",
+      "keyFacts": [
+        "surtirán los mismos efectos que si la realizara el propio tomador",
+        "se precisará el consentimiento expreso del tomador del seguro"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501#aveintiuno",
+        "title": "Ley 50/1980, de 8 de octubre, de Contrato de Seguro",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo veintiuno",
+        "excerpt": "Las comunicaciones efectuadas por un corredor de seguros al asegurador en nombre del tomador del seguro surtirán los mismos efectos que si la realizara el propio tomador, salvo indicación en contrario de éste. En todo caso se precisará el consentimiento expreso del tomador del seguro para suscribir un nuevo contrato o para modificar o rescindir el contrato de seguro en vigor.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "distancia-plazo-desistimiento",
+      "topic": "Desistimiento",
+      "question": "Si contrato un seguro a distancia (por internet o por teléfono) como consumidor, ¿de cuántos días dispongo para desistir?",
+      "questionEn": "If I buy insurance remotely (online or by phone) as a consumer, how many days do I have to withdraw?",
+      "expected": "Con carácter general, de catorce días naturales para desistir sin indicar motivos y sin penalización, contados desde la celebración del contrato (o desde que reciba las condiciones y la información contractual, si no las había recibido). En los contratos relacionados con seguros de vida el plazo es de treinta días naturales y empieza cuando se le informa de que el contrato se ha celebrado.",
+      "keyFacts": [
+        "catorce días naturales",
+        "sin indicación de los motivos y sin penalización alguna",
+        "treinta días naturales en el caso de contratos relacionados con seguros de vida"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-13411#a10",
+        "title": "Ley 22/2007, de 11 de julio, sobre comercialización a distancia de servicios financieros destinados a los consumidores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 10.1",
+        "excerpt": "1. El consumidor dispondrá de un plazo de catorce días naturales para desistir del contrato a distancia, sin indicación de los motivos y sin penalización alguna. El mencionado plazo será de treinta días naturales en el caso de contratos relacionados con seguros de vida. El plazo para ejercer el derecho de desistimiento empezará a correr desde el día de la celebración del contrato, salvo en relación con los seguros de vida, en cuyo caso el plazo comenzará cuando se informe al consumidor de que el contrato ha sido celebrado. No obstante, si el consumidor no hubiera recibido las condiciones contractuales y la información contractual indicada en el artículo 7.1, el plazo para ejercer el derecho de desistimiento comenzará a contar el día en que reciba la citada información.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2018-11-24"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "distancia-seguros-sin-desistimiento",
+      "topic": "Desistimiento",
+      "question": "¿Puedo desistir de un seguro de viaje de dos semanas que contraté por internet?",
+      "questionEn": "Can I withdraw from a two-week travel insurance policy I bought online?",
+      "expected": "No con base en la ley de comercialización a distancia de servicios financieros: entre los seguros excluidos del derecho de desistimiento están los de viaje, equipaje o similares de duración inferior a un mes, así como los que dan cumplimiento a una obligación de aseguramiento del tomador.",
+      "keyFacts": [
+        "los de viaje, equipaje o seguros similares de una duración inferior a un mes",
+        "los que den cumplimiento a una obligación de aseguramiento del tomador"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-13411#a10",
+        "title": "Ley 22/2007, de 11 de julio, sobre comercialización a distancia de servicios financieros destinados a los consumidores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 10.2.b) (contratos de seguro a los que no se aplica el derecho de desistimiento)",
+        "excerpt": "b) los contratos de seguros siguientes: 1.º contratos de seguro en los que el tomador asuma el riesgo de la inversión, así como los contratos en los que la rentabilidad garantizada esté en función de inversiones asignadas a los mismos, 2.º los de viaje, equipaje o seguros similares de una duración inferior a un mes, 3.º aquellos cuyos efectos terminen antes del plazo al que se refiere el apartado 1, 4.º los que den cumplimiento a una obligación de aseguramiento del tomador, 5.º los planes de previsión asegurados;",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2018-11-24"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "distancia-reembolso-tras-desistir",
+      "topic": "Desistimiento",
+      "question": "Si desisto de un seguro contratado a distancia, ¿en qué plazo me tienen que devolver lo que pagué?",
+      "questionEn": "If I withdraw from an insurance contract concluded at a distance, how soon must I be refunded?",
+      "expected": "A la mayor brevedad y, como máximo, en treinta días naturales contados desde el día en que el proveedor recibe la notificación del desistimiento.",
+      "keyFacts": [
+        "dentro de un plazo máximo de treinta días naturales",
+        "el día en que el proveedor reciba la notificación del desistimiento"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-13411#a11",
+        "title": "Ley 22/2007, de 11 de julio, sobre comercialización a distancia de servicios financieros destinados a los consumidores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 11.3",
+        "excerpt": "3. El proveedor reembolsará al consumidor a la mayor brevedad, y dentro de un plazo máximo de treinta días naturales, cualquier cantidad que haya percibido de éste con arreglo a lo establecido en el contrato a distancia, salvo el importe mencionado en el apartado 1. Dicho plazo se iniciará el día en que el proveedor reciba la notificación del desistimiento.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2018-11-24"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-obligacion-de-asegurar",
+      "topic": "Seguro de automóvil",
+      "question": "¿Es obligatorio tener asegurado mi coche?",
+      "questionEn": "Is it mandatory to insure my car?",
+      "expected": "Sí. Todo propietario de un vehículo a motor con estacionamiento habitual en España está obligado a suscribir y mantener en vigor un seguro por cada vehículo que cubra, hasta los límites del aseguramiento obligatorio, la responsabilidad civil derivada de su circulación.",
+      "keyFacts": [
+        "estará obligado a suscribir y mantener en vigor un contrato de seguro por cada vehículo de que sea titular"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a2",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 2.1, párrafo primero",
+        "excerpt": "1. Todo propietario de vehículos a motor que tenga su estacionamiento habitual en España estará obligado a suscribir y mantener en vigor un contrato de seguro por cada vehículo de que sea titular, que cubra hasta la cuantía de los límites del aseguramiento obligatorio, la responsabilidad civil a que se refiere el artículo 1.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-circular-sin-seguro",
+      "topic": "Seguro de automóvil",
+      "question": "¿Qué consecuencias tiene circular con un vehículo sin el seguro obligatorio?",
+      "questionEn": "What happens if I drive a vehicle without compulsory insurance?",
+      "expected": "La prohibición de circular con el vehículo, su depósito o precinto a cargo del propietario mientras no se contrate el seguro, y una multa de 601 a 3.005 euros graduada según las circunstancias.",
+      "keyFacts": [
+        "La prohibición de circulación por territorio nacional de los vehículos no asegurados",
+        "El depósito o precinto público o domiciliario del vehículo",
+        "de 601 a 3.005 euros"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a3",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 3.1",
+        "excerpt": "1. El incumplimiento de la obligación de asegurarse determinará: a) La prohibición de circulación por territorio nacional de los vehículos no asegurados. b) El depósito o precinto público o domiciliario del vehículo, con cargo a su propietario, mientras no sea concertado el seguro. Se acordará cautelarmente el depósito o precinto público o domiciliario del vehículo por el tiempo de un mes, que en caso de reincidencia será de tres meses y en el supuesto de quebrantamiento del depósito o precinto será de un año, y deberá demostrarse, para levantar dicho depósito o precinto, que se dispone del seguro correspondiente. Los gastos que se originen como consecuencia del depósito o precinto del vehículo serán por cuenta del propietario, que deberá abonarlos o garantizar su pago como requisito previo a la devolución del vehículo. c) Una sanción pecuniaria de 601 a 3.005 euros de multa, graduada según que el vehículo circulase o no, su categoría, el servicio que preste, la gravedad del perjuicio causado, en su caso, la duración de la falta de aseguramiento y la reiteración de la misma infracción.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-limites-seguro-obligatorio",
+      "topic": "Seguro de automóvil",
+      "question": "¿Cuáles son los importes de cobertura del seguro obligatorio de automóviles?",
+      "questionEn": "What are the cover limits of compulsory motor insurance?",
+      "expected": "En daños a las personas, 70 millones de euros por siniestro, cualquiera que sea el número de víctimas; en daños en los bienes, 15 millones de euros por siniestro.",
+      "keyFacts": [
+        "70 millones de euros por siniestro, cualquiera que sea el número de víctimas",
+        "15 millones de euros por siniestro"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a4",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 4.2",
+        "excerpt": "2. Los importes de la cobertura del seguro obligatorio serán: a) en los daños a las personas, 70 millones de euros por siniestro, cualquiera que sea el número de víctimas. b) en los daños en los bienes, 15 millones de euros por siniestro.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-lesiones-conductor-causante",
+      "topic": "Seguro de automóvil",
+      "question": "¿Cubre el seguro obligatorio las lesiones del conductor que ha causado el accidente?",
+      "questionEn": "Does compulsory motor insurance cover injuries to the at-fault driver?",
+      "expected": "No. La cobertura del seguro de suscripción obligatoria no alcanza a los daños y perjuicios ocasionados por las lesiones o el fallecimiento del conductor del vehículo causante del accidente.",
+      "keyFacts": [
+        "lesiones o fallecimiento del conductor del vehículo causante del accidente"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a5",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 5.1",
+        "excerpt": "1. La cobertura del seguro de suscripción obligatoria no alcanzará a los daños y perjuicios ocasionados por las lesiones o fallecimiento del conductor del vehículo causante del accidente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-danos-propio-vehiculo",
+      "topic": "Seguro de automóvil",
+      "question": "¿El seguro obligatorio de mi coche cubre los daños sufridos por mi propio vehículo?",
+      "questionEn": "Does my compulsory motor insurance cover damage to my own car?",
+      "expected": "No. La cobertura obligatoria no alcanza los daños en los bienes sufridos por el vehículo asegurado, por las cosas transportadas en él ni por los bienes del tomador, el asegurado, el propietario o el conductor, ni los de su cónyuge o parientes hasta el tercer grado de consanguinidad o afinidad.",
+      "keyFacts": [
+        "los daños en los bienes sufridos por el vehículo asegurado"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a5",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 5.2",
+        "excerpt": "2. La cobertura del seguro de suscripción obligatoria tampoco alcanzará a los daños en los bienes sufridos por el vehículo asegurado, por las cosas en él transportadas ni por los bienes de los que resulten titulares el tomador, el asegurado, el propietario o el conductor, así como los del cónyuge o los parientes hasta el tercer grado de consanguinidad o afinidad de los anteriores.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-conductor-sin-permiso",
+      "topic": "Seguro de automóvil",
+      "question": "Si me atropella un conductor sin carné, ¿puede su aseguradora negarse a indemnizarme alegando una exclusión de la póliza?",
+      "questionEn": "If an unlicensed driver hits me, can their insurer refuse to pay me by citing a policy exclusion?",
+      "expected": "No. Frente al perjudicado, el asegurador no puede oponer exclusiones de cobertura distintas de las previstas en la ley y, en particular, no puede oponer las cláusulas que excluyan la conducción por quienes carezcan de permiso de conducir.",
+      "keyFacts": [
+        "no podrá oponer frente al perjudicado ninguna otra exclusión de la cobertura",
+        "quienes carezcan de permiso de conducir"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a6",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 6, párrafos primero y segundo",
+        "excerpt": "El asegurador no podrá oponer frente al perjudicado ninguna otra exclusión de la cobertura, pactada o no, distinta de las recogidas en el artículo anterior, siendo nula de pleno derecho la norma o cláusula contractual que la contenga. En particular, no podrá hacerlo respecto de aquellas cláusulas contractuales que excluyan de la cobertura la utilización o conducción del vehículo designado en la póliza por quienes carezcan de permiso de conducir, incumplan las obligaciones legales de orden técnico relativas al estado de seguridad del vehículo o, fuera de los supuestos de robo, utilicen ilegítimamente vehículos de motor ajenos o no estén autorizados expresa o tácitamente por su propietario.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-plazo-accion-directa",
+      "topic": "Seguro de automóvil",
+      "question": "Si he sufrido daños en un accidente de tráfico, ¿qué plazo tengo para reclamar a la aseguradora del vehículo responsable?",
+      "questionEn": "If I was harmed in a road accident, how long do I have to claim against the liable vehicle's insurer?",
+      "expected": "El perjudicado o sus herederos tienen acción directa contra el asegurador, que prescribe por el transcurso de un año.",
+      "keyFacts": [
+        "tendrán acción directa para exigir al asegurador",
+        "prescribirá por el transcurso de un año"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a7",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 7.1, párrafo segundo",
+        "excerpt": "El perjudicado o sus herederos tendrán acción directa para exigir al asegurador la satisfacción de los referidos daños, que prescribirá por el transcurso de un año.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-oferta-motivada",
+      "topic": "Seguro de automóvil",
+      "question": "Después de reclamar a la aseguradora del vehículo culpable, ¿en qué plazo debe responderme?",
+      "questionEn": "After I claim against the at-fault vehicle's insurer, how soon must it respond?",
+      "expected": "En el plazo de tres meses desde que recibe la reclamación debe presentar una oferta motivada de indemnización si entiende acreditada la responsabilidad y cuantificado el daño; en caso contrario, o si rechaza la reclamación, debe dar una respuesta motivada.",
+      "keyFacts": [
+        "En el plazo de tres meses desde la recepción de la reclamación del perjudicado",
+        "una oferta motivada de indemnización",
+        "dará una respuesta motivada"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a7",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 7.2, párrafo primero",
+        "excerpt": "2. En el plazo de tres meses desde la recepción de la reclamación del perjudicado, tanto si se trata de daños personales como en los bienes, el asegurador deberá presentar una oferta motivada de indemnización si entendiera acreditada la responsabilidad y cuantificado el daño, que cumpla los requisitos del apartado 3. En caso contrario, o si la reclamación hubiera sido rechazada, dará una respuesta motivada que cumpla los requisitos del apartado 4.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-certificado-siniestralidad",
+      "topic": "Seguro de automóvil",
+      "question": "¿Puedo pedir a mi aseguradora un certificado con mi historial de siniestros del coche?",
+      "questionEn": "Can I ask my motor insurer for a certificate of my claims history?",
+      "expected": "Sí. A solicitud del propietario o del tomador, la aseguradora debe expedir, en los quince días hábiles siguientes, un certificado de los siniestros con responsabilidad civil de los cinco últimos años de seguro o, en su caso, un certificado de ausencia de siniestros.",
+      "keyFacts": [
+        "en el plazo de quince días hábiles siguientes a la solicitud",
+        "los cinco últimos años de seguro",
+        "certificación de ausencia de siniestros"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a2",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 2.7, párrafo primero",
+        "excerpt": "7. Las entidades aseguradoras deberán expedir a favor del propietario del vehículo y del tomador del seguro del vehículo asegurado, en caso de ser persona distinta de aquel, previa solicitud de cualquiera de ellos, y en el plazo de quince días hábiles siguientes a la solicitud, certificación acreditativa de los siniestros de los que se derive responsabilidad civil correspondientes a los cinco últimos años de seguro, si los hubiere o, en su caso, una certificación de ausencia de siniestros.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-vehiculo-desconocido",
+      "topic": "Seguro de automóvil",
+      "question": "Si me atropella un vehículo que se da a la fuga y no se llega a identificar, ¿quién me indemniza?",
+      "questionEn": "If I am hit by a vehicle that flees and is never identified, who compensates me?",
+      "expected": "El Consorcio de Compensación de Seguros indemniza, dentro del ámbito y hasta el límite del aseguramiento obligatorio, los daños personales en siniestros ocurridos en España cuando el vehículo causante es desconocido. Los daños en los bienes solo los indemniza si el accidente causó daños personales significativos, y puede fijarse reglamentariamente una franquicia no superior a 500 euros.",
+      "keyFacts": [
+        "el vehículo a motor causante sea desconocido",
+        "daños personales significativos",
+        "franquicia no superior a 500 euros"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a11",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 11.1.a)",
+        "excerpt": "1. Corresponde al Consorcio de Compensación de Seguros, dentro del ámbito territorial y hasta el límite cuantitativo del aseguramiento obligatorio: a) Indemnizar a quienes hubieran sufrido daños en sus personas, por siniestros ocurridos en España, en aquellos casos en que el vehículo a motor causante sea desconocido. No obstante, si como consecuencia de un accidente causado en este supuesto se hubieran derivado daños personales significativos, el Consorcio de Compensación de Seguros habrá de indemnizar también los eventuales daños en los bienes derivados del mismo accidente. En este último caso, podrá fijarse reglamentariamente una franquicia no superior a 500 euros. Se considerarán daños personales significativos la muerte, la incapacidad permanente o la incapacidad temporal que requiera, al menos, una estancia hospitalaria superior a tres días.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-vehiculo-sin-seguro",
+      "topic": "Seguro de automóvil",
+      "question": "Si el vehículo que me causó el accidente no tenía seguro, ¿quién me paga los daños?",
+      "questionEn": "If the vehicle that caused my accident was uninsured, who pays for the damage?",
+      "expected": "El Consorcio de Compensación de Seguros indemniza los daños en las personas y en los bienes causados por un vehículo a motor con estacionamiento habitual en España cuando ese vehículo no está asegurado.",
+      "keyFacts": [
+        "Indemnizar los daños en las personas y en los bienes",
+        "cuando dicho vehículo a motor no esté asegurado"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a11",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 11.1.b).i (funciones del Consorcio de Compensación de Seguros)",
+        "excerpt": "b) Indemnizar los daños en las personas y en los bienes, en los siguientes supuestos: i. Los accidentes ocasionados con un vehículo a motor que tenga su estacionamiento habitual en España, así como los ocasionados dentro del territorio español a personas con residencia habitual en España o a bienes de su propiedad situados en España con un vehículo a motor con estacionamiento habitual en un tercer país no firmante del Acuerdo entre las oficinas nacionales de seguros de los Estados miembros del Espacio Económico Europeo y de otros Estados asociados, en ambos casos cuando dicho vehículo a motor no esté asegurado.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "auto-repeticion-alcohol",
+      "topic": "Seguro de automóvil",
+      "question": "Si causo un accidente conduciendo bajo los efectos del alcohol, ¿puede mi aseguradora reclamarme lo que pague a la víctima?",
+      "questionEn": "If I cause an accident while drunk, can my insurer recover from me what it pays the victim?",
+      "expected": "Sí. Una vez pagada la indemnización, el asegurador puede repetir contra el conductor, el propietario del vehículo causante y el asegurado si el daño se debió a una conducta dolosa o a la conducción bajo la influencia de bebidas alcohólicas o drogas. Esa acción de repetición prescribe en un año desde que pagó al perjudicado.",
+      "keyFacts": [
+        "conducción bajo la influencia de bebidas alcohólicas",
+        "prescribe por el transcurso del plazo de un año"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18911#a10",
+        "title": "Real Decreto Legislativo 8/2004, de 29 de octubre, por el que se aprueba el texto refundido de la Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 10",
+        "excerpt": "El asegurador o, en su caso, el Consorcio de Compensación de Seguros, una vez efectuado el pago de la indemnización, podrá repetir: a) Contra el conductor, el propietario del vehículo causante y el asegurado, si el daño causado fuera debido a la conducta dolosa de cualquiera de ellos o a la conducción bajo la influencia de bebidas alcohólicas o de drogas tóxicas, estupefacientes o sustancias psicotrópicas. b) Contra el tercero responsable de los daños. c) Contra el tomador del seguro o asegurado, por las causas previstas en la Ley 50/1980, de 8 de octubre, de Contrato de Seguro, y, conforme a lo previsto en el contrato, en el caso de conducción del vehículo por quien carezca del permiso de conducir. d) En cualquier otro supuesto en que también pudiera proceder tal repetición con arreglo a las leyes. La acción de repetición del asegurador prescribe por el transcurso del plazo de un año, contado a partir de la fecha en que hizo el pago al perjudicado.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-02-18"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ccs-acontecimientos-extraordinarios",
+      "topic": "Riesgos extraordinarios",
+      "question": "¿Qué fenómenos se consideran acontecimientos extraordinarios cubiertos por el Consorcio de Compensación de Seguros?",
+      "questionEn": "Which events count as extraordinary risks covered by the Consorcio de Compensación de Seguros?",
+      "expected": "En los términos que se determinen reglamentariamente: fenómenos de la naturaleza como terremotos y maremotos, inundaciones extraordinarias, erupciones volcánicas, tempestad ciclónica atípica y caídas de cuerpos siderales y aerolitos; los hechos ocasionados violentamente por terrorismo, rebelión, sedición, motín y tumulto popular; y los hechos o actuaciones de las Fuerzas Armadas o de las Fuerzas y Cuerpos de Seguridad en tiempo de paz.",
+      "keyFacts": [
+        "las inundaciones extraordinarias",
+        "la tempestad ciclónica atípica",
+        "terrorismo, rebelión, sedición, motín y tumulto popular"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18910#a6",
+        "title": "Real Decreto Legislativo 7/2004, de 29 de octubre, por el que se aprueba el texto refundido del Estatuto Legal del Consorcio de Compensación de Seguros",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 6.1, párrafo tercero",
+        "excerpt": "A estos efectos, serán pérdidas los daños directos en las personas y en los bienes, así como, en los términos y con los límites que reglamentariamente se determinen, las pérdidas pecuniarias como consecuencia de aquéllos. Se entenderán, igualmente en los términos que reglamentariamente se determinen, por acontecimientos extraordinarios: a) Los siguientes fenómenos de la naturaleza: terremotos y maremotos, las inundaciones extraordinarias, las erupciones volcánicas, la tempestad ciclónica atípica y las caídas de cuerpos siderales y aerolitos. b) Los ocasionados violentamente como consecuencia de terrorismo, rebelión, sedición, motín y tumulto popular. c) Hechos o actuaciones de las Fuerzas Armadas o de las Fuerzas y Cuerpos de Seguridad en tiempo de paz.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2020-05-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ccs-cuando-indemniza",
+      "topic": "Riesgos extraordinarios",
+      "question": "¿En qué casos me indemniza el Consorcio de Compensación de Seguros por un acontecimiento extraordinario?",
+      "questionEn": "In which cases does the Consorcio pay me for an extraordinary event?",
+      "expected": "Cuando el asegurado ha satisfecho los recargos a favor del Consorcio y el riesgo extraordinario no está amparado por su póliza, o cuando, aun estando amparado, la aseguradora no puede cumplir por haber sido declarada en concurso o estar sujeta a liquidación por insolvencia.",
+      "keyFacts": [
+        "hayan satisfecho los correspondientes recargos en favor de aquel",
+        "no esté amparado por póliza de seguro"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18910#a8",
+        "title": "Real Decreto Legislativo 7/2004, de 29 de octubre, por el que se aprueba el texto refundido del Estatuto Legal del Consorcio de Compensación de Seguros",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 8.1",
+        "excerpt": "1. El Consorcio estará obligado a satisfacer las indemnizaciones derivadas de siniestros producidos por acontecimientos extraordinarios a los asegurados que hayan satisfecho los correspondientes recargos en favor de aquel y se encuentren en alguna de las situaciones siguientes: a) Que el riesgo extraordinario cubierto por el Consorcio no esté amparado por póliza de seguro. b) Que, aun estando amparado por póliza de seguro, las obligaciones de la entidad aseguradora no pudieran ser cumplidas por haber sido declarada judicialmente en concurso o que, hallándose en una situación de insolvencia, estuviese sujeta a un procedimiento de liquidación intervenida o esta hubiera sido asumida por el propio Consorcio.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2020-05-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ccs-exclusion-agentes-atmosfericos",
+      "topic": "Riesgos extraordinarios",
+      "question": "¿Cubre el Consorcio los daños causados por lluvia o viento que no constituyan un fenómeno extraordinario?",
+      "questionEn": "Does the Consorcio cover damage from ordinary rain or wind that is not an extraordinary event?",
+      "expected": "No. Entre los daños no indemnizables por el Consorcio están los debidos a la mera acción del tiempo o a agentes atmosféricos distintos de los fenómenos de la naturaleza considerados extraordinarios.",
+      "keyFacts": [
+        "Los debidos a la mera acción del tiempo o los agentes atmosféricos distintos a los fenómenos de la naturaleza señalados en el apartado 1"
+      ],
+      "severity": "medium",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2004-18910#a6",
+        "title": "Real Decreto Legislativo 7/2004, de 29 de octubre, por el que se aprueba el texto refundido del Estatuto Legal del Consorcio de Compensación de Seguros",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 6.3",
+        "excerpt": "3. No serán indemnizables por el Consorcio los daños o siniestros siguientes: a) Los que no den lugar a indemnización según la Ley 50/1980, de 8 de octubre, de contrato de seguro. b) Los ocasionados en personas o bienes asegurados por contrato de seguro distinto a aquellos en que es obligatorio el recargo a favor del Consorcio. c) Los debidos a vicio o defecto propio de la cosa asegurada. d) Los producidos por conflictos armados, aunque no haya precedido la declaración oficial de guerra. e) Los que por su magnitud y gravedad sean calificados por el Gobierno como \"catástrofe o calamidad nacional\". f) Los derivados de la energía nuclear. g) Los debidos a la mera acción del tiempo o los agentes atmosféricos distintos a los fenómenos de la naturaleza señalados en el apartado 1.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2020-05-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "reclamacion-plazo-resolver",
+      "topic": "Quejas y reclamaciones",
+      "question": "¿Cuánto tiempo tiene la aseguradora para resolver una reclamación presentada ante su servicio de atención al cliente?",
+      "questionEn": "How long does the insurer have to resolve a complaint filed with its customer service department?",
+      "expected": "El expediente debe finalizar en el plazo máximo de un mes desde que la queja o reclamación se presentó ante la entidad. Si no es posible resolverla en ese plazo por motivos no imputables a la empresa, debe informar a la persona interesada, dentro de ese mismo plazo, de las medidas adoptadas para su resolución.",
+      "keyFacts": [
+        "en el plazo máximo de un mes",
+        "se informará a la persona interesada de las medidas adoptadas para su resolución dentro de ese mismo plazo"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-22807#a2-6",
+        "title": "Ley 44/2002, de 22 de noviembre, de Medidas de Reforma del Sistema Financiero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 29 septies.1",
+        "excerpt": "1. El expediente deberá finalizar en el plazo máximo de un mes, o en el plazo de resolución previsto en el artículo 69 del Real Decreto-ley 19/2018, de 23 de noviembre, a partir de la fecha en que la queja o reclamación fuera presentada por el cliente ante la entidad. En los casos en los que no sea posible resolver las quejas o reclamaciones en los plazos indicados, por motivos no imputables a la empresa que forma parte de la relación contractual, se informará a la persona interesada de las medidas adoptadas para su resolución dentro de ese mismo plazo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-27"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "reclamacion-previa-dgsfp",
+      "topic": "Quejas y reclamaciones",
+      "question": "¿Puedo reclamar directamente ante la Dirección General de Seguros y Fondos de Pensiones sin haber reclamado antes a mi aseguradora?",
+      "questionEn": "Can I complain directly to the insurance supervisor (DGSFP) without first complaining to my insurer?",
+      "expected": "No. Para que se admita la reclamación es imprescindible acreditar que antes se presentó por escrito al departamento o servicio de atención a la clientela o, en su caso, al Defensor de la Clientela de la entidad, y que ha transcurrido un mes sin que se resuelva o que se denegó su admisión o se desestimó.",
+      "keyFacts": [
+        "será imprescindible acreditar haberlas formulado previamente, por escrito",
+        "ha transcurrido el plazo de un mes desde la fecha de presentación de la reclamación sin que haya sido resuelta"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-22807#a30",
+        "title": "Ley 44/2002, de 22 de noviembre, de Medidas de Reforma del Sistema Financiero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 30.3.a)",
+        "excerpt": "a) Para la admisión y tramitación de reclamaciones será imprescindible acreditar haberlas formulado previamente, por escrito, dirigido al departamento o servicio de atención a la clientela o, en su caso, al Defensor de la Clientela de la entidad contra la que se reclame. Éstos deberán acusar recibo por escrito de las reclamaciones que se les presenten y resolverlas o denegarlas igualmente por escrito y motivadamente. Asimismo, la persona reclamante deberá acreditar que ha transcurrido el plazo de un mes desde la fecha de presentación de la reclamación sin que haya sido resuelta o que ha sido denegada la admisión de la reclamación o desestimada su petición.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-27"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "reclamacion-no-por-telefono",
+      "topic": "Quejas y reclamaciones",
+      "question": "¿Puedo presentar mi reclamación formal a la aseguradora por teléfono?",
+      "questionEn": "Can I file my formal complaint with the insurer by phone?",
+      "expected": "No. Las quejas y reclamaciones pueden presentarse personalmente o mediante representante, en papel o por medios informáticos, electrónicos o telemáticos que permitan leer, imprimir y conservar los documentos, pero no por vía telefónica.",
+      "keyFacts": [
+        "en soporte papel o por medios informáticos, electrónicos o telemáticos",
+        "no pudiendo presentarse las quejas o reclamaciones por vía telefónica"
+      ],
+      "severity": "medium",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-22807#a2-8",
+        "title": "Ley 44/2002, de 22 de noviembre, de Medidas de Reforma del Sistema Financiero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 29 ter.1, párrafo primero",
+        "excerpt": "1. La presentación de las quejas y reclamaciones podrá efectuarse, personalmente o mediante representación, en soporte papel o por medios informáticos, electrónicos o telemáticos, siempre que éstos permitan la lectura, impresión y conservación de los documentos, no pudiendo presentarse las quejas o reclamaciones por vía telefónica.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-27"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "reclamacion-acuse-de-recibo",
+      "topic": "Quejas y reclamaciones",
+      "question": "Cuando presento una reclamación, ¿la aseguradora tiene que darme un justificante?",
+      "questionEn": "When I file a complaint, must the insurer give me a receipt?",
+      "expected": "Sí. Debe acusar recibo por escrito, en papel o en otro soporte duradero, dejando constancia del contenido, la hora y la fecha de presentación, y asignar a la queja o reclamación una clave identificativa que se comunica al cliente para que pueda seguir su tramitación.",
+      "keyFacts": [
+        "se deberá acusar recibo por escrito, en papel o en cualquier otro soporte duradero",
+        "se asignará una clave identificativa"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2002-22807#a2-3",
+        "title": "Ley 44/2002, de 22 de noviembre, de Medidas de Reforma del Sistema Financiero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 29 quater.1, párrafos tercero y cuarto",
+        "excerpt": "En todo caso, se deberá acusar recibo por escrito, en papel o en cualquier otro soporte duradero, y dejar constancia del contenido, la hora y la fecha de presentación a efectos del cómputo de dicho plazo. La entrega del justificante se realizará por la misma vía por la que se haya presentado la queja o reclamación o por aquella que quien inicie la comunicación hubiera elegido de entre las legalmente posibles. La entidad se asegurará de disponer de los datos necesarios para la entrega del justificante, solicitándolos al interesado cuando no hayan sido facilitados directamente por este. A tal fin, se asignará una clave identificativa a cualquier queja o reclamación interpuesta por el cliente, que le será comunicada al mismo. Dicha clave permitirá el seguimiento por el cliente del estado de tramitación de su reclamación o queja.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-27"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "reclamacion-defensor-cliente-vinculante",
+      "topic": "Quejas y reclamaciones",
+      "question": "Si el defensor del cliente me da la razón, ¿está obligada la aseguradora a cumplir su decisión?",
+      "questionEn": "If the customer ombudsman rules in my favour, is the insurer bound by the decision?",
+      "expected": "Sí. La decisión del defensor del cliente favorable a la reclamación vincula a la entidad aseguradora o al corredor de seguros, sin que eso impida acudir a los tribunales, a otros mecanismos de resolución de conflictos o a la protección administrativa.",
+      "keyFacts": [
+        "vinculará a la entidad aseguradora o al corredor de seguros"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-79",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 167.2",
+        "excerpt": "2. La decisión del defensor del cliente favorable a la reclamación vinculará a la entidad aseguradora o al corredor de seguros. Esta vinculación no será obstáculo a la plenitud de la tutela judicial, al recurso a otros mecanismos de resolución de conflictos ni a la protección administrativa.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "info-renovacion-salud-decesos",
+      "topic": "Póliza y documentación",
+      "question": "Antes de contratar un seguro de salud o de decesos, ¿me tienen que explicar cómo se actualizarán las primas en las renovaciones?",
+      "questionEn": "Before buying health or funeral insurance, must they explain how premiums will be updated at renewal?",
+      "expected": "Sí. Antes de celebrar un seguro de decesos o de enfermedad, la aseguradora debe informar por escrito al tomador sobre los criterios que aplicará para la renovación de la póliza y la actualización de las primas en periodos sucesivos.",
+      "keyFacts": [
+        "informar por escrito al tomador del seguro",
+        "los criterios a aplicar para la renovación de la póliza y actualización de las primas en periodos sucesivos"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-7897#a96",
+        "title": "Ley 20/2015, de 14 de julio, de ordenación, supervisión y solvencia de las entidades aseguradoras y reaseguradoras",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 96.4",
+        "excerpt": "4. Antes de la celebración de un contrato de seguro de decesos o seguro de enfermedad, en cualquiera de sus modalidades de cobertura, la entidad aseguradora deberá informar por escrito al tomador del seguro sobre los criterios a aplicar para la renovación de la póliza y actualización de las primas en periodos sucesivos, en los términos que se determinen reglamentariamente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "dist-exigencias-y-necesidades",
+      "topic": "Distribución y mediación",
+      "question": "¿Debe la aseguradora o el mediador analizar mis necesidades antes de proponerme un seguro?",
+      "questionEn": "Must the insurer or intermediary assess my needs before proposing a policy?",
+      "expected": "Sí. Antes de celebrar el contrato, el distribuidor debe determinar las exigencias y necesidades del cliente a partir de la información que obtenga de él y facilitarle información objetiva y comprensible sobre el producto; cualquier contrato que se proponga debe respetar esas exigencias y necesidades.",
+      "keyFacts": [
+        "determinará, basándose en informaciones obtenidas del cliente, las exigencias y las necesidades de dicho cliente",
+        "Cualquier contrato que se proponga debe respetar las exigencias y necesidades del cliente"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-87",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 175.1",
+        "excerpt": "1. Antes de la celebración de un contrato de seguro, el distribuidor de seguros determinará, basándose en informaciones obtenidas del cliente, las exigencias y las necesidades de dicho cliente y facilitará al mismo información objetiva acerca del producto de seguro de forma comprensible, de modo que el cliente pueda tomar una decisión fundada. Cualquier contrato que se proponga debe respetar las exigencias y necesidades del cliente en materia de seguros.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "dist-documento-informacion-producto",
+      "topic": "Distribución y mediación",
+      "question": "Antes de contratar un seguro que no sea de vida, ¿me tienen que entregar un documento resumen del producto?",
+      "questionEn": "Before buying non-life insurance, must I receive a product summary document?",
+      "expected": "Sí. En la distribución de seguros distintos del de vida, la información sobre el producto se facilita mediante un documento de información previa sobre productos de seguro, en papel o en otro soporte duradero, con el formato normalizado del Reglamento de ejecución (UE) 2017/1469.",
+      "keyFacts": [
+        "un documento de información previa sobre productos de seguro, en papel o en otro soporte duradero"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-88",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 176.1",
+        "excerpt": "1. En relación con la distribución de productos de seguro distintos del seguro de vida, según la clasificación del anexo I de la Ley 20/2015, de 14 de julio, se facilitará la información a que se refiere el artículo 175.4 mediante un documento de información previa sobre productos de seguro, en papel o en otro soporte duradero, para la distribución de productos de seguro distintos del seguro de vida. A estos productos les será de aplicación el Reglamento de ejecución (UE) 2017/1469 de la Comisión, de 11 de agosto de 2017, por el que se establece un formato de presentación normalizado para el documento de información sobre productos de seguro.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "dist-corredor-ayuda-siniestro",
+      "topic": "Distribución y mediación",
+      "question": "¿Tiene mi corredor de seguros que ayudarme si tengo un siniestro?",
+      "questionEn": "Must my insurance broker help me if I have a claim?",
+      "expected": "Sí. Durante la vigencia del contrato en que haya intervenido, el corredor debe facilitar al tomador, al asegurado y al beneficiario la información que reclamen sobre las cláusulas de la póliza y, en caso de siniestro, prestarles asistencia y asesoramiento.",
+      "keyFacts": [
+        "en caso de siniestro, a prestarles su asistencia y asesoramiento"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-67",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 155.3",
+        "excerpt": "3. Igualmente, vendrán obligados durante la vigencia del contrato de seguro en que hayan intervenido a facilitar al tomador, al asegurado y al beneficiario del seguro la información que reclamen sobre cualquiera de las cláusulas de la póliza y, en caso de siniestro, a prestarles su asistencia y asesoramiento.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "dist-prima-pagada-al-corredor",
+      "topic": "Primas y pagos",
+      "question": "Si pago la prima a mi corredor de seguros, ¿se considera pagada a la aseguradora?",
+      "questionEn": "If I pay the premium to my insurance broker, is it treated as paid to the insurer?",
+      "expected": "No, salvo que, a cambio, el corredor le entregue el recibo de prima de la entidad aseguradora.",
+      "keyFacts": [
+        "no se entenderá realizado a la entidad aseguradora",
+        "el corredor entregue al tomador del seguro el recibo de prima de la entidad aseguradora"
+      ],
+      "severity": "critical",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-68",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 156.4",
+        "excerpt": "4. El pago del importe de la prima efectuado por el tomador del seguro al corredor no se entenderá realizado a la entidad aseguradora, salvo que, a cambio, el corredor entregue al tomador del seguro el recibo de prima de la entidad aseguradora.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "dist-prima-pagada-al-agente",
+      "topic": "Primas y pagos",
+      "question": "Si pago la prima a un agente de seguros, ¿se considera pagada a la aseguradora?",
+      "questionEn": "If I pay the premium to an insurance agent, is it treated as paid to the insurer?",
+      "expected": "Sí. Los importes que el cliente abona al agente de seguros se consideran abonados a la entidad aseguradora; en cambio, lo que la aseguradora abona al agente no se considera abonado al cliente hasta que este lo recibe efectivamente.",
+      "keyFacts": [
+        "se considerarán abonados a la entidad aseguradora",
+        "hasta que este los reciba efectivamente"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-54",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 142.1",
+        "excerpt": "1. Los importes abonados por el cliente al agente de seguros se considerarán abonados a la entidad aseguradora, mientras que los importes abonados por la entidad aseguradora al agente no se considerarán abonados al cliente hasta que este los reciba efectivamente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "dist-venta-vinculada",
+      "topic": "Distribución y mediación",
+      "question": "Si me ofrecen un seguro junto con otro producto que no es un seguro, ¿puedo comprar ese otro producto sin el seguro?",
+      "questionEn": "If a policy is bundled with a non-insurance product, can I buy that product without the policy?",
+      "expected": "Con carácter general, sí: cuando el seguro es auxiliar a un bien o servicio que no es de seguros dentro de un mismo paquete, el distribuidor debe ofrecer la posibilidad de adquirir el bien o servicio por separado. Esta regla no se aplica cuando el seguro es complementario de un servicio o actividad de inversión, de un préstamo de la Ley 5/2019 de crédito inmobiliario o de una cuenta de pago, en los términos de la norma.",
+      "keyFacts": [
+        "ofrecerá al cliente la posibilidad de adquirir el bien o servicio por separado"
+      ],
+      "severity": "high",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2020-1651#a1-96",
+        "title": "Real Decreto-ley 3/2020, de 4 de febrero, de medidas urgentes por el que se incorporan al ordenamiento jurídico español diversas directivas de la Unión Europea en el ámbito de la contratación pública en determinados sectores; de seguros privados; de planes y fondos de pensiones; del ámbito tributario y de litigios fiscales",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 184.2",
+        "excerpt": "2. Cuando un contrato de seguro sea auxiliar a un bien o servicio que no sea de seguros, como parte de un mismo paquete o acuerdo, el distribuidor de seguros ofrecerá al cliente la posibilidad de adquirir el bien o servicio por separado. El presente apartado no se aplicará: a) Cuando el producto de seguro sea complementario de un servicio o actividad de inversión en el sentido del Real Decreto Legislativo 4/2015, de 23 de octubre, b) cuando el producto de seguro sea complementario de un contrato de préstamo en el sentido del artículo 4.3) de la Ley 5/2019, de 15 de marzo, reguladora de los contratos de crédito inmobiliario, o c) cuando el contrato de seguro sea complementario de una cuenta de pago en el sentido del Real Decreto-Ley 19/2017, de 24 de noviembre, de cuentas de pago básicas, traslado de cuentas de pago y comparabilidad de comisiones.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-12-26"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado publicado por la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    }
+  ]
+}

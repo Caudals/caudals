@@ -28,6 +28,8 @@ import { runAutoRecharge } from "../../lib/billing/auto-recharge";
 import { runMonthlyAllowance } from "../../lib/billing/allowance";
 import { runInvoicing } from "../../lib/billing/invoicing/jobs";
 import { runBillingWatch } from "../../lib/billing/watch";
+import { sectorPacksEnabled } from "../../lib/evals/sector-packs/flags";
+import { advanceSourceRefreshes, monthlyQuestionsDue } from "../../lib/evals/sector-packs/refresh";
 
 async function main() {
   initWorkerSentry("evals-scheduler");
@@ -52,6 +54,7 @@ async function main() {
   let lastLifecycleEmail = 0;
   let lastShadowReport = 0;
   let lastDigest = 0;
+  let lastRefresh = 0;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
@@ -270,6 +273,26 @@ async function main() {
         } catch (error) {
           console.error(JSON.stringify({ event: "billing_invoicing_tick_failed" }));
           captureServerError(error, { service: "evals-scheduler", event: "billing_invoicing_tick_failed" });
+        }
+        // Monthly new questions (launch L-25, P-26): every five minutes, for the
+        // workspaces that opted in, start this month's re-reads of their website
+        // sources and move open refreshes on (diff, drafting, proposals).
+        if (sectorPacksEnabled() && Date.now() - lastRefresh >= 5 * 60_000) {
+          lastRefresh = Date.now();
+          try {
+            for (const orgId of await monthlyQuestionsDue(actorId)) {
+              try {
+                const refresh = await advanceSourceRefreshes({ orgId, actorId });
+                if (refresh.started || refresh.advanced) console.info(JSON.stringify({ event: "monthly_questions", orgId, ...refresh }));
+              } catch (error) {
+                console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId, task: "monthly_questions" }));
+                captureServerError(error, { service: "evals-scheduler", event: "scheduler_tick_failed", task: "monthly_questions", workspace: orgId });
+              }
+            }
+          } catch (error) {
+            console.error(JSON.stringify({ event: "monthly_questions_tick_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "monthly_questions_tick_failed" });
+          }
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));
       }

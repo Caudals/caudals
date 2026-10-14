@@ -18,6 +18,7 @@ import { notify } from "./overlays";
 import { WebDiscovery } from "./web-discovery";
 import { HelpLink } from "./help";
 import { DeleteDialog, itemRequest } from "./item-actions";
+import { SectorQuestionsCard } from "./sector-questions";
 import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion, type ReviewRecord } from "./preparation-parts";
 import type { ReviewMode } from "@/lib/evals/review/spot-check";
 import { ContextConfirmation, DocumentIntake, HelpCentreImport, ScanNotice, scanInfo, type ScanInfo } from "./intake";
@@ -147,6 +148,8 @@ export function PrepareEvaluation({
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [excerptSource, setExcerptSource] = useState<PreparedSource | null>(null);
   const [showManual, setShowManual] = useState(false);
+  // Remounts the review after sector questions join the draft (launch L-25).
+  const [reviewKey, setReviewKey] = useState(0);
   const [purpose, setPurpose] = useState(evaluation.project_description);
   const [question, setQuestion] = useState("");
   const [expected, setExpected] = useState("");
@@ -570,7 +573,10 @@ export function PrepareEvaluation({
 
   if (draft)
     return (
+      <>
+      <SectorQuestionsCard orgId={orgId} suiteId={draft.suiteId} onAdded={() => setReviewKey((value) => value + 1)} />
       <TestSetReview
+        key={reviewKey}
         orgId={orgId}
         suiteId={draft.suiteId}
         previews={casePreviews}
@@ -581,6 +587,7 @@ export function PrepareEvaluation({
         canRun={!!onRun}
         onApprove={(version, count, frozen, review, andRun) => void approve(version, count, frozen, review, andRun)}
       />
+      </>
     );
 
   return (

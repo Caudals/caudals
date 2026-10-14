@@ -15,6 +15,8 @@ export const invocationSchema=z.object({
    */
   webSearch:z.object({maxResults:z.number().int().min(1).max(10),queries:z.array(z.object({query:z.string().trim().min(2).max(400),site:z.string().max(253).regex(/^[a-z0-9.-]+$/i).optional()}).strict()).max(3).optional()}).strict().optional(),
   discoveryJobId:z.string().uuid().optional(),
+  /** A monthly source refresh drafting proposals (launch L-25): an internal generator call with the generation deadline. */
+  refreshJobId:z.string().uuid().optional(),
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
 }).strict().superRefine((input,ctx)=>{
@@ -24,7 +26,8 @@ export const invocationSchema=z.object({
   const generation=!!input.generationJobId&&!!input.generationStep&&(["generator","context_analyzer"] as string[]).includes(input.role);
   const otherInternal=(!!input.judgeJobId&&input.role==="judge")||
     (!!input.narrativeJobId&&input.role==="report_writer")||
-    (!!input.discoveryJobId&&input.role==="context_analyzer");
+    (!!input.discoveryJobId&&input.role==="context_analyzer")||
+    (!!input.refreshJobId&&input.role==="generator");
   const extended=!input.probe&&(generation||(otherInternal&&(input.routing==="local_only"||input.timeoutMs<=300000)));
   if(input.timeoutMs>120000&&!extended)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
   if(input.webSearch&&(input.probe||input.role==="target"))ctx.addIssue({code:"custom",path:["webSearch"],message:"web_search_reserved_for_internal_roles"});

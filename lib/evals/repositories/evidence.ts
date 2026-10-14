@@ -145,7 +145,10 @@ export async function createWebsiteCaptureArtifact(scope:EvidenceScope,jobId:str
    return existing;
   }
   const artifactId=randomUUID(),storageKey=objectKey(scope.orgId,artifactId);
-  const artifact=required((await db.query("INSERT INTO evals.artifact(id,org_id,project_id,object_key,sha256,byte_size,media_type,export_path,visibility) VALUES($1,$2,(SELECT project_id FROM evals.source WHERE org_id=$2 AND id=$3),$4,$5,$6,'text/markdown',$7,'internal') RETURNING id,object_key,sha256,byte_size,media_type,export_path,visibility",[artifactId,scope.orgId,job.source_id,storageKey,digest,bytes.length,"sources/website-"+job.source_id+".md"])).rows[0]);
+  // A later reading of the same source (the monthly refresh, launch L-25) gets its own file path.
+  const firstPath="sources/website-"+job.source_id+".md";
+  const taken=(await db.query("SELECT 1 FROM evals.artifact WHERE org_id=$1 AND export_path=$2",[scope.orgId,firstPath])).rowCount;
+  const artifact=required((await db.query("INSERT INTO evals.artifact(id,org_id,project_id,object_key,sha256,byte_size,media_type,export_path,visibility) VALUES($1,$2,(SELECT project_id FROM evals.source WHERE org_id=$2 AND id=$3),$4,$5,$6,'text/markdown',$7,'internal') RETURNING id,object_key,sha256,byte_size,media_type,export_path,visibility",[artifactId,scope.orgId,job.source_id,storageKey,digest,bytes.length,taken?"sources/website-"+job.source_id+"-"+job.id+".md":firstPath])).rows[0]);
   await db.query("INSERT INTO evals.source_upload(org_id,source_id,artifact_id) VALUES($1,$2,$3)",[scope.orgId,job.source_id,artifact.id]);
   await db.query("UPDATE evals.website_source_job SET artifact_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,artifact.id]);
   return artifact;
@@ -586,7 +589,7 @@ export function getTestSetView(scope: EvidenceScope, suiteId: string, versionId?
 }
 
 /** Rewrite the draft manifest with new case references (new identity and hash, like a case edit). */
-async function saveDraftCases(db: PoolClient, suiteId: string, orgId: string, manifest: ReturnType<typeof manifestSchema.parse>, caseRevisions: ReturnType<typeof manifestSchema.parse>["case_revisions"]) {
+export async function saveDraftCases(db: PoolClient, suiteId: string, orgId: string, manifest: ReturnType<typeof manifestSchema.parse>, caseRevisions: ReturnType<typeof manifestSchema.parse>["case_revisions"]) {
   const next = manifestSchema.parse(withContentHash({
     ...manifest,
     suite_version_id: randomUUID(),

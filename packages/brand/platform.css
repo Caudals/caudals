@@ -6446,3 +6446,86 @@ ol.p-ctx-list {
     grid-column: 1 / -1;
   }
 }
+/* Sector packs and monthly new questions (launch L-25). */
+.p-sector-progress {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 4px;
+  max-width: 520px;
+}
+.p-sector-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+}
+.p-sector-card-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--p-text-secondary);
+}
+.p-sector-card-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.p-sector-card-body p {
+  margin: 0;
+}
+.p-sector-choose .p-row {
+  align-items: flex-end;
+}
+.p-sector-choose .p-field {
+  min-width: min(100%, 280px);
+}
+.p-sector-offer {
+  display: grid;
+  gap: 8px;
+}
+.p-sector-review {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-border);
+}
+.p-monthly {
+  margin-top: 24px;
+}
+.p-monthly-refreshes {
+  margin: 8px 0;
+  color: var(--p-text-secondary);
+  font-size: var(--p-text-label);
+}
+.p-proposals {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.p-proposal {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--p-radius-md);
+  box-shadow: var(--p-shadow-border);
+  min-width: 0;
+}
+.p-proposal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.p-break {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}

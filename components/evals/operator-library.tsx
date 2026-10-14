@@ -6,23 +6,24 @@ import { evalRequest } from "./api";
 import { Badge, DataTable, DefinitionList, EmptyState, PageHeading, RowTitle, SearchInput, StatusBadge, TabLinks, TableSkeleton, Time, Toolbar, humanize } from "./primitives";
 import { SidePanel } from "./overlays";
 import { useWorkspace } from "./workspace-context";
+import { SectorPackLibrary } from "./sector-packs";
 import { t } from "@/lib/evals/messages/en";
 import type { DomainPack } from "@/lib/evals/generation/pack-registry";
 
-export type LibrarySection = "test-sets" | "sources" | "domain-packs" | "improvements";
+export type LibrarySection = "test-sets" | "sources" | "domain-packs" | "sector-packs" | "improvements";
 
 /**
  * Operator Library (spec §5.1): frozen test sets, reference material, domain
  * packs and improvement datasets. Client-scoped tabs follow the workspace
  * switcher; domain packs are platform-wide.
  */
-export function LibraryFrame({ section, improvements, children }: { section: LibrarySection; improvements: boolean; children: ReactNode }) {
+export function LibraryFrame({ section, improvements, sectorPacks = false, children }: { section: LibrarySection; improvements: boolean; /** Launch L-25: SECTOR_PACKS_ENABLED, read on the server. */ sectorPacks?: boolean; children: ReactNode }) {
   const { workspace } = useWorkspace();
   return (
     <>
       <PageHeading
         title={t("library")}
-        meta={section !== "domain-packs" && workspace ? <span>{t("clientContext")} <strong>{workspace.name}</strong></span> : undefined}
+        meta={section !== "domain-packs" && section !== "sector-packs" && workspace ? <span>{t("clientContext")} <strong>{workspace.name}</strong></span> : undefined}
       />
       <TabLinks
         label={t("library")}
@@ -31,6 +32,7 @@ export function LibraryFrame({ section, improvements, children }: { section: Lib
           { id: "test-sets", href: "/ops/library/test-sets", label: t("testSets") },
           { id: "sources", href: "/ops/library/sources", label: t("sources") },
           { id: "domain-packs", href: "/ops/library/domain-packs", label: t("domainPacks") },
+          ...(sectorPacks ? [{ id: "sector-packs", href: "/ops/library/sector-packs", label: t("sectorPacks") }] : []),
           ...(improvements ? [{ id: "improvements", href: "/ops/improvements", label: t("improvementDatasets") }] : []),
         ]}
       />
@@ -39,11 +41,11 @@ export function LibraryFrame({ section, improvements, children }: { section: Lib
   );
 }
 
-export function OperatorLibrary({ section, improvements }: { section: Exclude<LibrarySection, "improvements">; improvements: boolean }) {
+export function OperatorLibrary({ section, improvements, sectorPacks = false }: { section: Exclude<LibrarySection, "improvements">; improvements: boolean; sectorPacks?: boolean }) {
   const { orgId } = useWorkspace();
   return (
-    <LibraryFrame section={section} improvements={improvements}>
-      {section === "test-sets" ? <TestSets key={orgId} orgId={orgId} /> : section === "sources" ? <Sources key={orgId} orgId={orgId} /> : <Packs />}
+    <LibraryFrame section={section} improvements={improvements} sectorPacks={sectorPacks}>
+      {section === "test-sets" ? <TestSets key={orgId} orgId={orgId} /> : section === "sources" ? <Sources key={orgId} orgId={orgId} /> : section === "sector-packs" ? <SectorPackLibrary mode="ops" /> : <Packs />}
     </LibraryFrame>
   );
 }

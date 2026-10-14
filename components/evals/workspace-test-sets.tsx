@@ -30,6 +30,7 @@ import { ActionMenu, Modal, notify } from "./overlays";
 import { DeleteDialog, useItemActions } from "./item-actions";
 import { ExcerptSnippet } from "./preparation-parts";
 import { NoWorkspace } from "./workspace-evaluations";
+import { MonthlyQuestionsPanel, SectorQuestionsCard } from "./sector-questions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
 
@@ -196,7 +197,7 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
   const router = useRouter();
   const params = useSearchParams();
   const from = params.get("from");
-  const { orgId, workspace, canWrite, withOrg } = useWorkspace();
+  const { orgId, workspace, canWrite, canManage, withOrg } = useWorkspace();
   const [view, setView] = useState<TestSetView | null>(null);
   const [version, setVersion] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -403,6 +404,12 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
             {t("addQuestion")}
           </Action>
         </div>
+      )}
+      {canWrite && view.suite && (
+        <>
+          <SectorQuestionsCard orgId={orgId} suiteId={suiteId} onAdded={async () => { setVersion(undefined); await reload(); }} />
+          <MonthlyQuestionsPanel orgId={orgId} suiteId={suiteId} canManage={canManage} onDecided={async () => { setVersion(undefined); await reload(); }} />
+        </>
       )}
       {adding && <AddCaseDialog orgId={orgId} suiteId={suiteId} onClose={() => setAdding(false)} onSaved={async () => { setAdding(false); notify(t("questionAdded")); await reload(); }} />}
       {removing && (

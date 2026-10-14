@@ -15,6 +15,7 @@ import { ReviewQueue } from "../../components/evals/assessment-review";
 import { PlatformConsole } from "../../components/evals/platform-console";
 import { EngineSettings } from "../../components/evals/engine-settings";
 import { OperatorLibrary } from "../../components/evals/operator-library";
+import { SectorPackLibrary } from "../../components/evals/sector-packs";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { SelfServeSignup } from "../../components/evals/self-serve-signup";
@@ -264,6 +265,10 @@ const content =
     <PlatformConsole section="providers" admin={!location.search.includes("readonly")} />
   ) : location.pathname === "/ops/platform/usage" ? (
     <PlatformConsole section="usage" admin />
+  ) : location.pathname === "/ops/library/sector-packs" ? (
+    <OperatorLibrary section="sector-packs" improvements={false} sectorPacks />
+  ) : location.pathname === "/review/sector-packs" ? (
+    <SectorPackLibrary mode="expert" />
   ) : location.pathname === "/ops/library/domain-packs" ? (
     <OperatorLibrary section="domain-packs" improvements={false} />
   ) : location.pathname === "/ops/review" ? (
@@ -292,6 +297,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding"), home: params.has("home"), billing: params.has("billing") }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding"), home: params.has("home"), billing: params.has("billing"), sectorPacks: params.has("sector-packs") }}>{content}</ShellFrame>
   ),
 );

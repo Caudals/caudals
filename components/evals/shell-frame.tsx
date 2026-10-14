@@ -20,6 +20,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import * as MenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
+  BookCheck,
   Building2,
   Check,
   ChevronRight,
@@ -69,7 +70,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean; billing?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean; billing?: boolean; /** Launch L-25: SECTOR_PACKS_ENABLED. */ sectorPacks?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -103,7 +104,10 @@ function navFor(identity: EvalIdentity, features: ShellFeatures, expert: boolean
       ],
     });
   }
-  if (expert) groups.push({ label: t("expert"), items: [{ href: "/review", label: t("assignedWork"), icon: <ClipboardCheck /> }] });
+  if (expert) groups.push({ label: t("expert"), items: [
+    { href: "/review", label: t("assignedWork"), icon: <ClipboardCheck />, match: (path) => path === "/review" || path.startsWith("/review/assignments") },
+    ...(features.sectorPacks ? [{ href: "/review/sector-packs", label: t("sectorPacks"), icon: <BookCheck /> }] : []),
+  ] });
   return groups;
 }
 

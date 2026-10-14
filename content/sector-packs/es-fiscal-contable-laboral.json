@@ -1,0 +1,1999 @@
+{
+  "schema": "caudals.sector-pack/v1",
+  "pack": {
+    "id": "es-fiscal-contable-laboral",
+    "sector": "fiscal_accounting_payroll",
+    "jurisdiction": "ES",
+    "language": "es",
+    "domainPackId": "generic-grounded-qa",
+    "title": {
+      "en": "Spanish tax, accounting and payroll",
+      "es": "Fiscalidad, contabilidad y nómina en España"
+    },
+    "summary": {
+      "en": "Seed questions on Spanish VAT, personal and corporate income tax, tax procedure, invoicing, bookkeeping, company accounts, employment law and Social Security that an assistant inside tax, accounting or payroll software must answer correctly, each grounded in a verbatim excerpt of the BOE consolidated legislation.",
+      "es": "Preguntas semilla sobre IVA, IRPF, Impuesto sobre Sociedades, procedimiento tributario, facturación, contabilidad, cuentas anuales, derecho laboral y Seguridad Social que un asistente de un software fiscal, contable o de nóminas debe responder correctamente, cada una basada en un extracto literal de la legislación consolidada del BOE."
+    }
+  },
+  "version": {
+    "notes": "Seed draft written from public official sources on 2026-10-13. Pending expert review: no item is expert-reviewed."
+  },
+  "items": [
+    {
+      "key": "iva-tipo-general",
+      "topic": "IVA",
+      "question": "¿Cuál es el tipo general del IVA en España?",
+      "questionEn": "What is the standard VAT rate in Spain?",
+      "expected": "El tipo general del IVA es el 21 por ciento, salvo en las operaciones a las que la ley aplica los tipos reducidos del artículo 91.",
+      "keyFacts": [
+        "21 por ciento"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a90",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 90. Uno",
+        "excerpt": "Uno. El Impuesto se exigirá al tipo del 21 por ciento, salvo lo dispuesto en el artículo siguiente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-bebidas-azucaradas-excluidas-tipo-reducido",
+      "topic": "IVA",
+      "question": "¿Las bebidas refrescantes con azúcar añadido se benefician del IVA reducido del 10 % que se aplica a los alimentos?",
+      "questionEn": "Do soft drinks with added sugar get the 10% reduced VAT rate that applies to food?",
+      "expected": "No. El tipo del 10 por ciento se aplica a los productos aptos para la nutrición humana o animal, pero la ley excluye expresamente de ese tipo las bebidas refrescantes, zumos y gaseosas con azúcares o edulcorantes añadidos, así como las bebidas alcohólicas.",
+      "keyFacts": [
+        "10 por ciento",
+        "bebidas refrescantes, zumos y gaseosas con azúcares o edulcorantes añadidos",
+        "Las bebidas alcohólicas"
+      ],
+      "severity": "high",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a91",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 91. Uno.1.1.º",
+        "excerpt": "Uno. Se aplicará el tipo del 10 por ciento a las operaciones siguientes: 1. Las entregas, adquisiciones intracomunitarias o importaciones de los bienes que se indican a continuación: 1.º Las sustancias o productos, cualquiera que sea su origen que, por sus características, aplicaciones, componentes, preparación y estado de conservación, sean susceptibles de ser habitual e idóneamente utilizados para la nutrición humana o animal, de acuerdo con lo establecido en el Código Alimentario y las disposiciones dictadas para su desarrollo. Se excluyen de lo dispuesto en el párrafo anterior: a) Las bebidas alcohólicas. Se entiende por bebida alcohólica todo líquido apto para el consumo humano por ingestión que contenga alcohol etílico. b) Las bebidas refrescantes, zumos y gaseosas con azúcares o edulcorantes añadidos.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-superreducido-alimentos-basicos",
+      "topic": "IVA",
+      "question": "¿A qué tipo de IVA tributan el pan común, la leche, los huevos o las frutas y verduras?",
+      "questionEn": "Which VAT rate applies to common bread, milk, eggs, fruit and vegetables?",
+      "expected": "Tributan al tipo superreducido del 4 por ciento. Entre otros productos, se aplica al pan común, las harinas panificables, la leche, los quesos, los huevos, las frutas, verduras, hortalizas, legumbres, tubérculos y cereales que sean productos naturales, y los aceites de oliva.",
+      "keyFacts": [
+        "4 por ciento",
+        "El pan común",
+        "Los huevos",
+        "Los aceites de oliva"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a91",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 91. Dos.1.1.º",
+        "excerpt": "Dos. Se aplicará el tipo del 4 por ciento a las operaciones siguientes: 1. Las entregas, adquisiciones intracomunitarias o importaciones de los bienes que se indican a continuación: 1.º Los siguientes productos: a) El pan común, así como la masa de pan común congelada y el pan común congelado destinados exclusivamente a la elaboración del pan común. b) Las harinas panificables. c) Los siguientes tipos de leche producida por cualquier especie animal: natural, certificada, pasterizada, concentrada, desnatada, esterilizada, UHT, evaporada, en polvo y fermentada. d) Los quesos. e) Los huevos. f) Las frutas, verduras, hortalizas, legumbres, tubérculos y cereales, que tengan la condición de productos naturales de acuerdo con el Código Alimentario y las disposiciones dictadas para su desarrollo. g) Los aceites de oliva.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-devengo-entregas-bienes",
+      "topic": "IVA",
+      "question": "¿Cuándo se devenga el IVA en una venta de bienes?",
+      "questionEn": "When does VAT become chargeable on a supply of goods?",
+      "expected": "En las entregas de bienes el IVA se devenga cuando tiene lugar su puesta a disposición del adquirente o, en su caso, cuando se efectúan conforme a la legislación que les sea aplicable.",
+      "keyFacts": [
+        "puesta a disposición del adquirente"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a75",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 75. Uno.1.º",
+        "excerpt": "Uno. Se devengará el Impuesto: 1.º En las entregas de bienes, cuando tenga lugar su puesta a disposición del adquirente o, en su caso, cuando se efectúen conforme a la legislación que les sea aplicable.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-devengo-pagos-anticipados",
+      "topic": "IVA",
+      "question": "Si cobro un anticipo antes de entregar el bien o prestar el servicio, ¿cuándo se devenga el IVA de ese anticipo?",
+      "questionEn": "If I receive an advance payment before the supply takes place, when is VAT on it chargeable?",
+      "expected": "En las operaciones sujetas que originen pagos anticipados, el IVA se devenga en el momento del cobro total o parcial del precio, por los importes efectivamente percibidos. Esta regla no se aplica a las entregas de bienes comprendidas en el artículo 25 de la Ley del IVA.",
+      "keyFacts": [
+        "en el momento del cobro total o parcial del precio",
+        "por los importes efectivamente percibidos"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a75",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 75. Dos",
+        "excerpt": "Dos. No obstante lo dispuesto en el apartado anterior, en las operaciones sujetas a gravamen que originen pagos anticipados anteriores a la realización del hecho imponible el impuesto se devengará en el momento del cobro total o parcial del precio por los importes efectivamente percibidos. Lo dispuesto en el párrafo anterior no será aplicable a las entregas de bienes comprendidas en el artículo 25 de esta Ley.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-perdida-derecho-repercusion",
+      "topic": "IVA",
+      "question": "¿Durante cuánto tiempo conserva una empresa el derecho a repercutir el IVA de una operación?",
+      "questionEn": "How long does a business keep the right to charge VAT on a transaction to its customer?",
+      "expected": "La repercusión debe hacerse al expedir y entregar la factura, y el derecho a repercutir el IVA se pierde cuando ha transcurrido un año desde la fecha del devengo.",
+      "keyFacts": [
+        "un año desde la fecha del devengo"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a88",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 88. Tres y Cuatro",
+        "excerpt": "Tres. La repercusión del Impuesto deberá efectuarse al tiempo de expedir y entregar la factura correspondiente. Cuatro. Se perderá el derecho a la repercusión cuando haya transcurrido un año desde la fecha del devengo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-plazo-deduccion-cuotas-soportadas",
+      "topic": "IVA",
+      "question": "¿Durante cuánto tiempo puedo deducir el IVA soportado de una factura que no incluí en la declaración de su periodo?",
+      "questionEn": "How long can I deduct input VAT from an invoice I left out of the return for its period?",
+      "expected": "El derecho a la deducción puede ejercitarse en la declaración-liquidación del periodo en que se soportaron las cuotas o en las de los periodos sucesivos, siempre que no hayan transcurrido cuatro años desde el nacimiento del derecho.",
+      "keyFacts": [
+        "cuatro años",
+        "a partir del nacimiento del mencionado derecho"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a99",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 99. Tres",
+        "excerpt": "Tres. El derecho a la deducción solo podrá ejercitarse en la declaración-liquidación relativa al periodo de liquidación en que su titular haya soportado las cuotas deducibles o en las de los sucesivos, siempre que no hubiera transcurrido el plazo de cuatro años, contados a partir del nacimiento del mencionado derecho.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-creditos-incobrables-plazo",
+      "topic": "IVA",
+      "question": "¿Cuánto tiempo debe pasar desde el devengo para poder reducir la base imponible del IVA de una factura impagada por considerarla incobrable?",
+      "questionEn": "How long after the VAT became chargeable can I reduce the taxable base of an unpaid invoice as a bad debt?",
+      "expected": "Con carácter general, debe haber transcurrido un año desde el devengo sin haber cobrado el crédito (en operaciones a plazos o con precio aplazado, un año desde el vencimiento del plazo impagado). Si el volumen de operaciones del acreedor no excedió de 6.010.121,04 euros el año natural anterior, el plazo puede ser de seis meses o un año; además deben cumplirse las demás condiciones legales.",
+      "keyFacts": [
+        "un año desde el devengo del Impuesto repercutido",
+        "6.010.121,04 euros",
+        "de seis meses o un año"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a80",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 80. Cuatro.A).1.ª",
+        "excerpt": "Cuatro. La base imponible también podrá reducirse proporcionalmente cuando los créditos correspondientes a las cuotas repercutidas por las operaciones gravadas sean total o parcialmente incobrables. A estos efectos: A) Un crédito se considerará total o parcialmente incobrable cuando reúna las siguientes condiciones: 1.ª Que haya transcurrido un año desde el devengo del Impuesto repercutido sin que se haya obtenido el cobro de todo o parte del crédito derivado del mismo. No obstante, cuando se trate de operaciones a plazos o con precio aplazado, deberá haber transcurrido un año desde el vencimiento del plazo o plazos impagados a fin de proceder a la reducción proporcional de la base imponible. A estos efectos, se considerarán operaciones a plazos o con precio aplazado aquéllas en las que se haya pactado que su contraprestación deba hacerse efectiva en pagos sucesivos o en uno sólo, respectivamente, siempre que el período transcurrido entre el devengo del Impuesto repercutido y el vencimiento del último o único pago sea superior a un año. Cuando el titular del derecho de crédito cuya base imponible se pretende reducir sea un empresario o profesional cuyo volumen de operaciones, calculado conforme a lo dispuesto en el artículo 121 de esta Ley, no hubiese excedido durante el año natural inmediato anterior de 6.010.121,04 euros, el plazo a que se refiere esta condición 1.ª podrá ser, de seis meses o un año.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "iva-recargo-equivalencia-tipo-general",
+      "topic": "IVA",
+      "question": "¿Cuál es el tipo general del recargo de equivalencia?",
+      "questionEn": "What is the general equivalence surcharge rate (recargo de equivalencia)?",
+      "expected": "Con carácter general, el recargo de equivalencia es del 5,2 por ciento.",
+      "keyFacts": [
+        "5,2 por ciento"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1992-28740#a161",
+        "title": "Ley 37/1992, de 28 de diciembre, del Impuesto sobre el Valor Añadido",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 161. 1.º",
+        "excerpt": "Los tipos del recargo de equivalencia serán los siguientes: 1.º Con carácter general, el 5,2 por ciento.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-indemnizacion-despido-exenta",
+      "topic": "IRPF",
+      "question": "¿Qué parte de una indemnización por despido está exenta de IRPF?",
+      "questionEn": "Which part of a dismissal severance payment is exempt from personal income tax?",
+      "expected": "Está exenta la indemnización por despido o cese en la cuantía establecida con carácter obligatorio en el Estatuto de los Trabajadores, su normativa de desarrollo o, en su caso, la normativa de ejecución de sentencias. No se considera como tal la cuantía fijada en virtud de convenio, pacto o contrato.",
+      "keyFacts": [
+        "en la cuantía establecida con carácter obligatorio",
+        "sin que pueda considerarse como tal la establecida en virtud de convenio, pacto o contrato"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a7",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 7.e)",
+        "excerpt": "e) Las indemnizaciones por despido o cese del trabajador, en la cuantía establecida con carácter obligatorio en el texto refundido de la Ley del Estatuto de los Trabajadores, aprobado por el Real Decreto Legislativo 2/2015, de 23 de octubre, en su normativa de desarrollo o, en su caso, en la normativa reguladora de la ejecución de sentencias, sin que pueda considerarse como tal la establecida en virtud de convenio, pacto o contrato.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-indemnizacion-despido-limite",
+      "topic": "IRPF",
+      "question": "¿Existe un límite máximo para la indemnización por despido exenta de IRPF?",
+      "questionEn": "Is there a cap on the tax-exempt amount of a dismissal severance payment?",
+      "expected": "Sí. El importe exento de la indemnización por despido o cese tiene como límite la cantidad de 180.000 euros.",
+      "keyFacts": [
+        "180.000 euros"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a7",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 7.e), último párrafo",
+        "excerpt": "El importe de la indemnización exenta a que se refiere esta letra tendrá como límite la cantidad de 180.000 euros.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-otros-gastos-deducibles-trabajo",
+      "topic": "IRPF",
+      "question": "¿Qué importe fijo de «otros gastos» puede restar un trabajador de sus rendimientos del trabajo en el IRPF?",
+      "questionEn": "What flat amount of 'other expenses' can an employee deduct from employment income for personal income tax?",
+      "expected": "En concepto de otros gastos distintos de los gastos deducibles enumerados en las letras anteriores del artículo 19.2, se deducen 2.000 euros anuales.",
+      "keyFacts": [
+        "2.000 euros anuales"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a19",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 19.2.f)",
+        "excerpt": "f) En concepto de otros gastos distintos de los anteriores, 2.000 euros anuales.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-obligacion-declarar-varios-pagadores",
+      "topic": "IRPF",
+      "question": "Si cobro rendimientos del trabajo de dos pagadores, ¿cuál es el límite para no estar obligado a presentar la declaración del IRPF?",
+      "questionEn": "If I receive employment income from two payers, what is the threshold below which I need not file an income tax return?",
+      "expected": "Cuando los rendimientos del trabajo proceden de más de un pagador, el límite es de 15.876 euros. No obstante, sigue siendo de 22.000 euros anuales si la suma de lo percibido del segundo y restantes pagadores, por orden de cuantía, no supera en conjunto 1.500 euros anuales.",
+      "keyFacts": [
+        "15.876 euros",
+        "1.500 euros anuales",
+        "22.000 euros anuales"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a96",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 96.3.a)",
+        "excerpt": "3. El límite a que se refiere la letra a) del apartado 2 anterior será de 15.876 euros para los contribuyentes que perciban rendimientos íntegros del trabajo en los siguientes supuestos: a) Cuando procedan de más de un pagador. No obstante, el límite será de 22.000 euros anuales en los siguientes supuestos: 1.º Si la suma de las cantidades percibidas del segundo y restantes pagadores, por orden de cuantía, no supera en su conjunto la cantidad de 1.500 euros anuales.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-autonomos-obligados-declarar",
+      "topic": "IRPF",
+      "question": "¿Está obligado a presentar la declaración de la renta un autónomo dado de alta en el RETA aunque sus ingresos sean bajos?",
+      "questionEn": "Must a self-employed person registered with the RETA scheme file an income tax return even with low income?",
+      "expected": "Sí. Están obligadas a declarar en cualquier caso las personas físicas que en cualquier momento del período impositivo hayan estado de alta como trabajadores por cuenta propia en el Régimen Especial de Trabajadores por Cuenta Propia o Autónomos (o en el Régimen Especial de la Seguridad Social de los Trabajadores del Mar).",
+      "keyFacts": [
+        "en cualquier momento del período impositivo",
+        "Régimen Especial de Trabajadores por Cuenta Propia o Autónomos"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a96",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 96.2, último párrafo",
+        "excerpt": "No obstante lo anterior, estarán en cualquier caso obligadas a declarar todas aquellas personas físicas que en cualquier momento del período impositivo hubieran estado de alta, como trabajadores por cuenta propia, en el Régimen Especial de Trabajadores por Cuenta Propia o Autónomos, o en el Régimen Especial de la Seguridad Social de los Trabajadores del Mar.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-atrasos-imputacion-temporal",
+      "topic": "IRPF",
+      "question": "Si este año cobro atrasos salariales de un ejercicio anterior por causas que no me son imputables, ¿a qué año se imputan en el IRPF?",
+      "questionEn": "If I receive salary arrears this year for a prior year, for reasons not attributable to me, to which tax year are they allocated?",
+      "expected": "Se imputan al período impositivo en que fueron exigibles, presentando en su caso una autoliquidación complementaria sin sanción, intereses de demora ni recargo. Esa autoliquidación se presenta entre la fecha en que se perciben y el final del inmediato siguiente plazo de declaraciones del impuesto.",
+      "keyFacts": [
+        "se imputarán a éstos",
+        "sin sanción ni intereses de demora ni recargo alguno",
+        "el final del inmediato siguiente plazo de declaraciones"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a14",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 14.2.b)",
+        "excerpt": "b) Cuando por circunstancias justificadas no imputables al contribuyente, los rendimientos derivados del trabajo se perciban en períodos impositivos distintos a aquéllos en que fueron exigibles, se imputarán a éstos, practicándose, en su caso, autoliquidación complementaria, sin sanción ni intereses de demora ni recargo alguno. Cuando concurran las circunstancias previstas en el párrafo a) anterior, los rendimientos se considerarán exigibles en el período impositivo en que la resolución judicial adquiera firmeza. La autoliquidación se presentará en el plazo que media entre la fecha en que se perciban y el final del inmediato siguiente plazo de declaraciones por el impuesto.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-seguro-medico-empresa-exento",
+      "topic": "IRPF",
+      "question": "¿Está exento de IRPF el seguro médico que la empresa paga a sus trabajadores?",
+      "questionEn": "Is employer-paid private health insurance exempt from personal income tax?",
+      "expected": "Sí, con límites: están exentas las primas de seguro de enfermedad que cubran al propio trabajador (y también pueden cubrir a su cónyuge y descendientes) siempre que no excedan de 500 euros anuales por persona, o de 1.500 euros por persona con discapacidad. El exceso constituye retribución en especie.",
+      "keyFacts": [
+        "500 euros anuales",
+        "1.500 euros",
+        "El exceso sobre dicha cuantía constituirá retribución en especie"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764#a42",
+        "title": "Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 42.3.c)",
+        "excerpt": "c) Las primas o cuotas satisfechas a entidades aseguradoras para la cobertura de enfermedad, cuando se cumplan los siguientes requisitos y límites: 1.º Que la cobertura de enfermedad alcance al propio trabajador, pudiendo también alcanzar a su cónyuge y descendientes. 2.º Que las primas o cuotas satisfechas no excedan de 500 euros anuales por cada una de las personas señaladas en el párrafo anterior o de 1.500 euros para cada una de ellas con discapacidad. El exceso sobre dicha cuantía constituirá retribución en especie.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-kilometraje-vehiculo-propio-exento",
+      "topic": "IRPF",
+      "question": "¿Cuánto puede pagar la empresa por kilómetro a un empleado que usa su propio vehículo sin que tribute en el IRPF?",
+      "questionEn": "How much per kilometre can an employer pay an employee using their own car without it being taxed?",
+      "expected": "Conforme a la Orden HFP/792/2023, queda exceptuada de gravamen la cantidad que resulte de multiplicar 0,26 euros por el número de kilómetros recorridos, siempre que se justifique la realidad del desplazamiento, más los gastos de peaje y aparcamiento que se justifiquen.",
+      "keyFacts": [
+        "0,26 euros",
+        "siempre que se justifique la realidad del desplazamiento",
+        "más los gastos de peaje y aparcamiento que se justifiquen"
+      ],
+      "severity": "high",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a9",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 9.A.2.b), nota sobre la Orden HFP/792/2023",
+        "excerpt": "Téngase en cuenta que el art. único.1 de la Orden HFP/792/2023, de 12 de julio de 2023, por la que se revisa la cuantía, establece que a efectos de lo previsto para los gastos de locomoción en la letra b) se excluirá la cantidad que resulte de multiplicar 0,26 euros por el número de kilómetros recorridos, siempre que se justifique la realidad del desplazamiento, más los gastos de peaje y aparcamiento que se justifiquen.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_sector_reuse",
+        "basis": "Nota de vigencia incluida por la Agencia Estatal Boletín Oficial del Estado en el texto consolidado, que da cuenta de la cuantía revisada por la Orden HFP/792/2023, de 12 de julio. Reutilización conforme a las condiciones del Aviso legal de www.boe.es (licencia tipo aprobada por Resolución de la Agencia de 27 de junio de 2024) y a la Ley 37/2007, de 16 de noviembre, sobre reutilización de la información del sector público, con cita de la fuente: «Basado en datos de la Agencia Estatal Boletín Oficial del Estado». Texto consolidado de carácter meramente informativo (última actualización publicada el 07/10/2026)."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-dietas-manutencion-con-pernocta",
+      "topic": "IRPF",
+      "question": "¿Qué importe diario de dieta por manutención está exento de IRPF en un desplazamiento por España con pernocta?",
+      "questionEn": "What daily meal allowance is tax-exempt for a business trip within Spain with an overnight stay?",
+      "expected": "Si se pernocta en un municipio distinto del lugar de trabajo habitual y del de residencia, están exceptuados de gravamen 53,34 euros diarios por manutención en desplazamientos dentro de España (91,35 euros en el extranjero); los gastos de estancia lo están por los importes que se justifiquen.",
+      "keyFacts": [
+        "53,34 euros diarios",
+        "91,35 euros diarios",
+        "Por gastos de estancia, los importes que se justifiquen"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a9",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 9.A.3.a).1.º",
+        "excerpt": "1.º Cuando se haya pernoctado en municipio distinto del lugar de trabajo habitual y del que constituya la residencia del perceptor, las siguientes: Por gastos de estancia, los importes que se justifiquen. En el caso de conductores de vehículos dedicados al transporte de mercancías por carretera, no precisarán justificación en cuanto a su importe los gastos de estancia que no excedan de 15 euros diarios, si se producen por desplazamiento dentro del territorio español, o de 25 euros diarios, si corresponden a desplazamientos a territorio extranjero. Por gastos de manutención, 53,34 euros diarios, si corresponden a desplazamiento dentro del territorio español, o 91,35 euros diarios, si corresponden a desplazamientos a territorio extranjero.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-dietas-manutencion-sin-pernocta",
+      "topic": "IRPF",
+      "question": "¿Qué importe diario de dieta por manutención está exento de IRPF cuando el trabajador se desplaza sin pernoctar fuera?",
+      "questionEn": "What daily meal allowance is tax-exempt when the employee travels without an overnight stay?",
+      "expected": "Sin pernocta en un municipio distinto del lugar de trabajo habitual y del de residencia, están exceptuadas las asignaciones para manutención que no excedan de 26,67 euros diarios en desplazamientos dentro de España o de 48,08 euros diarios en desplazamientos al extranjero.",
+      "keyFacts": [
+        "26,67",
+        "48,08 euros diarios"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a9",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 9.A.3.a).2.º",
+        "excerpt": "2.º Cuando no se haya pernoctado en municipio distinto del lugar de trabajo habitual y del que constituya la residencia del perceptor, las asignaciones para gastos de manutención que no excedan de 26,67 ó 48,08 euros diarios, según se trate de desplazamiento dentro del territorio español o al extranjero, respectivamente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-vales-comida-limite-diario",
+      "topic": "IRPF",
+      "question": "¿Cuál es el importe diario máximo exento de IRPF de los vales o tarjetas de comida que entrega la empresa?",
+      "questionEn": "What is the maximum tax-exempt daily amount of employer meal vouchers or cards?",
+      "expected": "Cuando el servicio de comedor se presta mediante fórmulas indirectas, como vales o tarjetas, su cuantía no puede superar 11 euros diarios; si es superior, existe retribución en especie por el exceso. Además deben cumplirse los demás requisitos reglamentarios.",
+      "keyFacts": [
+        "11 euros diarios",
+        "existirá retribución en especie por el exceso"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a45",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 45.2.1.º",
+        "excerpt": "2. Cuando la prestación del servicio se realice a través de fórmulas indirectas, tendrán que cumplirse, además de los requisitos exigidos en el número anterior, los siguientes: 1.º La cuantía de las fórmulas indirectas no podrá superar 11 euros diarios. Si la cuantía diaria fuese superior, existirá retribución en especie por el exceso.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-retencion-administradores",
+      "topic": "IRPF",
+      "question": "¿Qué tipo de retención de IRPF se aplica a la retribución de un administrador de una sociedad?",
+      "questionEn": "What personal income tax withholding rate applies to a company director's pay?",
+      "expected": "Se aplica el 35 por ciento. No obstante, es el 19 por ciento cuando la entidad tuvo un importe neto de la cifra de negocios inferior a 100.000 euros en el último período impositivo finalizado antes del pago.",
+      "keyFacts": [
+        "35 por ciento",
+        "inferior a 100.000 euros",
+        "19 por ciento"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a80",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 80.1.3.º",
+        "excerpt": "3.º El 35 por ciento para las retribuciones que se perciban por la condición de administradores y miembros de los Consejos de Administración, de las Juntas que hagan sus veces y demás miembros de otros órganos representativos. No obstante, cuando los rendimientos procedan de entidades cuyo importe neto de la cifra de negocios del último período impositivo finalizado con anterioridad al pago de los rendimientos sea inferior a 100.000 euros, el porcentaje de retención e ingreso a cuenta será del 19 por ciento. Si dicho período impositivo hubiere tenido una duración inferior al año, el importe neto de la cifra de negocios se elevará al año.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-retencion-minima-contrato-inferior-ano",
+      "topic": "IRPF",
+      "question": "¿Cuál es el tipo mínimo de retención de IRPF en un contrato de trabajo de duración inferior a un año?",
+      "questionEn": "What is the minimum withholding rate on an employment contract lasting less than a year?",
+      "expected": "En los contratos o relaciones de duración inferior al año, el tipo de retención no puede ser inferior al 2 por ciento.",
+      "keyFacts": [
+        "2 por ciento",
+        "duración inferior al año"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a86",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 86.2",
+        "excerpt": "2. El tipo de retención resultante de lo dispuesto en el apartado anterior no podrá ser inferior al 2 por ciento cuando se trate de contratos o relaciones de duración inferior al año o deriven de una relación laboral especial de las personas artistas que desarrollan su actividad en las artes escénicas, audiovisuales y musicales, así como de las personas que realizan actividades técnicas o auxiliares necesarias para el desarrollo de dicha actividad, ni inferior al 15 por ciento cuando los rendimientos del trabajo se deriven de otras relaciones laborales especiales de carácter dependiente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-retencion-profesionales-inicio-actividad",
+      "topic": "IRPF",
+      "question": "¿Qué retención de IRPF deben llevar las facturas de un profesional que acaba de iniciar su actividad?",
+      "questionEn": "What withholding should invoices of a professional who has just started their activity carry?",
+      "expected": "Con carácter general, la retención sobre rendimientos de actividades profesionales es del 15 por ciento, pero quien inicia actividades profesionales aplica el 7 por ciento en el período impositivo de inicio y en los dos siguientes, siempre que no haya ejercido actividad profesional en el año anterior. Debe comunicarlo al pagador, que conservará la comunicación firmada.",
+      "keyFacts": [
+        "15 por ciento",
+        "7 por ciento",
+        "en el período impositivo de inicio de actividades y en los dos siguientes"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a95",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 95.1",
+        "excerpt": "1. Cuando los rendimientos sean contraprestación de una actividad profesional, se aplicará el tipo de retención del 15 por ciento sobre los ingresos íntegros satisfechos. No obstante lo dispuesto en el párrafo anterior, en el caso de contribuyentes que inicien el ejercicio de actividades profesionales, el tipo de retención será del 7 por ciento en el período impositivo de inicio de actividades y en los dos siguientes, siempre y cuando no hubieran ejercido actividad profesional alguna en el año anterior a la fecha de inicio de las actividades Para la aplicación del tipo de retención previsto en el párrafo anterior, los contribuyentes deberán comunicar al pagador de los rendimientos la concurrencia de dicha circunstancia, quedando obligado el pagador a conservar la comunicación debidamente firmada.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-retencion-arrendamiento-inmuebles-urbanos",
+      "topic": "IRPF",
+      "question": "¿Qué retención de IRPF se practica sobre el alquiler de un local u otro inmueble urbano?",
+      "questionEn": "What withholding applies to rent paid for commercial premises or other urban property?",
+      "expected": "La retención es del 19 por ciento sobre todos los conceptos que se satisfagan al arrendador, excluido el IVA.",
+      "keyFacts": [
+        "19 por ciento",
+        "excluido el Impuesto sobre el Valor Añadido"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a100",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 100",
+        "excerpt": "La retención a practicar sobre los rendimientos procedentes del arrendamiento o subarrendamiento de inmuebles urbanos, cualquiera que sea su calificación, será el resultado de aplicar el porcentaje del 19 por ciento sobre todos los conceptos que se satisfagan al arrendador, excluido el Impuesto sobre el Valor Añadido.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "irpf-retenciones-plazo-declaracion-ingreso",
+      "topic": "IRPF",
+      "question": "¿En qué plazo debe la empresa declarar e ingresar las retenciones de IRPF practicadas?",
+      "questionEn": "By when must the employer file and pay the income tax it has withheld?",
+      "expected": "Con carácter general, en los primeros veinte días naturales de abril, julio, octubre y enero, por las retenciones del trimestre natural anterior. Los retenedores en los que concurran las circunstancias del artículo 71.3 del Reglamento del IVA declaran e ingresan en los veinte primeros días naturales de cada mes, por el mes anterior.",
+      "keyFacts": [
+        "primeros veinte días naturales de los meses de abril, julio, octubre y enero",
+        "veinte primeros días naturales de cada mes"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820#a108",
+        "title": "Real Decreto 439/2007, de 30 de marzo, por el que se aprueba el Reglamento del Impuesto sobre la Renta de las Personas Físicas y se modifica el Reglamento de Planes y Fondos de Pensiones, aprobado por Real Decreto 304/2004, de 20 de febrero",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 108.1",
+        "excerpt": "1. El sujeto obligado a retener y practicar ingresos a cuenta deberá presentar, en los primeros veinte días naturales de los meses de abril, julio, octubre y enero, declaración de las cantidades retenidas y de los ingresos a cuenta que correspondan por el trimestre natural inmediato anterior, e ingresar su importe en el Tesoro Público. No obstante, la declaración e ingreso a que se refiere el párrafo anterior se efectuará en los veinte primeros días naturales de cada mes, en relación con las cantidades retenidas y los ingresos a cuenta que correspondan por el mes inmediato anterior, cuando se trate de retenedores u obligados en los que concurran las circunstancias a que se refieren los números 1.º y 2.º del apartado 3 del artículo 71 del Reglamento del Impuesto sobre el Valor Añadido, aprobado por el Real Decreto 1624/1992, de 29 de diciembre.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-07"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 07/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-tipo-general",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿Cuál es el tipo general del Impuesto sobre Sociedades?",
+      "questionEn": "What is the standard corporate income tax rate?",
+      "expected": "El tipo general es el 25 por ciento, salvo para las entidades cuyo importe neto de la cifra de negocios del período impositivo anterior sea inferior a 1 millón de euros, que aplican una escala propia, y salvo los demás casos que deban tributar a un tipo diferente.",
+      "keyFacts": [
+        "25 por ciento",
+        "inferior a 1 millón de euros"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#a29",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 29.1, primer párrafo",
+        "excerpt": "1. El tipo general de gravamen para los contribuyentes de este Impuesto será el 25 por ciento, excepto para las entidades cuyo importe neto de la cifra de negocios del período impositivo inmediato anterior sea inferior a 1 millón de euros que aplicarán los tipos que se indican en la siguiente escala, salvo que de acuerdo con lo previsto en este artículo deban tributar a un tipo diferente del general:",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-microempresas-tipos-2026",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿A qué tipos tributa en el Impuesto sobre Sociedades una empresa con cifra de negocios inferior a 1 millón de euros en los períodos impositivos iniciados en 2026?",
+      "questionEn": "What corporate tax rates apply in tax periods starting in 2026 to a company with turnover under EUR 1 million?",
+      "expected": "En los períodos impositivos iniciados en 2026, la parte de base imponible comprendida entre 0 y 50.000 euros tributa al 19 por ciento y el resto al 21 por ciento, salvo que la entidad deba tributar a un tipo diferente del general.",
+      "keyFacts": [
+        "2026",
+        "entre 0 y 50.000 euros",
+        "19 por ciento",
+        "21 por ciento"
+      ],
+      "severity": "high",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#dt-6",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Disposición transitoria cuadragésima cuarta. 2.a)",
+        "excerpt": "2. Con efectos para los períodos impositivos que se inicien dentro del año 2026, a efectos de lo dispuesto en el artículo 29.1 de la LIS, se aplicarán las siguientes especialidades: a) Las entidades cuyo importe neto de la cifra de negocios del período impositivo inmediato anterior sea inferior a 1 millón de euros, aplicarán la siguiente escala, salvo que deban tributar a un tipo diferente del general: i) Por la parte de base imponible comprendida entre 0 y 50.000 euros, al tipo del 19 por ciento. ii) Por la parte de base imponible restante, al tipo del 21 por ciento.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-reducida-dimension-tipo-2026",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿Qué tipo del Impuesto sobre Sociedades aplica en los períodos iniciados en 2026 una empresa de reducida dimensión?",
+      "questionEn": "What corporate tax rate applies in tax periods starting in 2026 to a small enterprise (empresa de reducida dimensión)?",
+      "expected": "En los períodos impositivos iniciados en 2026, las entidades que cumplen las previsiones del artículo 101 tributan al 23 %, salvo que deban tributar a un tipo diferente del general. Las que tienen una cifra de negocios inferior a 1 millón de euros aplican la escala del 19 por ciento y el 21 por ciento.",
+      "keyFacts": [
+        "23 %",
+        "artículo 101"
+      ],
+      "severity": "high",
+      "difficulty": "challenge",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#dt-6",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Disposición transitoria cuadragésima cuarta. 2.b)",
+        "excerpt": "2. Con efectos para los períodos impositivos que se inicien dentro del año 2026, a efectos de lo dispuesto en el artículo 29.1 de la LIS, se aplicarán las siguientes especialidades: a) Las entidades cuyo importe neto de la cifra de negocios del período impositivo inmediato anterior sea inferior a 1 millón de euros, aplicarán la siguiente escala, salvo que deban tributar a un tipo diferente del general: i) Por la parte de base imponible comprendida entre 0 y 50.000 euros, al tipo del 19 por ciento. ii) Por la parte de base imponible restante, al tipo del 21 por ciento. Cuando el período impositivo tenga una duración inferior al año, la parte de la base imponible que tributará al tipo del 19 por ciento será la resultante de aplicar a 50.000 euros la proporción en la que se hallen el número de días del período impositivo entre 365 días, o la base imponible del período impositivo cuando esta fuera inferior. A estos efectos, el importe neto de la cifra de negocios se determinará con arreglo a lo dispuesto en los apartados 2 y 3 del artículo 101 de esta ley. b) Las entidades que cumplan las previsiones previstas en el artículo 101 de esta ley tributarán al 23 %, salvo que deban tributar a un tipo diferente del general.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-entidades-nueva-creacion",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿Qué tipo del Impuesto sobre Sociedades aplica una empresa de nueva creación?",
+      "questionEn": "What corporate tax rate does a newly created company apply?",
+      "expected": "Las entidades de nueva creación que realicen actividades económicas tributan al 15 por ciento en el primer período impositivo en que la base imponible resulte positiva y en el siguiente, salvo que les corresponda un tipo inferior.",
+      "keyFacts": [
+        "15 por ciento",
+        "en el primer período impositivo en que la base imponible resulte positiva y en el siguiente"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#a29",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 29.1",
+        "excerpt": "Finalmente, las entidades de nueva creación que realicen actividades económicas tributarán, en el primer período impositivo en que la base imponible resulte positiva y en el siguiente, al tipo del 15 por ciento, excepto si, de acuerdo con lo previsto en este artículo, deban tributar a un tipo inferior.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-plazo-declaracion-anual",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿Cuál es el plazo para presentar la declaración del Impuesto sobre Sociedades?",
+      "questionEn": "What is the deadline for filing the corporate income tax return?",
+      "expected": "La declaración se presenta en el plazo de los 25 días naturales siguientes a los 6 meses posteriores a la conclusión del período impositivo.",
+      "keyFacts": [
+        "25 días naturales",
+        "6 meses posteriores a la conclusión del período impositivo"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#a124",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 124.1",
+        "excerpt": "La declaración se presentará en el plazo de los 25 días naturales siguientes a los 6 meses posteriores a la conclusión del período impositivo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-pagos-fraccionados-plazos",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿En qué meses hay que efectuar los pagos fraccionados del Impuesto sobre Sociedades?",
+      "questionEn": "In which months are corporate income tax instalment payments due?",
+      "expected": "En los primeros 20 días naturales de los meses de abril, octubre y diciembre, a cuenta de la liquidación del período impositivo que esté en curso el día 1 de cada uno de esos meses.",
+      "keyFacts": [
+        "primeros 20 días naturales",
+        "abril, octubre y diciembre"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#a40",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 40.1",
+        "excerpt": "1. En los primeros 20 días naturales de los meses de abril, octubre y diciembre, los contribuyentes deberán efectuar un pago fraccionado a cuenta de la liquidación correspondiente al período impositivo que esté en curso el día 1 de cada uno de los meses indicados.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "is-multas-recargos-no-deducibles",
+      "topic": "Impuesto sobre Sociedades",
+      "question": "¿Son gasto deducible en el Impuesto sobre Sociedades las multas, las sanciones o el recargo por presentar una declaración fuera de plazo?",
+      "questionEn": "Are fines, penalties or the late-filing surcharge deductible for corporate income tax?",
+      "expected": "No. No tienen la consideración de gastos fiscalmente deducibles las multas y sanciones penales y administrativas, los recargos del período ejecutivo ni el recargo por declaración extemporánea sin requerimiento previo.",
+      "keyFacts": [
+        "Las multas y sanciones penales y administrativas",
+        "los recargos del período ejecutivo",
+        "el recargo por declaración extemporánea sin requerimiento previo"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2014-12328#a15",
+        "title": "Ley 27/2014, de 27 de noviembre, del Impuesto sobre Sociedades",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 15.c)",
+        "excerpt": "No tendrán la consideración de gastos fiscalmente deducibles: a) Los que representen una retribución de los fondos propios. A los efectos de lo previsto en esta Ley, tendrá la consideración de retribución de fondos propios, la correspondiente a los valores representativos del capital o de los fondos propios de entidades, con independencia de su consideración contable. Asimismo, tendrán la consideración de retribución de fondos propios la correspondiente a los préstamos participativos otorgados por entidades que formen parte del mismo grupo de sociedades según los criterios establecidos en el artículo 42 del Código de Comercio, con independencia de la residencia y de la obligación de formular cuentas anuales consolidadas. b) Los derivados de la contabilización del Impuesto sobre Sociedades y del Impuesto Complementario. No tendrán la consideración de ingresos los procedentes de dicha contabilización. c) Las multas y sanciones penales y administrativas, los recargos del período ejecutivo y el recargo por declaración extemporánea sin requerimiento previo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-09-02"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 02/09/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lgt-prescripcion-cuatro-anos",
+      "topic": "Procedimiento tributario",
+      "question": "¿En cuántos años prescribe el derecho de Hacienda a liquidar una deuda tributaria?",
+      "questionEn": "After how many years does the tax authority's right to assess a tax debt become time-barred?",
+      "expected": "Prescribe a los cuatro años el derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación, así como su derecho a exigir el pago de las deudas liquidadas y autoliquidadas.",
+      "keyFacts": [
+        "cuatro años"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a66",
+        "title": "Ley 58/2003, de 17 de diciembre, General Tributaria",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 66.a) y b)",
+        "excerpt": "Prescribirán a los cuatro años los siguientes derechos: a) El derecho de la Administración para determinar la deuda tributaria mediante la oportuna liquidación. b) El derecho de la Administración para exigir el pago de las deudas tributarias liquidadas y autoliquidadas.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2024-12-21"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 21/12/2024). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lgt-prescripcion-inicio-computo",
+      "topic": "Procedimiento tributario",
+      "question": "¿Desde cuándo empieza a contar el plazo de prescripción del derecho de Hacienda a liquidar un impuesto?",
+      "questionEn": "From when does the limitation period for the tax authority's right to assess a tax start to run?",
+      "expected": "Comienza a contarse desde el día siguiente a aquel en que finaliza el plazo reglamentario para presentar la correspondiente declaración o autoliquidación.",
+      "keyFacts": [
+        "desde el día siguiente a aquel en que finalice el plazo reglamentario para presentar la correspondiente declaración o autoliquidación"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a67",
+        "title": "Ley 58/2003, de 17 de diciembre, General Tributaria",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 67.1",
+        "excerpt": "1. El plazo de prescripción comenzará a contarse en los distintos casos a los que se refiere el artículo 66 de esta Ley conforme a las siguientes reglas: En el caso a), desde el día siguiente a aquel en que finalice el plazo reglamentario para presentar la correspondiente declaración o autoliquidación.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2024-12-21"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 21/12/2024). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lgt-interes-demora-tipo",
+      "topic": "Procedimiento tributario",
+      "question": "¿Cómo se determina el tipo del interés de demora tributario?",
+      "questionEn": "How is the tax late-payment interest rate determined?",
+      "expected": "El interés de demora es el interés legal del dinero vigente a lo largo del período en que resulte exigible, incrementado en un 25 por ciento, salvo que la Ley de Presupuestos Generales del Estado establezca otro diferente.",
+      "keyFacts": [
+        "interés legal del dinero",
+        "incrementado en un 25 por ciento"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a26",
+        "title": "Ley 58/2003, de 17 de diciembre, General Tributaria",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 26.6",
+        "excerpt": "6. El interés de demora será el interés legal del dinero vigente a lo largo del período en el que aquél resulte exigible, incrementado en un 25 por ciento, salvo que la Ley de Presupuestos Generales del Estado establezca otro diferente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2024-12-21"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 21/12/2024). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lgt-recargo-declaracion-extemporanea",
+      "topic": "Procedimiento tributario",
+      "question": "¿Qué recargo se aplica si presento una autoliquidación fuera de plazo sin requerimiento previo de Hacienda?",
+      "questionEn": "What surcharge applies if I file a self-assessment late without a prior request from the tax authority?",
+      "expected": "Un recargo del 1 por ciento más otro 1 por ciento adicional por cada mes completo de retraso respecto al término del plazo de presentación e ingreso, que excluye las sanciones y los intereses de demora devengados hasta la presentación. Si se presenta una vez transcurridos 12 meses desde el término del plazo, el recargo es del 15 por ciento.",
+      "keyFacts": [
+        "1 por ciento más otro 1 por ciento adicional por cada mes completo de retraso",
+        "transcurridos 12 meses",
+        "15 por ciento"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a27",
+        "title": "Ley 58/2003, de 17 de diciembre, General Tributaria",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 27.2",
+        "excerpt": "2. El recargo será un porcentaje igual al 1 por ciento más otro 1 por ciento adicional por cada mes completo de retraso con que se presente la autoliquidación o declaración respecto al término del plazo establecido para la presentación e ingreso. Dicho recargo se calculará sobre el importe a ingresar resultante de las autoliquidaciones o sobre el importe de la liquidación derivado de las declaraciones extemporáneas y excluirá las sanciones que hubieran podido exigirse y los intereses de demora devengados hasta la presentación de la autoliquidación o declaración. Si la presentación de la autoliquidación o declaración se efectúa una vez transcurridos 12 meses desde el término del plazo establecido para la presentación, el recargo será del 15 por ciento y excluirá las sanciones que hubieran podido exigirse. En estos casos, se exigirán los intereses de demora por el período transcurrido desde el día siguiente al término de los 12 meses posteriores a la finalización del plazo establecido para la presentación hasta el momento en que la autoliquidación o declaración se haya presentado.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2024-12-21"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 21/12/2024). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lgt-intereses-demora-retraso-mas-12-meses",
+      "topic": "Procedimiento tributario",
+      "question": "Si presento una autoliquidación con más de 12 meses de retraso y sin requerimiento previo, ¿tengo que pagar intereses de demora además del recargo?",
+      "questionEn": "If I file a self-assessment more than 12 months late without a prior request, do I owe late-payment interest on top of the surcharge?",
+      "expected": "Sí. El recargo es del 15 por ciento y excluye las sanciones, pero se exigen intereses de demora por el período transcurrido desde el día siguiente al término de los 12 meses posteriores a la finalización del plazo hasta la presentación de la autoliquidación o declaración.",
+      "keyFacts": [
+        "15 por ciento",
+        "se exigirán los intereses de demora",
+        "desde el día siguiente al término de los 12 meses"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a27",
+        "title": "Ley 58/2003, de 17 de diciembre, General Tributaria",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 27.2, tercer párrafo",
+        "excerpt": "Si la presentación de la autoliquidación o declaración se efectúa una vez transcurridos 12 meses desde el término del plazo establecido para la presentación, el recargo será del 15 por ciento y excluirá las sanciones que hubieran podido exigirse. En estos casos, se exigirán los intereses de demora por el período transcurrido desde el día siguiente al término de los 12 meses posteriores a la finalización del plazo establecido para la presentación hasta el momento en que la autoliquidación o declaración se haya presentado.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2024-12-21"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 21/12/2024). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "lgt-plazo-pago-liquidacion-administrativa",
+      "topic": "Procedimiento tributario",
+      "question": "Si Hacienda me notifica una liquidación el día 10 de un mes, ¿hasta cuándo puedo pagarla en período voluntario?",
+      "questionEn": "If the tax authority notifies me of an assessment on the 10th of a month, until when can I pay it voluntarily?",
+      "expected": "Si la notificación se realiza entre los días 1 y 15 del mes, el plazo de pago en período voluntario llega hasta el día 20 del mes posterior o, si no fuera hábil, hasta el inmediato hábil siguiente.",
+      "keyFacts": [
+        "entre los días uno y 15 de cada mes",
+        "hasta el día 20 del mes posterior"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23186#a62",
+        "title": "Ley 58/2003, de 17 de diciembre, General Tributaria",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 62.2",
+        "excerpt": "2. En el caso de deudas tributarias resultantes de liquidaciones practicadas por la Administración, el pago en período voluntario deberá hacerse en los siguientes plazos: a) Si la notificación de la liquidación se realiza entre los días uno y 15 de cada mes, desde la fecha de recepción de la notificación hasta el día 20 del mes posterior o, si éste no fuera hábil, hasta el inmediato hábil siguiente. b) Si la notificación de la liquidación se realiza entre los días 16 y último de cada mes, desde la fecha de recepción de la notificación hasta el día cinco del segundo mes posterior o, si éste no fuera hábil, hasta el inmediato hábil siguiente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2024-12-21"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 21/12/2024). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "facturacion-simplificada-limite-general",
+      "topic": "Facturación",
+      "question": "¿Hasta qué importe se puede emitir una factura simplificada en lugar de una factura completa?",
+      "questionEn": "Up to what amount can a simplified invoice be issued instead of a full invoice?",
+      "expected": "Con carácter general, cuando el importe de la operación no exceda de 400 euros, IVA incluido. También puede usarse cuando deba expedirse una factura rectificativa.",
+      "keyFacts": [
+        "400 euros, Impuesto sobre el Valor Añadido incluido"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696#a4",
+        "title": "Real Decreto 1619/2012, de 30 de noviembre, por el que se aprueba el Reglamento por el que se regulan las obligaciones de facturación",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Reglamento de facturación, artículo 4.1",
+        "excerpt": "1. La obligación de expedir factura podrá ser cumplida mediante la expedición de factura simplificada y copia de esta en cualquiera de los siguientes supuestos: a) Cuando su importe no exceda de 400 euros, Impuesto sobre el Valor Añadido incluido, o b) cuando deba expedirse una factura rectificativa.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-03-31"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 31/03/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "facturacion-simplificada-hosteleria-3000",
+      "topic": "Facturación",
+      "question": "¿Puede un restaurante emitir facturas simplificadas por importes superiores a 400 euros?",
+      "questionEn": "Can a restaurant issue simplified invoices for amounts above EUR 400?",
+      "expected": "Sí. En los servicios de hostelería y restauración, entre otras operaciones, se puede expedir factura simplificada cuando el importe no exceda de 3.000 euros, IVA incluido.",
+      "keyFacts": [
+        "3.000 euros",
+        "Servicios de hostelería y restauración"
+      ],
+      "severity": "medium",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696#a4",
+        "title": "Real Decreto 1619/2012, de 30 de noviembre, por el que se aprueba el Reglamento por el que se regulan las obligaciones de facturación",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Reglamento de facturación, artículo 4.2.e)",
+        "excerpt": "2. Sin perjuicio de lo dispuesto en el apartado anterior, los empresarios o profesionales podrán igualmente expedir factura simplificada y copia de ésta cuando su importe no exceda de 3.000 euros, Impuesto sobre el Valor Añadido incluido, en las operaciones que se describen a continuación: a) Ventas al por menor, incluso las realizadas por fabricantes o elaboradores de los productos entregados. A estos efectos, tendrán la consideración de ventas al por menor las entregas de bienes muebles corporales o semovientes en las que el destinatario de la operación no actúe como empresario o profesional, sino como consumidor final de aquellos. No se reputarán ventas al por menor las que tengan por objeto bienes que, por sus características objetivas, envasado, presentación o estado de conservación, sean principalmente de utilización empresarial o profesional. b) Ventas o servicios en ambulancia. c) Ventas o servicios a domicilio del consumidor. d) Transportes de personas y sus equipajes. e) Servicios de hostelería y restauración prestados por restaurantes, bares, cafeterías, horchaterías, chocolaterías y establecimientos similares, así como el suministro de bebidas o comidas para consumir en el acto.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-03-31"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 31/03/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "facturacion-plazo-expedicion-empresarios",
+      "topic": "Facturación",
+      "question": "¿En qué plazo debo emitir la factura cuando el cliente es una empresa o un profesional?",
+      "questionEn": "By when must I issue the invoice when the customer is a business or professional?",
+      "expected": "Con carácter general la factura se expide al realizarse la operación, pero si el destinatario es un empresario o profesional que actúa como tal, debe expedirse antes del día 16 del mes siguiente a aquel en que se produjo el devengo del IVA de la operación.",
+      "keyFacts": [
+        "en el momento de realizarse la operación",
+        "antes del día 16 del mes siguiente"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696#a11",
+        "title": "Real Decreto 1619/2012, de 30 de noviembre, por el que se aprueba el Reglamento por el que se regulan las obligaciones de facturación",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Reglamento de facturación, artículo 11.1",
+        "excerpt": "1. Las facturas deberán ser expedidas en el momento de realizarse la operación. No obstante, cuando el destinatario de la operación sea un empresario o profesional que actúe como tal, las facturas deberán expedirse antes del día 16 del mes siguiente a aquél en que se haya producido el devengo del Impuesto correspondiente a la citada operación.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-03-31"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 31/03/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "facturacion-rectificativa-plazo",
+      "topic": "Facturación",
+      "question": "¿Hasta cuándo se puede emitir una factura rectificativa?",
+      "questionEn": "Until when can a corrective invoice be issued?",
+      "expected": "Debe expedirse tan pronto como el obligado tenga constancia de las circunstancias que la exigen, siempre que no hayan transcurrido cuatro años desde el devengo del impuesto o, en su caso, desde que se produjeron las circunstancias del artículo 80 de la Ley del IVA.",
+      "keyFacts": [
+        "tan pronto como",
+        "cuatro años"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696#a15",
+        "title": "Real Decreto 1619/2012, de 30 de noviembre, por el que se aprueba el Reglamento por el que se regulan las obligaciones de facturación",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Reglamento de facturación, artículo 15.3",
+        "excerpt": "3. La expedición de la factura rectificativa deberá efectuarse tan pronto como el obligado a expedirla tenga constancia de las circunstancias que, conforme a los apartados anteriores, obligan a su expedición, siempre que no hubiesen transcurrido cuatro años a partir del momento en que se devengó el Impuesto o, en su caso, se produjeron las circunstancias a que se refiere el artículo 80 de la Ley del Impuesto.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-03-31"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 31/03/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "facturacion-serie-especifica-rectificativas",
+      "topic": "Facturación",
+      "question": "¿Pueden numerarse las facturas rectificativas en la misma serie que las facturas ordinarias?",
+      "questionEn": "Can corrective invoices share the numbering series of ordinary invoices?",
+      "expected": "No. La numeración dentro de cada serie debe ser correlativa y es obligatorio, en todo caso, expedir en series específicas determinadas facturas, entre ellas las rectificativas.",
+      "keyFacts": [
+        "será correlativa",
+        "será obligatoria, en todo caso, la expedición en series específicas",
+        "Las rectificativas"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696#a6",
+        "title": "Real Decreto 1619/2012, de 30 de noviembre, por el que se aprueba el Reglamento por el que se regulan las obligaciones de facturación",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Reglamento de facturación, artículo 6.1.a)",
+        "excerpt": "a) Número y, en su caso, serie. La numeración de las facturas dentro de cada serie será correlativa. Se podrán expedir facturas mediante series separadas cuando existan razones que lo justifiquen y, entre otros supuestos, cuando el obligado a su expedición cuente con varios establecimientos desde los que efectúe sus operaciones y cuando el obligado a su expedición realice operaciones de distinta naturaleza. No obstante, será obligatoria, en todo caso, la expedición en series específicas de las facturas siguientes: 1.º Las expedidas por los destinatarios de las operaciones o por terceros a que se refiere el artículo 5, para cada uno de los cuales deberá existir una serie distinta. 2.º Las rectificativas.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-03-31"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 31/03/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "facturacion-electronica-obligatoria-empresarios",
+      "topic": "Facturación",
+      "question": "¿En qué casos establece el Reglamento de facturación que la factura electrónica es obligatoria?",
+      "questionEn": "When does the Spanish invoicing regulation make e-invoicing mandatory?",
+      "expected": "Cuando el destinatario de la operación es un empresario o profesional con sede de su actividad económica, establecimiento permanente o, en su defecto, domicilio o residencia habitual en España, en las condiciones establecidas en la Ley 56/2007 y su normativa de desarrollo. No se aplica cuando se expide factura simplificada, salvo las referidas en el artículo 7.2.",
+      "keyFacts": [
+        "Ley 56/2007",
+        "empresario o profesional que tenga en España la sede de su actividad económica",
+        "factura simplificada"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696#a8-2",
+        "title": "Real Decreto 1619/2012, de 30 de noviembre, por el que se aprueba el Reglamento por el que se regulan las obligaciones de facturación",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Reglamento de facturación, artículo 8 bis.1",
+        "excerpt": "1. Será obligatoria la factura electrónica en las condiciones establecidas en la Ley 56/2007, de 28 de diciembre, de Medidas de Impulso de la sociedad de la Información, y en su normativa de desarrollo cuando el destinatario de la operación sea un empresario o profesional que tenga en España la sede de su actividad económica, o un establecimiento permanente o, en su defecto, el lugar de su domicilio o residencia habitual, siempre que se trate de operaciones que tengan por destinatarios a dicha sede, establecimiento permanente, domicilio o residencia habitual. Lo establecido en el párrafo anterior no será de aplicación cuando se expida factura simplificada a que se refiere el artículo 4, salvo las referidas en el artículo 7.2.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-03-31"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 31/03/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "mercantil-libros-contables-obligatorios",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿Qué libros contables está obligado a llevar todo empresario según el Código de Comercio?",
+      "questionEn": "Which accounting books must every business keep under the Commercial Code?",
+      "expected": "Todo empresario debe llevar una contabilidad ordenada y adecuada a su actividad y, necesariamente, un libro de Inventarios y Cuentas anuales y otro Diario, sin perjuicio de lo que establezcan leyes o disposiciones especiales.",
+      "keyFacts": [
+        "contabilidad ordenada",
+        "un libro de Inventarios y Cuentas anuales y otro Diario"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1885-6627#art25",
+        "title": "Real Decreto de 22 de agosto de 1885 por el que se publica el Código de Comercio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 25.1",
+        "excerpt": "1. Todo empresario deberá llevar una contabilidad ordenada, adecuada a la actividad de su empresa que permita un seguimiento cronológico de todas sus operaciones, así como la elaboración periódica de balances e inventarios. Llevará necesariamente, sin perjuicio de lo establecido en las Leyes o disposiciones especiales, un libro de Inventarios y Cuentas anuales y otro Diario.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2023-05-09"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 09/05/2023). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "mercantil-conservacion-libros-seis-anos",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿Durante cuánto tiempo debe conservar un empresario los libros, la correspondencia y los justificantes de su negocio?",
+      "questionEn": "How long must a business keep its books, correspondence and supporting documents?",
+      "expected": "Durante seis años a partir del último asiento realizado en los libros, debidamente ordenados, salvo lo que establezcan disposiciones generales o especiales.",
+      "keyFacts": [
+        "seis años",
+        "a partir del último asiento realizado en los libros"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1885-6627#art30",
+        "title": "Real Decreto de 22 de agosto de 1885 por el que se publica el Código de Comercio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 30.1",
+        "excerpt": "1. Los empresarios conservarán los libros, correspondencia, documentación y justificantes concernientes a su negocio, debidamente ordenados, durante seis años, a partir del último asiento realizado en los libros, salvo lo que se establezca por disposiciones generales o especiales.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2023-05-09"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 09/05/2023). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "mercantil-documentos-cuentas-anuales",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿Qué documentos integran las cuentas anuales de una empresa?",
+      "questionEn": "Which documents make up a company's annual accounts?",
+      "expected": "El balance, la cuenta de pérdidas y ganancias, un estado de cambios en el patrimonio neto del ejercicio, un estado de flujos de efectivo y la memoria, que forman una unidad. El estado de cambios en el patrimonio neto y el de flujos de efectivo no son obligatorios cuando así lo establezca una disposición legal.",
+      "keyFacts": [
+        "el balance",
+        "la cuenta de pérdidas y ganancias",
+        "un estado de flujos de efectivo",
+        "Memoria"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-1885-6627#art34",
+        "title": "Real Decreto de 22 de agosto de 1885 por el que se publica el Código de Comercio",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 34.1",
+        "excerpt": "1. Al cierre del ejercicio, el empresario deberá formular las cuentas anuales de su empresa, que comprenderán el balance, la cuenta de pérdidas y ganancias, un estado que refleje los cambios en el patrimonio neto del ejercicio, un estado de flujos de efectivo y la Memoria. Estos documentos forman una unidad. El estado de cambios en el patrimonio neto y el estado de flujos de efectivo no serán obligatorios cuando así lo establezca una disposición legal.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2023-05-09"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 09/05/2023). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "sociedades-formulacion-cuentas-plazo",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿En qué plazo deben formular los administradores las cuentas anuales de una sociedad de capital?",
+      "questionEn": "Within what period must directors prepare a company's annual accounts?",
+      "expected": "En el plazo máximo de tres meses contados a partir del cierre del ejercicio social, junto con el informe de gestión y la propuesta de aplicación del resultado y, en su caso, las cuentas e informe de gestión consolidados.",
+      "keyFacts": [
+        "tres meses contados a partir del cierre del ejercicio social"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2010-10544#a253",
+        "title": "Real Decreto Legislativo 1/2010, de 2 de julio, por el que se aprueba el texto refundido de la Ley de Sociedades de Capital",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 253.1",
+        "excerpt": "1. Los administradores de la sociedad están obligados a formular, en el plazo máximo de tres meses contados a partir del cierre del ejercicio social, las cuentas anuales, el informe de gestión, que incluirá, cuando proceda, el estado de información no financiera, y la propuesta de aplicación del resultado, así como, en su caso, las cuentas y el informe de gestión consolidados.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-01-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/01/2025). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "sociedades-deposito-cuentas-registro",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿En qué plazo hay que depositar las cuentas anuales en el Registro Mercantil?",
+      "questionEn": "By when must the annual accounts be filed with the Commercial Registry?",
+      "expected": "Dentro del mes siguiente a la aprobación de las cuentas anuales, los administradores deben presentarlas para su depósito en el Registro Mercantil del domicilio social.",
+      "keyFacts": [
+        "Dentro del mes siguiente a la aprobación de las cuentas anuales"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2010-10544#a279",
+        "title": "Real Decreto Legislativo 1/2010, de 2 de julio, por el que se aprueba el texto refundido de la Ley de Sociedades de Capital",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 279.1",
+        "excerpt": "1. Dentro del mes siguiente a la aprobación de las cuentas anuales, los administradores de la sociedad presentarán, para su depósito en el Registro Mercantil del domicilio social, certificación de los acuerdos de la junta de socios de aprobación de dichas cuentas, debidamente firmadas, y de aplicación del resultado, así como, en su caso, de las cuentas consolidadas, a la que se adjuntará un ejemplar de cada una de ellas. Los administradores presentarán también el informe de gestión, que incluirá, cuando proceda, el estado de información no financiera, y el informe del auditor, cuando la sociedad esté obligada a auditoría por una disposición legal o esta se hubiera acordado a petición de la minoría o de forma voluntaria y se hubiese inscrito el nombramiento de auditor en el Registro Mercantil.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-01-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/01/2025). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "sociedades-reserva-legal",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿Qué porcentaje del beneficio debe destinar una sociedad de capital a la reserva legal?",
+      "questionEn": "What share of profit must a company allocate to the legal reserve?",
+      "expected": "Una cifra igual al 10 % del beneficio del ejercicio, hasta que la reserva legal alcance, al menos, el 20 % del capital social.",
+      "keyFacts": [
+        "diez por ciento del beneficio del ejercicio",
+        "veinte por ciento del capital social"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2010-10544#a274",
+        "title": "Real Decreto Legislativo 1/2010, de 2 de julio, por el que se aprueba el texto refundido de la Ley de Sociedades de Capital",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 274.1",
+        "excerpt": "1. En todo caso, una cifra igual al diez por ciento del beneficio del ejercicio se destinará a la reserva legal hasta que esta alcance, al menos, el veinte por ciento del capital social.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-01-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/01/2025). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "sociedades-exencion-auditoria",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿Qué sociedades quedan exceptuadas de la obligación de auditar sus cuentas anuales?",
+      "questionEn": "Which companies are exempt from the statutory audit of their annual accounts?",
+      "expected": "Las que durante dos ejercicios consecutivos reúnan, a la fecha de cierre de cada uno, al menos dos de estas circunstancias: activo total no superior a 2.850.000 euros, importe neto de la cifra anual de negocios no superior a 5.700.000 euros y número medio de trabajadores no superior a cincuenta. Pierden la exención si dejan de reunirlas durante dos ejercicios consecutivos.",
+      "keyFacts": [
+        "dos ejercicios consecutivos",
+        "dos millones ochocientos cincuenta mil euros",
+        "cinco millones setecientos mil euros",
+        "no sea superior a cincuenta"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2010-10544#a263",
+        "title": "Real Decreto Legislativo 1/2010, de 2 de julio, por el que se aprueba el texto refundido de la Ley de Sociedades de Capital",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 263.2",
+        "excerpt": "2. Se exceptúa de esta obligación a las sociedades que durante dos ejercicios consecutivos reúnan, a la fecha de cierre de cada uno de ellos, al menos dos de las circunstancias siguientes: a) Que el total de las partidas del activo no supere los dos millones ochocientos cincuenta mil euros. b) Que el importe neto de su cifra anual de negocios no supere los cinco millones setecientos mil euros. c) Que el número medio de trabajadores empleados durante el ejercicio no sea superior a cincuenta. Las sociedades perderán esta facultad si dejan de reunir, durante dos ejercicios consecutivos, dos de las circunstancias a que se refiere el párrafo anterior.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-01-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/01/2025). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "sociedades-capital-minimo-sl",
+      "topic": "Contabilidad y mercantil",
+      "question": "¿Cuál es el capital social mínimo de una sociedad de responsabilidad limitada?",
+      "questionEn": "What is the minimum share capital of a limited liability company (SL)?",
+      "expected": "No puede ser inferior a un euro. Mientras no alcance 3.000 euros, debe destinarse a reserva legal al menos el 20 % del beneficio hasta que reserva y capital sumen 3.000 euros, y en caso de liquidación con patrimonio insuficiente los socios responden solidariamente de la diferencia entre 3.000 euros y el capital suscrito.",
+      "keyFacts": [
+        "no podrá ser inferior a un euro",
+        "tres mil euros"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2010-10544#a4",
+        "title": "Real Decreto Legislativo 1/2010, de 2 de julio, por el que se aprueba el texto refundido de la Ley de Sociedades de Capital",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 4.1",
+        "excerpt": "1. El capital de la sociedad de responsabilidad limitada no podrá ser inferior a un euro y se expresará precisamente en esa moneda. Mientras el capital de las sociedades de responsabilidad limitada no alcance la cifra de tres mil euros, se aplicarán las siguientes reglas: Deberá destinarse a la reserva legal una cifra al menos igual al 20 por ciento del beneficio hasta que dicha reserva junto con el capital social alcance el importe de tres mil euros. En caso de liquidación, voluntaria o forzosa, si el patrimonio de la sociedad fuera insuficiente para atender el pago de las obligaciones sociales, los socios responderán solidariamente de la diferencia entre el importe de tres mil euros y la cifra del capital suscrito.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2025-01-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/01/2025). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-periodo-prueba-duracion-maxima",
+      "topic": "Laboral",
+      "question": "¿Cuánto puede durar como máximo el periodo de prueba si el convenio colectivo no dice nada?",
+      "questionEn": "What is the maximum probation period when the collective agreement is silent?",
+      "expected": "En defecto de convenio, el periodo de prueba no puede exceder de seis meses para los técnicos titulados ni de dos meses para los demás trabajadores. En empresas de menos de veinticinco trabajadores puede llegar a tres meses para quienes no sean técnicos titulados.",
+      "keyFacts": [
+        "seis meses para los técnicos titulados",
+        "dos meses para los demás trabajadores",
+        "menos de veinticinco trabajadores",
+        "tres meses"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a14",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 14.1",
+        "excerpt": "1. Podrá concertarse por escrito un periodo de prueba, con sujeción a los límites de duración que, en su caso, se establezcan en los convenios colectivos. En defecto de pacto en convenio, la duración del periodo de prueba no podrá exceder de seis meses para los técnicos titulados, ni de dos meses para los demás trabajadores. En las empresas de menos de veinticinco trabajadores el periodo de prueba no podrá exceder de tres meses para los trabajadores que no sean técnicos titulados.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-jornada-maxima-ordinaria",
+      "topic": "Laboral",
+      "question": "¿Cuál es la duración máxima de la jornada ordinaria de trabajo?",
+      "questionEn": "What is the maximum ordinary working week?",
+      "expected": "La jornada es la pactada en convenio o contrato, con un máximo de cuarenta horas semanales de trabajo efectivo de promedio en cómputo anual.",
+      "keyFacts": [
+        "cuarenta horas semanales de trabajo efectivo de promedio en cómputo anual"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a34",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 34.1",
+        "excerpt": "1. La duración de la jornada de trabajo será la pactada en los convenios colectivos o contratos de trabajo. La duración máxima de la jornada ordinaria de trabajo será de cuarenta horas semanales de trabajo efectivo de promedio en cómputo anual.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-horas-extraordinarias-maximo-anual",
+      "topic": "Laboral",
+      "question": "¿Cuántas horas extraordinarias puede hacer un trabajador al año?",
+      "questionEn": "How many overtime hours may an employee work per year?",
+      "expected": "No más de ochenta al año, salvo lo previsto en el apartado 3 del artículo 35. El máximo se reduce en la misma proporción si la jornada anual del trabajador es inferior a la general de la empresa, y no se computan las horas extraordinarias compensadas mediante descanso dentro de los cuatro meses siguientes a su realización.",
+      "keyFacts": [
+        "ochenta al año",
+        "cuatro meses siguientes a su realización"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a35",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 35.2",
+        "excerpt": "2. El número de horas extraordinarias no podrá ser superior a ochenta al año, salvo lo previsto en el apartado 3. Para los trabajadores que por la modalidad o duración de su contrato realizasen una jornada en cómputo anual inferior a la jornada general en la empresa, el número máximo anual de horas extraordinarias se reducirá en la misma proporción que exista entre tales jornadas. A los efectos de lo dispuesto en el párrafo anterior, no se computarán las horas extraordinarias que hayan sido compensadas mediante descanso dentro de los cuatro meses siguientes a su realización.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-vacaciones-duracion-minima",
+      "topic": "Laboral",
+      "question": "¿Cuál es la duración mínima de las vacaciones anuales retribuidas?",
+      "questionEn": "What is the minimum length of paid annual leave?",
+      "expected": "La duración es la pactada en convenio o contrato, pero en ningún caso inferior a treinta días naturales, y las vacaciones no son sustituibles por compensación económica.",
+      "keyFacts": [
+        "treinta días naturales",
+        "no sustituible por compensación económica"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a38",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 38.1",
+        "excerpt": "1. El periodo de vacaciones anuales retribuidas, no sustituible por compensación económica, será el pactado en convenio colectivo o contrato individual. En ningún caso la duración será inferior a treinta días naturales.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-pagas-extraordinarias",
+      "topic": "Laboral",
+      "question": "¿Cuántas pagas extraordinarias al año corresponden a un trabajador y se pueden prorratear?",
+      "questionEn": "How many extra salary payments per year is an employee entitled to, and can they be spread monthly?",
+      "expected": "Dos gratificaciones extraordinarias al año, una con ocasión de las fiestas de Navidad y otra en el mes que fije el convenio o el acuerdo con los representantes de los trabajadores; su cuantía la fija el convenio, que también puede acordar su prorrateo en las doce mensualidades.",
+      "keyFacts": [
+        "dos gratificaciones extraordinarias al año",
+        "Navidad",
+        "prorrateen en las doce mensualidades"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a31",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 31",
+        "excerpt": "El trabajador tiene derecho a dos gratificaciones extraordinarias al año, una de ellas con ocasión de las fiestas de Navidad y la otra en el mes que se fije por convenio colectivo o por acuerdo entre el empresario y los representantes legales de los trabajadores. Igualmente se fijará por convenio colectivo la cuantía de tales gratificaciones. No obstante, podrá acordarse en convenio colectivo que las gratificaciones extraordinarias se prorrateen en las doce mensualidades.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-permiso-matrimonio",
+      "topic": "Laboral",
+      "question": "¿Cuántos días de permiso retribuido corresponden por matrimonio o registro de pareja de hecho?",
+      "questionEn": "How many days of paid leave are granted for marriage or registering a civil partnership?",
+      "expected": "Quince días naturales, previo aviso y justificación.",
+      "keyFacts": [
+        "Quince días naturales"
+      ],
+      "severity": "medium",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a37",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 37.3.a)",
+        "excerpt": "3. La persona trabajadora, previo aviso y justificación, podrá ausentarse del trabajo, con derecho a remuneración, por alguno de los motivos y por el tiempo siguiente: a) Quince días naturales en caso de matrimonio o registro de pareja de hecho.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-indemnizacion-fin-contrato-temporal",
+      "topic": "Laboral",
+      "question": "¿Qué indemnización corresponde al finalizar un contrato temporal?",
+      "questionEn": "What severance is due when a fixed-term contract ends?",
+      "expected": "La parte proporcional de la cantidad que resultaría de abonar doce días de salario por cada año de servicio, o la establecida en la normativa específica aplicable, salvo en los contratos formativos y en el contrato de duración determinada por causa de sustitución.",
+      "keyFacts": [
+        "doce días de salario por cada año de servicio",
+        "excepto en los contratos formativos y el contrato de duración determinada por causa de sustitución"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a49",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 49.1.c)",
+        "excerpt": "c) Por expiración del tiempo convenido. A la finalización del contrato, excepto en los contratos formativos y el contrato de duración determinada por causa de sustitución, la persona trabajadora tendrá derecho a recibir una indemnización de cuantía equivalente a la parte proporcional de la cantidad que resultaría de abonar doce días de salario por cada año de servicio, o la establecida, en su caso, en la normativa específica que sea de aplicación.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-despido-objetivo-indemnizacion",
+      "topic": "Laboral",
+      "question": "¿Qué indemnización corresponde en un despido por causas objetivas?",
+      "questionEn": "What severance is due on a dismissal for objective reasons?",
+      "expected": "Veinte días de salario por año de servicio, prorrateando por meses los periodos inferiores a un año y con un máximo de doce mensualidades, que debe ponerse a disposición del trabajador al entregarle la comunicación escrita.",
+      "keyFacts": [
+        "veinte días por año de servicio",
+        "máximo de doce mensualidades"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a53",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 53.1.b)",
+        "excerpt": "b) Poner a disposición del trabajador, simultáneamente a la entrega de la comunicación escrita, la indemnización de veinte días por año de servicio, prorrateándose por meses los periodos de tiempo inferiores a un año y con un máximo de doce mensualidades.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-despido-improcedente-indemnizacion",
+      "topic": "Laboral",
+      "question": "¿Qué indemnización corresponde si un despido se declara improcedente?",
+      "questionEn": "What severance is due if a dismissal is ruled unfair (improcedente)?",
+      "expected": "Con carácter general, el empresario puede optar en el plazo de cinco días desde la notificación de la sentencia entre readmitir al trabajador o abonarle una indemnización de treinta y tres días de salario por año de servicio, prorrateando por meses los periodos inferiores a un año, hasta un máximo de veinticuatro mensualidades.",
+      "keyFacts": [
+        "treinta y tres días de salario por año de servicio",
+        "veinticuatro mensualidades",
+        "cinco días"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a56",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 56.1",
+        "excerpt": "1. Cuando el despido sea declarado improcedente, el empresario, en el plazo de cinco días desde la notificación de la sentencia, podrá optar entre la readmisión del trabajador o el abono de una indemnización equivalente a treinta y tres días de salario por año de servicio, prorrateándose por meses los periodos de tiempo inferiores a un año, hasta un máximo de veinticuatro mensualidades. La opción por la indemnización determinará la extinción del contrato de trabajo, que se entenderá producida en la fecha del cese efectivo en el trabajo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-caducidad-accion-despido",
+      "topic": "Laboral",
+      "question": "¿De cuánto tiempo dispone un trabajador para impugnar su despido?",
+      "questionEn": "How long does an employee have to challenge a dismissal?",
+      "expected": "La acción contra el despido caduca a los veinte días hábiles siguientes a aquel en que se produjo. El plazo de caducidad se interrumpe con la presentación de la solicitud de conciliación ante el órgano público competente.",
+      "keyFacts": [
+        "veinte días siguientes",
+        "Los días serán hábiles",
+        "solicitud de conciliación"
+      ],
+      "severity": "critical",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a59",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 59.3",
+        "excerpt": "3. El ejercicio de la acción contra el despido o resolución de contratos temporales caducará a los veinte días siguientes de aquel en que se hubiera producido. Los días serán hábiles y el plazo de caducidad a todos los efectos. El plazo de caducidad quedará interrumpido por la presentación de la solicitud de conciliación ante el órgano público de mediación, arbitraje y conciliación competente.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-suspension-nacimiento-semanas",
+      "topic": "Laboral",
+      "question": "¿Cuántas semanas dura la suspensión del contrato por nacimiento de un hijo?",
+      "questionEn": "How many weeks does the employment contract suspension for the birth of a child last?",
+      "expected": "Diecinueve semanas, tanto para la madre biológica como para el progenitor distinto de la madre biológica. En caso de monoparentalidad, el periodo de suspensión es de treinta y dos semanas.",
+      "keyFacts": [
+        "diecinueve semanas",
+        "treinta y dos semanas"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a48",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 48.4",
+        "excerpt": "4. El nacimiento, que comprende el parto y el cuidado de menor, suspenderá el contrato de trabajo de la madre biológica y el del progenitor distinto de la madre biológica durante diecinueve semanas. En el supuesto de monoparentalidad, por existir una única persona progenitora, el periodo de suspensión será de treinta y dos semanas.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "laboral-contrato-circunstancias-produccion-duracion",
+      "topic": "Laboral",
+      "question": "¿Cuál es la duración máxima de un contrato temporal por circunstancias de la producción?",
+      "questionEn": "What is the maximum duration of a fixed-term contract for production circumstances?",
+      "expected": "No puede ser superior a seis meses, aunque un convenio colectivo de ámbito sectorial puede ampliar la duración máxima hasta un año.",
+      "keyFacts": [
+        "seis meses",
+        "hasta un año"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11430#a15",
+        "title": "Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 15.2",
+        "excerpt": "Cuando el contrato de duración determinada obedezca a estas circunstancias de la producción, su duración no podrá ser superior a seis meses. Por convenio colectivo de ámbito sectorial se podrá ampliar la duración máxima del contrato hasta un año.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ss-obligacion-cotizar-inicio",
+      "topic": "Seguridad Social",
+      "question": "¿Desde cuándo hay que cotizar a la Seguridad Social por un trabajador, también durante el periodo de prueba?",
+      "questionEn": "From when must Social Security contributions be paid for an employee, including during probation?",
+      "expected": "La obligación de cotizar nace con el inicio de la prestación del trabajo, incluido el período de prueba. La mera solicitud de afiliación o alta del trabajador produce el mismo efecto.",
+      "keyFacts": [
+        "con el inicio de la prestación del trabajo, incluido el período de prueba"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11724#a144",
+        "title": "Real Decreto Legislativo 8/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley General de la Seguridad Social",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 144.1",
+        "excerpt": "1. La obligación de cotizar nacerá con el inicio de la prestación del trabajo, incluido el período de prueba. La mera solicitud de la afiliación o alta del trabajador al organismo competente de la Administración de la Seguridad Social surtirá en todo caso idéntico efecto.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ss-descuento-cuota-obrera-nomina",
+      "topic": "Seguridad Social",
+      "question": "Si la empresa olvida descontar en la nómina la cuota de Seguridad Social del trabajador, ¿puede descontarla en meses posteriores?",
+      "questionEn": "If the employer forgets to deduct the employee's Social Security contribution from payroll, can it deduct it later?",
+      "expected": "No. El empresario debe descontar la aportación del trabajador en el momento de abonarle la retribución; si no lo hace entonces, no puede hacerlo con posterioridad y queda obligado a ingresar la totalidad de las cuotas a su exclusivo cargo.",
+      "keyFacts": [
+        "no podrá realizarlo con posterioridad",
+        "a su exclusivo cargo"
+      ],
+      "severity": "critical",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11724#a142",
+        "title": "Real Decreto Legislativo 8/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley General de la Seguridad Social",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 142.2",
+        "excerpt": "2. El empresario descontará a sus trabajadores, en el momento de hacerles efectivas sus retribuciones, la aportación que corresponda a cada uno de ellos. Si no efectuase el descuento en dicho momento no podrá realizarlo con posterioridad, quedando obligado a ingresar la totalidad de las cuotas a su exclusivo cargo.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ss-base-cotizacion-prorrateo-percepciones",
+      "topic": "Seguridad Social",
+      "question": "¿Cómo se tratan en la base de cotización a la Seguridad Social las percepciones de vencimiento superior al mensual, como las pagas extraordinarias?",
+      "questionEn": "How are payments that fall due less often than monthly, such as extra salary payments, treated in the contribution base?",
+      "expected": "La base de cotización está constituida por la remuneración total mensual, en metálico o en especie, y las percepciones de vencimiento superior al mensual se prorratean a lo largo de los doce meses del año.",
+      "keyFacts": [
+        "remuneración total",
+        "se prorratearán a lo largo de los doce meses del año"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11724#a147",
+        "title": "Real Decreto Legislativo 8/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley General de la Seguridad Social",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 147.1",
+        "excerpt": "1. La base de cotización para todas las contingencias y situaciones amparadas por la acción protectora del Régimen General, incluidas las de accidente de trabajo y enfermedad profesional, estará constituida por la remuneración total, cualquiera que sea su forma o denominación, tanto en metálico como en especie, que con carácter mensual tenga derecho a percibir el trabajador o asimilado, o la que efectivamente perciba de ser esta superior, por razón del trabajo que realice por cuenta ajena. Las percepciones de vencimiento superior al mensual se prorratearán a lo largo de los doce meses del año.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ss-cotizacion-adicional-contratos-cortos",
+      "topic": "Seguridad Social",
+      "question": "¿Tiene algún coste adicional de cotización un contrato de duración determinada inferior a 30 días?",
+      "questionEn": "Is there an extra Social Security contribution for fixed-term contracts shorter than 30 days?",
+      "expected": "Sí. Al finalizar el contrato el empresario paga una cotización adicional que se calcula multiplicando por tres la cuota resultante de aplicar a la base mínima diaria de cotización del grupo 8 el tipo general de cotización empresarial por contingencias comunes. No se aplica a los contratos por sustitución ni a los celebrados con trabajadores de los sistemas especiales agrario y de empleados de hogar, del régimen especial de la minería del carbón o de la relación laboral especial de artistas y su personal técnico o auxiliar.",
+      "keyFacts": [
+        "inferior a 30 días",
+        "multiplicando por tres",
+        "grupo 8",
+        "ni a los contratos por sustitución"
+      ],
+      "severity": "high",
+      "difficulty": "advanced",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11724#a151",
+        "title": "Real Decreto Legislativo 8/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley General de la Seguridad Social",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 151",
+        "excerpt": "1. Los contratos de duración determinada inferior a 30 días tendrán una cotización adicional a cargo del empresario a la finalización del mismo. 2. Dicha cotización adicional se calculará multiplicando por tres la cuota resultante de aplicar a la base mínima diaria de cotización del grupo 8 del Régimen General de la Seguridad Social para contingencias comunes, el tipo general de cotización a cargo de la empresa para la cobertura de las contingencias comunes. 3. Esta cotización adicional no se aplicará a los contratos a los que se refiere este artículo, cuando sean celebrados con trabajadores incluidos en el Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, en el Sistema Especial para Empleados de Hogar, en el Régimen Especial para la Minería del Carbón, o en la relación laboral especial de las personas artistas que desarrollan su actividad en las artes escénicas, audiovisuales y musicales, así como de las personas que realizan actividades, técnicas o auxiliares necesarias para el desarrollo de dicha actividad; ni a los contratos por sustitución.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ss-incapacidad-temporal-enfermedad-comun-pago",
+      "topic": "Seguridad Social",
+      "question": "En una baja por enfermedad común, ¿desde qué día se cobra el subsidio de incapacidad temporal y quién lo paga?",
+      "questionEn": "On sick leave for common illness, from which day is the temporary incapacity benefit paid and who pays it?",
+      "expected": "El subsidio se abona a partir del cuarto día de baja; desde el día cuarto hasta el decimoquinto de baja, ambos inclusive, está a cargo del empresario.",
+      "keyFacts": [
+        "a partir del cuarto día de baja",
+        "desde el día cuarto al decimoquinto",
+        "a cargo del empresario"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11724#a173",
+        "title": "Real Decreto Legislativo 8/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley General de la Seguridad Social",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 173.1, segundo párrafo",
+        "excerpt": "En caso de enfermedad común o de accidente no laboral, el subsidio se abonará a partir del cuarto día de baja en el trabajo, si bien desde el día cuarto al decimoquinto de baja, ambos inclusive, el subsidio estará a cargo del empresario.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    },
+    {
+      "key": "ss-incapacidad-temporal-accidente-trabajo-pago",
+      "topic": "Seguridad Social",
+      "question": "En una baja por accidente de trabajo, ¿desde cuándo se cobra el subsidio de incapacidad temporal?",
+      "questionEn": "On leave after a workplace accident, from when is the temporary incapacity benefit paid?",
+      "expected": "Desde el día siguiente al de la baja en el trabajo; el salario íntegro del día de la baja corre a cargo del empresario.",
+      "keyFacts": [
+        "desde el día siguiente al de la baja en el trabajo",
+        "salario íntegro correspondiente al día de la baja"
+      ],
+      "severity": "high",
+      "difficulty": "routine",
+      "answerability": "answerable",
+      "source": {
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2015-11724#a173",
+        "title": "Real Decreto Legislativo 8/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley General de la Seguridad Social",
+        "publisher": "Agencia Estatal Boletín Oficial del Estado",
+        "locator": "Artículo 173.1, primer párrafo",
+        "excerpt": "1. En caso de accidente de trabajo o enfermedad profesional, el subsidio se abonará desde el día siguiente al de la baja en el trabajo, estando a cargo del empresario el salario íntegro correspondiente al día de la baja.",
+        "retrievedAt": "2026-10-13",
+        "asOf": "2026-10-03"
+      },
+      "rights": {
+        "kind": "public_official_text",
+        "basis": "Disposición normativa; excluida de propiedad intelectual (art. 13 TRLPI). Texto consolidado de carácter meramente informativo publicado por la Agencia Estatal Boletín Oficial del Estado (última actualización publicada el 03/10/2026). Basado en datos de la Agencia Estatal Boletín Oficial del Estado."
+      },
+      "authorNote": "Seed drafted by a Caudals agent from the cited BOE consolidated text on 2026-10-13. Pending expert review."
+    }
+  ]
+}
