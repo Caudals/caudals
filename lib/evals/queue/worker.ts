@@ -18,6 +18,7 @@ import { BILLED_ENGINE_ROLES, captureEngineCall, chargeMeter, chargedUsage, engi
 import { BillingError, CreditsExhausted } from '../../billing/ledger';
 import { pauseWorkflowForCredits } from './credit-pause';
 import { assertCustomerKeyUsable, reportCustomerKey } from '../byok/worker';
+import { failQuestion, questionClaimGate, settleQuestion } from '../reports/question-worker';
 
 interface Step {id:string;workflow_id:string;input:unknown;input_hash:string;version:number;status:string;fence:string;lease_until:Date|null;step_kind:string}
 async function lockStep(c:PoolClient,orgId:string,stepId:string) {
@@ -37,6 +38,8 @@ const TRANSIENT=new Set(['overloaded','service_unavailable','network_unavailable
 const internal=(input:unknown)=>{const parsed=invocationSchema.safeParse(input);return parsed.success&&INTERNAL_ROLES.has(parsed.data.role)&&!parsed.data.probe;};
 /** Engine tokens are charged for the internal roles (§6.3); probes and target calls are not. */
 const billed=(input:Invocation)=>BILLED_ENGINE_ROLES.has(input.role)&&!input.probe;
+/** A report question (launch L-36): one attempt, never retried, settled with its question. */
+const questionOf=(input:unknown)=>{const parsed=invocationSchema.safeParse(input);return parsed.success?parsed.data.reportQuestionId??null:null;};
 const engineRef=(orgId:string,attemptId:string,providerRevisionId:string,workflowRunId:string,input:Invocation):EngineCallRef=>({orgId,attemptId,providerRevisionId,workflowRunId,
  generationJobId:input.generationJobId??null,judgeJobId:input.judgeJobId??null,narrativeJobId:input.narrativeJobId??null,caseUnitId:input.caseUnitId??null});
 /** Keep the results that fit the room left in the model's context, never more than WEB_RESULTS_MAX_BYTES. */
@@ -59,8 +62,13 @@ export class InvocationWorker {
     :error instanceof Error&&['provider_capacity_unavailable','provider_circuit_open'].includes(error.message)?error.message:'invocation_configuration_invalid';
    await this.options.tx(tenant,async c=>{const {step}=await lockStep(c,tenant.orgId,job.stepId);
     if(step.status!=='queued')return;
+    const question=questionOf(step.input);
     if(reason==='provider_capacity_unavailable'||reason==='provider_circuit_open') {
       await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue,available_at) VALUES($1,$2,$3,now()+interval '30 seconds')",[tenant.orgId,step.id,step.step_kind]);
+    }else if(question) {
+     // A report question that cannot be called ends here: failed, nothing held, nothing charged.
+     await c.query("UPDATE evals.workflow_step SET status='failed',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,reason]);
+     await failQuestion(c,this.mode(),{orgId:tenant.orgId,questionId:question,attemptId:null,reason});
     }else {
      await c.query("UPDATE evals.workflow_step SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,reason]);
      const parsed=invocationSchema.safeParse(step.input);
@@ -157,6 +165,13 @@ export class InvocationWorker {
      if(input.caseUnitId&&input.caseRevisionId&&input.targetRevisionId&&output.complete)
       shortfall=(await chargeMeter(c,mode,{orgId:tenant.orgId,key:`unit:${input.caseUnitId}`,meter:'api_question',quantity:1,runId:current.workflow.run_id,caseUnitId:input.caseUnitId})).shortfallUcr>BigInt(0)||shortfall;
     }
+    // Launch L-36: a report question is validated and settled with the capture (or the release) of its one call.
+    if(input.reportQuestionId){
+     if(output.complete){
+      const usage=chargedUsage(output.usage,{input:inputBound,output:input.maxOutputTokens},Buffer.byteLength(output.text,'utf8'));
+      await settleQuestion(c,mode,{orgId:tenant.orgId,questionId:input.reportQuestionId,attemptId,output:{text:output.text,complete:true},usage:{input:usage.input,output:usage.output,provenance:usage.provenance}});
+     }else await failQuestion(c,mode,{orgId:tenant.orgId,questionId:input.reportQuestionId,attemptId,reason:'incomplete_response'});
+    }
     await c.query("UPDATE evals.execution_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,attemptId]);
     await c.query("UPDATE evals.workflow_step SET status=$3,reason_code=$4,lease_until=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,output.complete?'completed':'failed',output.complete?null:'incomplete_response']);
     await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
@@ -190,6 +205,11 @@ export class InvocationWorker {
    // An unknown outcome needs review before a target is called again; an engine call may simply be repeated.
    if(previous && (previous.ordinal>=3 || previous.status==='dispatching' || previous.status==='unknown'&&!internal(step.input)))throw new Error('attempt_review_required');
    const input=invocationSchema.parse(step.input);
+   // Launch L-36: a question that was erased or waited past its deadline is closed before any reservation, hold or call.
+   if(input.reportQuestionId&&!await questionClaimGate(c,this.mode(),tenant.orgId,input.reportQuestionId)){
+    await c.query("UPDATE evals.workflow_step SET status='canceled',reason_code='report_question_closed',lease_until=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id]);
+    await event(c,tenant.orgId,step.workflow_id,'dispatch_deferred','report_question_closed');await projectWorkflow(c,tenant.orgId,step.workflow_id);return;
+   }
    if(input.role==='target'&&input.caseUnitId&&!await startQueuedRun(c,tenant.orgId,workflow.run_id)){await deferRunStep(c,tenant.orgId,step.id,step.step_kind);return;}
    // Enforce mode: an answer is charged after it arrives, so a run whose balance cannot pay for one more stops here.
    if(input.role==='target'&&input.caseUnitId&&!await meterCovered(c,this.mode(),tenant.orgId,'api_question',workflow.run_id))throw new CreditsExhausted();
@@ -221,7 +241,11 @@ export class InvocationWorker {
    if(current.step.fence!==step.fence||current.step.status!=='running'||!current.step.lease_until||current.step.lease_until.getTime()<=Date.now())return;
    const attempt=(await c.query('SELECT status,ordinal FROM evals.execution_attempt WHERE org_id=$1 AND id=$2',[tenant.orgId,attemptId])).rows[0];
    const dispatched=attempt.status==='dispatching', failure=error instanceof ProviderFailure?error:undefined;
-   const unknown=dispatched&&failure?.outcome!=='rejected';
+   // Launch L-36: a report question is never retried and never left unresolved: a call with an unknown
+   // outcome is settled at its bound (our cost) and its hold released at once (the customer pays nothing).
+   const question=questionOf(step.input);
+   const unknownOutcome=dispatched&&failure?.outcome!=='rejected';
+   const unknown=unknownOutcome&&!question;
    // On a workspace's own key the reason says so ("Your provider key failed: …"); the work never moves to a Caudals key (INV-11).
    const reason=error instanceof CustomerKeyFailure?error.reason:customerKey&&failure?customerKeyReason(failure.code):failure?.code??'invocation_failed';
    const engine=internal(step.input);
@@ -231,14 +255,14 @@ export class InvocationWorker {
    else await settle(c,tenant.orgId,attemptId,dispatched?amount:'0',dispatched?'bounded_estimate':'confirmed_not_dispatched');
    // §6.8 step 4: the customer pays nothing for a failed call. An unknown outcome keeps its hold; it expires after 24 h.
    if(!unknown&&billed(input))await releaseEngineCall(c,this.mode(),tenant.orgId,attemptId,dispatched?reason:'not_dispatched');
-   await c.query('UPDATE evals.execution_attempt SET status=$3,reason_code=$4,finished_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,attemptId,unknown?'unknown':'failed',reason]);
+   await c.query('UPDATE evals.execution_attempt SET status=$3,reason_code=$4,finished_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,attemptId,unknownOutcome?'unknown':'failed',reason]);
    // An engine call that hit a busy, failing or unreachable provider is tried
    // again (three attempts in all, backing off) instead of stopping the job;
    // its possible charge stays recorded as unresolved. Unknown work on a
    // customer's system retains its capacity slot until explicit reconciliation.
-   const retry=current.workflow.status==='running'&&attempt.ordinal<3&&(engine?TRANSIENT.has(failure?.code??''):!unknown&&failure?.code==='overloaded');
+   const retry=!question&&current.workflow.status==='running'&&attempt.ordinal<3&&(engine?TRANSIENT.has(failure?.code??''):!unknown&&failure?.code==='overloaded');
    if(!unknown||retry)await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
-   const state=retry?'queued':unknown?'unknown':current.workflow.status==='cancel_requested'?'canceled':'paused';
+   const state=question?'failed':retry?'queued':unknown?'unknown':current.workflow.status==='cancel_requested'?'canceled':'paused';
    const delay=Math.max(failure?.retryAfterMs??0,engine&&failure?.code!=='overloaded'?15000*4**(attempt.ordinal-1):1000*2**attempt.ordinal+Math.floor(Math.random()*1000));
    await c.query("UPDATE evals.workflow_step SET status=$3,reason_code=$4,lease_until=NULL,not_before=now()+$5::int*interval '1 millisecond',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state,reason,delay]);
    const parsedInput=invocationSchema.parse(step.input);
@@ -253,8 +277,9 @@ export class InvocationWorker {
    if(customerKey&&failure&&(failure.code==='invalid_credentials'||failure.code==='quota_exceeded'))
     await reportCustomerKey(c,provider.account_id,failure.code==='invalid_credentials'?'invalid':'quota_exceeded');
    // Work stopped on a workspace key pauses as a whole (like credits); saving a working key resumes it.
-   if(!retry&&!unknown&&isCustomerKeyReason(reason)&&['running','queued'].includes(current.workflow.status))
+   if(!question&&!retry&&!unknown&&isCustomerKeyReason(reason)&&['running','queued'].includes(current.workflow.status))
     await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,reason);
+   if(question)await failQuestion(c,this.mode(),{orgId:tenant.orgId,questionId:question,attemptId,reason});
    await event(c,tenant.orgId,step.workflow_id,unknown?'attempt_unknown':'attempt_failed',reason);await projectWorkflow(c,tenant.orgId,step.workflow_id);
   });
  }
@@ -274,10 +299,16 @@ export class InvocationWorker {
    // An engine call interrupted by a worker restart (a deploy) is simply asked
    // again: its possible charge stays unresolved, and the connection that held
    // the provider slot is gone with the old process.
-   const engine=internal(step.input);
+   const engine=internal(step.input),question=questionOf(step.input);
    let unknown=false;
    for(const attempt of attempts) {
-    if(attempt.status==='dispatching') {
+    if(attempt.status==='dispatching'&&question) {
+     // Launch L-36: an interrupted question is not asked again. Our possible cost is settled at its bound; the hold comes back now.
+     const reservation=(await c.query('SELECT amount FROM evals.budget_reservation WHERE org_id=$1 AND attempt_id=$2',[tenant.orgId,attempt.id])).rows[0];
+     if(reservation)await settle(c,tenant.orgId,attempt.id,String(reservation.amount),'bounded_estimate');
+     await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1 AND released_at IS NULL',[attempt.id]);
+     await releaseEngineCall(c,this.mode(),tenant.orgId,attempt.id,'worker_lease_expired');
+    } else if(attempt.status==='dispatching') {
      unknown=true;await c.query("UPDATE evals.budget_reservation SET state='unresolved',provenance='worker_lease_expired' WHERE org_id=$1 AND attempt_id=$2",[tenant.orgId,attempt.id]);
      if(engine)await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1 AND released_at IS NULL',[attempt.id]);
     } else {
@@ -288,7 +319,7 @@ export class InvocationWorker {
     }
     await c.query("UPDATE evals.execution_attempt SET status=$3,reason_code='worker_lease_expired',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,attempt.id,attempt.status==='dispatching'?'unknown':'canceled']);
    }
-   const state=unknown&&!engine?'unknown':workflow.status==='cancel_requested'?'canceled':attempts.some(a=>a.ordinal>=3)?'paused':'queued';
+   const state=question?'failed':unknown&&!engine?'unknown':workflow.status==='cancel_requested'?'canceled':attempts.some(a=>a.ordinal>=3)?'paused':'queued';
    const recoveredInput=invocationSchema.safeParse(step.input);
    if(recoveredInput.success&&recoveredInput.data.generationJobId&&recoveredInput.data.generationStep&&state!=='queued'){
     await c.query("UPDATE evals.generation_batch SET status='paused',reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 AND version=$4",[tenant.orgId,recoveredInput.data.generationJobId,recoveredInput.data.generationStep,step.version]);
@@ -297,6 +328,7 @@ export class InvocationWorker {
    await c.query("UPDATE evals.workflow_step SET status=$3,fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state]);
    if(state==='queued')await c.query('INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)',[tenant.orgId,step.id,step.step_kind]);
    if(unknown&&!engine){const input=invocationSchema.parse(step.input);if(input.caseUnitId){await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',attempt_id=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attempts[0]?.id??null]);await projectExecutionRun(c,tenant.orgId,workflow.run_id);}}
+   if(question)await failQuestion(c,this.mode(),{orgId:tenant.orgId,questionId:question,attemptId:attempts[0]?.id??null,reason:'worker_lease_expired'});
    await event(c,tenant.orgId,step.workflow_id,'lease_recovered',unknown?(engine?'engine_call_repeated':'unknown_external_outcome'):'not_dispatched');await projectWorkflow(c,tenant.orgId,step.workflow_id);
   });
   return stale.length;

@@ -81,6 +81,7 @@ const migrations=[
  '103_evals_partners.sql',
  '105_evals_retention_setting.sql',
  '108_evals_dpa_countersigned.sql',
+ '106_evals_report_questions.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

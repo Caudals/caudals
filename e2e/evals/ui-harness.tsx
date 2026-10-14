@@ -307,7 +307,7 @@ const content =
   ) : location.pathname === "/ops/review" ? (
     <ReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (
-    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} expertReview={params.has("expert-review")} />
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} expertReview={params.has("expert-review")} reportQuestions={params.has("questions")} />
   ) : location.pathname === "/workspace/reports/fixture-v2" ? (
     <ReportView initialTab={params.get("tab")} initialResult={params.get("result")} report={params.has("disclosure") ? { ...gradingV2Fixture(), ai_disclosure: disclosureFixture() } : gradingV2Fixture()} />
   ) : location.pathname === "/workspace/reports/fixture" ? (

@@ -63,6 +63,7 @@ import { readoutAccess, type ReadoutMode } from "@/lib/evals/readout/access";
 import { isFixListShare } from "@/lib/evals/reports/fix-list-share";
 import { openSharePage, readShareToken } from "./share-token";
 import { SendToVendorButton } from "./vendor-share";
+import { ReportQuestions } from "./report-questions";
 /** Sentences Caudals generated from templates, shown in the interface language. */
 const gen = (text: string) => localizeReportText(text, getLocale());
 
@@ -91,6 +92,7 @@ export function ReportView({
   heading = true,
   initialResult,
   initialTab,
+  initialFinding,
   onResultChange,
   badge,
   overviewIntro,
@@ -103,6 +105,8 @@ export function ReportView({
   heading?: boolean;
   initialResult?: string | null;
   initialTab?: string | null;
+  /** Scroll to and focus this finding when the Findings tab opens (a citation in "Ask this report", launch L-36). */
+  initialFinding?: string | null;
   onResultChange?: (assessmentId: string | null) => void;
   /** A label before the status badges, e.g. "Example" on the example evaluation. */
   badge?: ReactNode;
@@ -171,7 +175,7 @@ export function ReportView({
       )}
       <Tabs value={tab} onChange={selectTab} label={t("reportSections")} options={tabs} />
       {tab === "overview" && <Overview report={report} findings={findings} cta={cta} sample={sample} intro={overviewIntro} onFinding={() => setTab("findings")} onResults={showResults} onAllResults={() => { setResultFilter(null); setTab("results"); }} />}
-      {tab === "findings" && <Findings findings={findings} onResults={showResults} />}
+      {tab === "findings" && <Findings findings={findings} onResults={showResults} focus={initialFinding ?? null} />}
       {tab === "results" && (
         <Results
           results={results}
@@ -559,7 +563,14 @@ function Overview({
 
 /* ------------------------------------------------------------- findings --- */
 
-function Findings({ findings, onResults }: { findings: Finding[]; onResults: (ids: string[], label: string) => void }) {
+function Findings({ findings, onResults, focus = null }: { findings: Finding[]; onResults: (ids: string[], label: string) => void; focus?: string | null }) {
+  // A citation names one finding: bring it into view and give it focus.
+  useEffect(() => {
+    if (!focus) return;
+    const element = document.getElementById(`finding-${focus}`);
+    element?.scrollIntoView({ block: "start" });
+    element?.focus({ preventScroll: true });
+  }, [focus]);
   if (!findings.length)
     return (
       <EmptyState title={t("noFindings")} icon={<FileSearch />}>
@@ -569,7 +580,7 @@ function Findings({ findings, onResults }: { findings: Finding[]; onResults: (id
   return (
     <ol className="p-findings">
       {findings.map((finding, index) => (
-        <li key={finding.id} className="p-finding" id={`finding-${finding.id}`}>
+        <li key={finding.id} className="p-finding" id={`finding-${finding.id}`} tabIndex={-1}>
           <div className="p-finding-head">
             <span className="p-finding-index">{index + 1}</span>
             <h3>{gen(finding.title)}</h3>
@@ -1107,6 +1118,7 @@ export function AuthenticatedReport({
   marketingOrigin,
   readoutMode = "off",
   expertReview = false,
+  reportQuestions = false,
 }: {
   reportId: string;
   /** The booking page (`CALCOM_LINK`, read on the server); its link carries a hashed workspace id. */
@@ -1117,6 +1129,8 @@ export function AuthenticatedReport({
   readoutMode?: ReadoutMode;
   /** EXPERT_REVIEW_ORDERS_ENABLED, read on the server (launch L-26). */
   expertReview?: boolean;
+  /** "Ask this report" may be open for some workspace (launch L-36); its API decides for this one. */
+  reportQuestions?: boolean;
 }) {
   const { orgId, role, operator, withOrg } = useWorkspace();
   const params = useSearchParams();
@@ -1156,7 +1170,7 @@ export function AuthenticatedReport({
   usePageCrumb(revision?.snapshot.system.name);
   // Launch L-18: the comparison with the run before this one opens on its own at the top of the Overview.
   const comparison = useRunComparison(orgId, revision?.run_id);
-  const [opened, setOpened] = useState<{ id: string | null; key: number }>(() => ({ id: params.get("result"), key: 0 }));
+  const [opened, setOpened] = useState<{ id: string | null; key: number; finding?: string | null }>(() => ({ id: params.get("result"), key: 0 }));
 
   const setResult = useCallback(
     (id: string | null) => {
@@ -1172,6 +1186,14 @@ export function AuthenticatedReport({
     (id: string) => {
       setOpened((current) => ({ id, key: current.key + 1 }));
       setResult(id);
+    },
+    [setResult],
+  );
+  /** Opens one finding on the Findings tab (a citation in "Ask this report"). */
+  const openFinding = useCallback(
+    (id: string) => {
+      setOpened((current) => ({ id: null, key: current.key + 1, finding: id }));
+      setResult(null);
     },
     [setResult],
   );
@@ -1234,7 +1256,8 @@ export function AuthenticatedReport({
         key={`${revision.id}-${opened.key}`}
         report={revision.snapshot}
         initialResult={opened.key ? opened.id : params.get("result")}
-        initialTab={params.get("tab")}
+        initialTab={opened.key && opened.finding ? "findings" : params.get("tab")}
+        initialFinding={opened.finding ?? null}
         onResultChange={setResult}
         rememberAs="report"
         cta={cta}
@@ -1246,6 +1269,10 @@ export function AuthenticatedReport({
               <Presentation aria-hidden="true" />
               {readoutCopy(getLocale()).present}
             </ActionLink>
+          )}
+          {reportQuestions && (
+            <ReportQuestions orgId={orgId} reportId={reportId} revisionId={revision.id} snapshot={revision.snapshot}
+              readoutHref={readoutUrl ? readoutLink(readoutUrl, "report", workspace) : null} onOpenResult={openResult} onOpenFinding={openFinding} />
           )}
           <ReportActions
             commands={commands}

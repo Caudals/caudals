@@ -19,6 +19,8 @@ export const invocationSchema=z.object({
   discoveryJobId:z.string().uuid().optional(),
   /** A monthly source refresh drafting proposals (launch L-25): an internal generator call with the generation deadline. */
   refreshJobId:z.string().uuid().optional(),
+  /** A question about one report revision (launch L-36): a report-writer call, never retried, validated and settled with its question. */
+  reportQuestionId:z.string().uuid().optional(),
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
 }).strict().superRefine((input,ctx)=>{
@@ -29,10 +31,13 @@ export const invocationSchema=z.object({
   const otherInternal=(!!input.judgeJobId&&input.role==="judge")||
     (!!input.narrativeJobId&&input.role==="report_writer")||
     (!!input.discoveryJobId&&input.role==="context_analyzer")||
-    (!!input.refreshJobId&&input.role==="generator");
+    (!!input.refreshJobId&&input.role==="generator")||
+    (!!input.reportQuestionId&&input.role==="report_writer");
   const extended=!input.probe&&(generation||(otherInternal&&(input.routing==="local_only"||input.timeoutMs<=300000)));
   if(input.timeoutMs>120000&&!extended)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
   if(input.webSearch&&(input.probe||input.role==="target"))ctx.addIssue({code:"custom",path:["webSearch"],message:"web_search_reserved_for_internal_roles"});
+  // A report question sees only its report's snapshot: no web research, ever.
+  if(input.reportQuestionId&&(input.webSearch||input.role!=="report_writer"))ctx.addIssue({code:"custom",path:["reportQuestionId"],message:"report_question_snapshot_only"});
 });
 /** Output bound for one call: the request's cap (default 4096, at most 32768), the model limit and the remaining context. */
 export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number, requestCap=4096):number {
