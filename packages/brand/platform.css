@@ -6563,3 +6563,12 @@ ol.p-ctx-list {
 .p-gate-ids .p-code {
   white-space: normal;
 }
+
+/* Partner dashboard (launch L-28): copy buttons for referral links, the logo preview and the statement row. */
+.p-partner-links { display: flex; flex-wrap: wrap; gap: 4px; }
+.p-partner-brand { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.p-partner-logo { display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 64px; padding: 12px; border: 1px solid var(--p-border); border-radius: var(--p-radius-md); background: var(--p-surface); }
+.p-partner-logo img { max-height: 48px; max-width: 200px; object-fit: contain; }
+.p-partner-statement { align-items: flex-end; flex-wrap: wrap; }
+.p-partner-statement .p-field { margin: 0; }
+.p-partner-subhead { margin: 20px 0 4px; font-size: var(--p-text-label); font-weight: 600; }

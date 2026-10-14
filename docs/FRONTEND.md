@@ -230,6 +230,12 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`
 - **Public pages stay light.** Everything on the public site is paid for on a phone's first visit: no animation or motion library (CSS keyframes, as the cookie notice), no session client (`RootDocument session={false}` in the public layout: nothing public depends on who is signed in), and the largest text renders on the server at full opacity (`.lp-lift` for the hero headline and standfirst; the demo's start view is server-rendered, and a run's private link hides it before the first paint).
 - **The demo's proof of work** runs in a Blob worker built from `powKernel`'s source and read back by property name (`components/demo/pow.ts`), so minification cannot break it; it starts when the visitor engages with the form, and the main-thread fallback works in slices of at most 8 ms. `lib/demo/demo.test.ts` runs the worker source from an esbuild-minified bundle.
 
+### Partner dashboard (launch L-28)
+
+- `/partner` (`app/(evaluation)/(authenticated)/partner/page.tsx`, `components/evals/partner-dashboard.tsx`) inside the shell, while `PARTNERS_ENABLED` opens the person's partner (`?id=` picks one of several; platform admins may open any by id while the ops API is on); otherwise the not-found page. The sidebar shows a **Partner** group when `identity.partners` is not empty.
+- One page: heading with the role; stats (client workspaces of the cap, referred accounts, referred revenue and share with its credit equivalent, allowance left this month; a dash until known); **Clients** (access, last activity, evaluations, runs this month, latest score, credits; "Open" switches to the client's workspace; partner admins create clients in a dialog with an Idempotency-Key); **Referral links** (copy buttons for the free test in EN and ES and for sign-up; admins create and revoke with a reason); **Referred accounts** (first payment and first-year revenue left empty until they pay); **Allowance**; **Monthly statement** (month picker, CSV link in the running Stripe mode); **Report branding** (admins upload a PNG/JPEG, checked in the browser and again on the server; preview through the authenticated logo route); **People**. Stripe test mode is stated in a banner.
+- Copy lives in `lib/evals/partners/copy.ts` (EN/ES, type-checked parity). Harness contracts: `e2e/evals/partner.contract.ts` (390/768/1440 px, admin and member, Spanish).
+
 ## Implementation Rules
 
 1. Start from existing design tokens and shared primitives.

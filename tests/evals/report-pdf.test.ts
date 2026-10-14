@@ -58,3 +58,39 @@ describe("report PDF, three fixtures", () => {
     }
   }, 180_000);
 });
+
+/**
+ * White-label cover (launch L-28): a partner client's PDF keeps the Caudals
+ * brand bar and adds "Delivered by <partner>" with the logo on page 1 only;
+ * nothing is clipped and the summary still opens page 2.
+ */
+describe("report PDF, partner logo", () => {
+  it.skipIf(!browserReady || !poppler)("adds the partner on the cover without moving anything else", async () => {
+    const { pngBytes } = await import("./partner-fixtures");
+    const partner = { name: "Agencia Ejemplo", logoDataUri: `data:image/png;base64,${pngBytes(240, 80).toString("base64")}` };
+    const browser = await chromium.launch({ headless: true });
+    try {
+      for (const fixture of reportFixtures()) {
+        const options = { sample: fixture.sample, partner };
+        const layout = await browser.newPage();
+        expect(await layoutProblems(layout, renderReportHtml(fixture.report, fixture.locale, new Set(), options)), fixture.name).toEqual([]);
+        await layout.close();
+        const bytes = await renderReportPdf(fixture.report, async () => {
+          const page = await browser.newPage();
+          return { page, close: () => page.close() };
+        }, fixture.locale, new Set(), options);
+        const pages = pdfPages(bytes).map(squash);
+        const strings = reportStrings(fixture.locale);
+        expect(pages[0], fixture.name).toContain(`Caudals ${strings.evaluationReport}`);
+        // pdftotext splits small, tracked text into fragments; compare without spaces.
+        const compact = (value: string) => value.replace(/\s/g, "");
+        expect(compact(pages[0]), fixture.name).toContain(compact(`${strings.partnerDeliveredBy} Agencia Ejemplo`));
+        expect(compact(pages[0]), fixture.name).toContain(compact(strings.partnerMethod));
+        expect(pages.slice(1).join(" "), fixture.name).not.toContain("Agencia Ejemplo");
+        expect(pages[1], fixture.name).toContain(summaryCopy(fixture.locale).summaryTitle);
+      }
+    } finally {
+      await browser.close();
+    }
+  }, 180_000);
+});

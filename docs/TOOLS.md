@@ -1072,6 +1072,27 @@ Launch L-19 (spec v2 P-25, P-27, P-28). `INTEGRATIONS_V2_ENABLED` (app credentia
 - Destination credentials (incoming-webhook URLs, addresses) are encrypted with the webhook keyring and never listed; a delivery's outcome is in `evals.webhook_delivery` (`reason_code`: `http_error`, `redirect_rejected`, `destination_denied`, `email_unavailable`, `delivery_error`, `retry_limit`), the last test send on the endpoint (`last_test_*`).
 - Audit actions: `api_token.created`, `api_token.revoked`, `run.started_via_api` (token id, key hash), `gate.threshold_saved`, `destination.created`, `destination.tested`, `destination.deleted`.
 
+## Partner Accounts (L-28)
+
+Launch L-28 (spec v2 P-52, §7.8; migration 103). `PARTNERS_ENABLED` (app credentials, allow-listed in `scripts/set-app-credentials.sh`; the workers do not need it) is **off**. Values: `admins` (ops API only), a comma-separated list of partner ids (those partners' dashboards, APIs and PDF logos, plus the ops API), `true` (every partner). Set it with `scripts/launch/set-app-flag.sh PARTNERS_ENABLED <value>`.
+
+Onboard a partner by hand (platform admin signed in within 15 minutes; every write needs a `reason`, the creates an `Idempotency-Key`; all audited):
+1. Partner terms signed (founder). `scripts/launch/set-app-flag.sh PARTNERS_ENABLED admins`.
+2. `POST /api/evals/v1/partners {name, revenueShareBps?: 2000, maxClients?: 25, agreementNote?, reason}` → `id`.
+3. Each person needs a verified Caudals account first (their own sign-up or an invitation): `POST /api/evals/v1/partners/:id/members {email, role: "admin"|"member", reason}`; remove with `DELETE` `{userId, reason}`.
+4. Optional: `PUT /api/evals/v1/partners/:id/allowance {monthlyCredits, validFrom: "YYYY-MM-DD", validUntil?, reason}`; grant to a client with `POST /api/evals/v1/partners/:id/allowance {orgId, credits, reason, expiresAt?}` (`Idempotency-Key`).
+5. Optional: link a workspace the client already has, with the client's written agreement: `POST /api/evals/v1/partners/:id/clients {orgId, access: "work"|"manage", reason}`; end it with `DELETE {orgId, reason}`.
+6. Open the partner: `scripts/launch/set-app-flag.sh PARTNERS_ENABLED admins,<id>[,<id>…]`. The partner's admins then create client workspaces, referral links and the logo at `app.caudals.com/partner`.
+7. Suspend or close: `PATCH /api/evals/v1/partners/:id {status: "suspended"|"active"|"closed", reason}` (closing is final and refused while a managed client has no owner of its own; it revokes codes, ends links and removes people).
+
+Checks (read-only, as the database owner):
+- Partners and people: `SELECT p.name, p.status, m.role, u.email FROM evals.partner p LEFT JOIN evals.partner_member m ON m.partner_id=p.id LEFT JOIN public.auth_user u ON u.id=m.user_id ORDER BY 1`.
+- Client access: `SELECT c.org_id, c.access, c.origin, c.unlinked_at, (SELECT count(*) FROM evals.membership ms WHERE ms.org_id=c.org_id AND ms.partner_id=c.partner_id) AS partner_people FROM evals.partner_client c WHERE c.partner_id='…'`.
+- Referrals: `SELECT r.org_id, rc.code, r.attributed_via, r.first_paid_at, r.first_paid_livemode FROM evals.partner_referral r JOIN evals.partner_referral_code rc ON rc.id=r.code_id WHERE r.partner_id='…'`.
+- Audit: `SELECT created_at, action, subject_id, details FROM evals.audit_event WHERE action LIKE 'partner.%' OR action LIKE 'membership.partner_%' ORDER BY created_at DESC LIMIT 50`.
+- Statement (partner members and platform admins): `GET /api/evals/v1/partners/:id/statement?month=2026-10&mode=live` (CSV; defaults to last Madrid month and the running Stripe mode). The revenue share is paid by hand from it (20 % or 100 credits per euro, per the partner's terms).
+- Branded PDFs: `SELECT id, status, brand FROM evals.export_job WHERE brand IS NOT NULL ORDER BY created_at DESC LIMIT 10`; their files end `.b<8 hex>.pdf`.
+
 ## Invoicing and the Monthly Accountant Export
 
 Launch L-13 (spec v2 §6.13, §6.14). Every paid top-up gets one invoice request and every refund one rectifying-invoice request (migration 092), with the buyer's fiscal data, the series (`CAU-` credits, `CAU-R-` rectifying) and the IVA line or legal mention. No vendor is chosen (D-04): `BILLING_INVOICING_PROVIDER=manual` hands each request to the accountant ("pending issue") and nothing generates a legal number.

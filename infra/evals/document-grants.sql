@@ -51,3 +51,11 @@ DO $$ BEGIN
   GRANT SELECT ON billing.workspace_override TO evals_document;
  END IF;
 END $$;
+
+-- Partner white-label PDFs (migration 103): the logo reference of a branded
+-- export job, re-checked against the live partner link; nothing else.
+DO $$ BEGIN
+ IF to_regprocedure('evals.partner_pdf_logo(uuid,uuid,text)') IS NOT NULL THEN
+  GRANT EXECUTE ON FUNCTION evals.partner_pdf_logo(uuid,uuid,text) TO evals_document;
+ END IF;
+END $$;

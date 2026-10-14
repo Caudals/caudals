@@ -4,6 +4,7 @@ import { getBetterAuth } from "@/lib/auth/better-auth";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { EvalError } from "./errors";
 import { isEvaluationHost } from "./routing";
+import { partnerScopes, type PartnerScope } from "../partners/scope";
 export type EvalIdentity = {
   user: { id: string; email: string; name: string };
   platformRole: "platform_admin" | "operator" | null;
@@ -16,6 +17,13 @@ export type EvalIdentity = {
    * EVALS_ADMIN_MFA_REQUIRED=true; customers may turn it on but never must.
    */
   mfa?: { enabled: boolean; required: boolean };
+  /**
+   * Partner scope (launch L-28): the partner accounts the person belongs to
+   * while PARTNERS_ENABLED opens them. Display only: partner routes re-check
+   * membership in the database, and client workspaces appear in `workspaces`
+   * through ordinary (partner-marked) memberships with customer roles.
+   */
+  partners?: PartnerScope[];
 };
 /** TOTP enforcement for platform staff; off until everyone has enrolled (PROGRESS.md I-6). */
 export function adminMfaRequired() {
@@ -55,7 +63,8 @@ export async function requireIdentity(headerStore?: Headers, options: { allowMfa
     const roles = await client.query<{role: EvalIdentity["platformRole"]}>("SELECT role FROM evals.platform_role WHERE user_id=$1",[session.user.id]);
     const workspaces = await client.query<EvalIdentity["workspaces"][number]>(`SELECT w.id,w.name,COALESCE(m.role,'operator') AS role FROM evals.workspace w LEFT JOIN evals.membership m ON m.org_id=w.id AND m.user_id=$1 WHERE w.deleted_at IS NULL ORDER BY w.created_at DESC,w.id LIMIT 100`,[session.user.id]);
     const signedInAt=session.session?.createdAt?new Date(session.session.createdAt).toISOString():undefined;
-    return {user:{id:session.user.id,email:session.user.email,name:session.user.name},platformRole:roles.rows[0]?.role??null,workspaces:workspaces.rows,sessionCreatedAt:signedInAt} as EvalIdentity;
+    const partners=await partnerScopes(client,session.user.id);
+    return {user:{id:session.user.id,email:session.user.email,name:session.user.name},platformRole:roles.rows[0]?.role??null,workspaces:workspaces.rows,sessionCreatedAt:signedInAt,...(partners.length?{partners}:{})} as EvalIdentity;
   });
   const enabled = (session.user as { twoFactorEnabled?: boolean | null }).twoFactorEnabled === true;
   identity.mfa = { enabled, required: adminMfaRequired() && isPlatformStaff(identity) };

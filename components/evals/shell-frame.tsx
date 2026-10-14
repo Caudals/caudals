@@ -63,10 +63,11 @@ import { LimitDialogHost } from "./limit-dialog";
 import { BillingProvider } from "./billing-state";
 import { BillingPill, LowBalanceBanner } from "./workspace-billing";
 import { setInterfaceLocale } from "./locale";
-import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
+import { Check as CheckIcon, CircleHelp, Handshake, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useCrumbParent, useWorkspace, type ParentCrumb } from "./workspace-context";
 import { getLocale, t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
+import { partnerCopy } from "@/lib/evals/partners/copy";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
@@ -103,6 +104,11 @@ function navFor(identity: EvalIdentity, features: ShellFeatures, expert: boolean
         { href: "/ops/platform", label: t("platform"), icon: <Cpu />, match: prefix("/ops/platform") },
       ],
     });
+  }
+  // Partner accounts (launch L-28): identity lists only partners PARTNERS_ENABLED opens.
+  if (identity.partners?.length) {
+    const copy = partnerCopy(getLocale());
+    groups.push({ label: copy.t("nav"), items: [{ href: "/partner", label: copy.t("navDashboard"), icon: <Handshake />, match: prefix("/partner") }] });
   }
   if (expert) groups.push({ label: t("expert"), items: [
     { href: "/review", label: t("assignedWork"), icon: <ClipboardCheck />, match: (path) => path === "/review" || path.startsWith("/review/assignments") },
@@ -178,6 +184,7 @@ function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb 
     if (s[1] === "prospects" && s[2]) return [{ label: name("prospects"), href: "/ops/prospects" }, { label: s[2] === "new" ? t("psNew") : detail ?? t("psSnapshot") }];
     return [{ label: name(s[1]) }];
   }
+  if (s[0] === "partner") return [{ label: partnerCopy(getLocale()).t("navDashboard") }];
   if (s[0] === "review") {
     if (s.length === 1) return [{ label: t("assignedWork") }];
     return [{ label: t("assignedWork"), href: "/review" }, { label: detail ?? t("assignment") }];

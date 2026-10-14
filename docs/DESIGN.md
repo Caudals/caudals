@@ -365,6 +365,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-14 | Partner dashboard (L-28): stats strip, tables and dialogs from the kit; `.p-partner-links` (ghost copy buttons per referral link), `.p-partner-logo` (bordered logo preview), `.p-partner-statement`, `.p-partner-subhead`. White-label PDF cover: a hairline row under the Caudals brand bar, "Delivered by" + logo (≤ 28 px high) + partner name, and "Evaluation and methodology by Caudals"; the Caudals brand stays first. |
 | 2026-10-14 | Accessibility and performance budgets (L-24): `--p-text-tertiary` darkened to meet AA, `Modal` returns focus, spinners pulse under reduced motion, the Paper hero text rises without fading (`.lp-lift`) and the cookie notice enters with CSS. |
 | 2026-10-14 | Expert review (L-26): `.eval-review-request`, `.eval-review-scopes`, `.eval-save-state`, `.eval-shortcuts`; the "Expert review" summary status row. |
 | 2026-10-13 | Sector packs and monthly new questions (L-25): the Sector packs library tab and expert screen (pack table, draft banner, review progress, question panel with excerpt, rights and review), `.p-sector-card` in Prepare and on test sets, and the monthly proposals panel (`.p-monthly`, `.p-proposal`). |

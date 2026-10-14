@@ -78,6 +78,7 @@ const migrations=[
  '094_billing_approvals.sql',
  '102_billing_byok.sql',
  '096_evals_integrations_v2.sql',
+ '103_evals_partners.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

@@ -51,6 +51,7 @@ import helpEs from "../../lib/evals/help/generated/es.json";
 import type { HelpIndex } from "../../lib/evals/help/articles";
 import { ExampleReadout, ReportReadout } from "../../components/evals/readout/readout-present";
 import type { ReadoutMode } from "../../lib/evals/readout/access";
+import { PartnerDashboard } from "../../components/evals/partner-dashboard";
 import "../../components/landing/landing.css";
 const params = new URLSearchParams(location.search);
 /**
@@ -149,6 +150,8 @@ const identity = {
     },
     ...(params.has("two-workspaces") ? [{ id: "00000000-0000-4000-8000-000000000002", name: "Second client", role: "owner" as const }] : []),
   ],
+  // Launch L-28: a partner person (`/partner`, or `?partner` on any page) sees the Partner group in the navigation.
+  ...(location.pathname === "/partner" || params.has("partner") ? { partners: [{ id: "00000000-0000-4000-8000-000000000a01", name: "Agencia Norte", role: (params.has("member") ? "member" : "admin") as "admin" | "member" }] } : {}),
 };
 const demoPage = location.pathname === "/demo" || /^\/(en|es)\/demo$/.test(location.pathname);
 /**
@@ -180,6 +183,7 @@ const content =
       <SharedReport marketingOrigin="https://caudals.com" />
     </PublicFrame>
   ) :
+  location.pathname === "/partner" ? <PartnerDashboard partnerId="00000000-0000-4000-8000-000000000a01" partners={[{ id: "00000000-0000-4000-8000-000000000a01", name: "Agencia Norte" }]} /> :
   location.pathname === "/ops/prospects" ? <ProspectSnapshots /> :
   location.pathname === "/ops/prospects/new" ? <NewProspectSnapshot limits={{ dailyCap: 25, maxQuestions: 10, requestsPerMinute: 4, concurrentSessions: 1, runsPerMonth: 3, helpPages: 10 }} /> :
   location.pathname.startsWith("/ops/prospects/") ? <ProspectSnapshotDetail id={location.pathname.split("/").at(-1)!} /> :

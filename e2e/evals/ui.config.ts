@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
-  testMatch: ["ui.contract.ts", "example.contract.ts", "report-v2.contract.ts", "dpa.contract.ts", "help.contract.ts", "readout.contract.ts", "workspace-home.contract.ts", "billing.contract.ts", "intake.contract.ts", "sector-packs.contract.ts", "expert-review.contract.ts", "schedules.contract.ts", "ops-billing.contract.ts", "a11y.contract.ts", "byok.contract.ts", "integrations.contract.ts"],
+  testMatch: ["ui.contract.ts", "example.contract.ts", "report-v2.contract.ts", "dpa.contract.ts", "help.contract.ts", "readout.contract.ts", "workspace-home.contract.ts", "billing.contract.ts", "intake.contract.ts", "sector-packs.contract.ts", "expert-review.contract.ts", "schedules.contract.ts", "ops-billing.contract.ts", "a11y.contract.ts", "byok.contract.ts", "integrations.contract.ts", "partner.contract.ts"],
   workers: 1,
   fullyParallel: false,
   // The first page the harness serves also compiles its stylesheet; the

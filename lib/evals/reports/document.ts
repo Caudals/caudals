@@ -100,7 +100,16 @@ function pre(value: string) {
  * `sample` marks the example evaluation (lib/evals/example): an "Example"
  * banner on the cover and, through the PDF header, on every page.
  */
-export type ReportDocumentOptions = { sample?: boolean };
+export type ReportDocumentOptions = {
+  sample?: boolean;
+  /**
+   * White-label (launch L-28): the partner that delivers a client's report.
+   * Its logo and name sit on the cover under the Caudals brand bar, which
+   * stays, with "Evaluation and methodology by Caudals"; nothing else changes.
+   * `logoDataUri` is a PNG or JPEG data URI the documents worker read and verified.
+   */
+  partner?: { name: string; logoDataUri: string };
+};
 
 /**
  * `hidden` names report sections a private share did not allow (see
@@ -288,6 +297,8 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   ].filter(Boolean).join("\n\n");
 
   const sample = options.sample ? `<p class="sample"><b>${S.sampleLabel}</b> ${S.sampleNote}</p>` : "";
+  const partnerLogo = options.partner && /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(options.partner.logoDataUri) ? options.partner.logoDataUri : null;
+  const partner = options.partner ? `<div class="partner" data-partner><span class="partner-by">${S.partnerDeliveredBy}</span>${partnerLogo ? `<img src="${partnerLogo}" alt="${escapeHtml(options.partner.name)}">` : ""}<b>${escapeHtml(options.partner.name)}</b><span class="spacer"></span><span>${S.partnerMethod}</span></div>` : "";
   return `<!doctype html><html lang="${locale === "es" ? "es" : "en"}"><head><meta charset="utf-8"><title>${options.sample ? `${S.sampleLabel} — ` : ""}${show("system") ? `${escapeHtml(report.system.name)} — ` : ""}${S.evaluationReport}</title><style>
 @font-face{font-family:"Geist";src:url(data:font/woff2;base64,${GEIST_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${GEIST_MONO_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
@@ -402,11 +413,16 @@ ul.plain li{margin:3px 0}
 .mono{font-family:"Geist Mono",ui-monospace,monospace;font-size:7.5pt;overflow-wrap:anywhere}
 .sample{margin:0 0 12px;padding:8px 12px;border:1px solid var(--ink);border-radius:6px;font-size:9pt;color:var(--ink-2)}
 .sample b{color:var(--ink);margin-right:4px}
+.partner{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:8.5pt;color:var(--muted)}
+.partner img{max-height:28px;max-width:140px;object-fit:contain}
+.partner b{color:var(--ink);font-weight:600}
+.partner .spacer{flex:1}
 </style></head><body>
 
 <section class="cover">
   ${sample}
   <div class="brandbar">${LOGO}<span class="name">Caudals</span><span>${S.evaluationReport}</span><span class="spacer"></span>${show("scope") ? chip(report.scope.review_status, report.scope.review_status === "reviewed" ? "pass" : "neutral") : ""}<span>${day(report.created_at)}</span></div>
+  ${partner}
   ${show("system") ? `<p class="eyebrow">${S.evaluationOf}</p>
   <h1>${escapeHtml(report.system.name)}</h1>
   <p class="lede">${escapeHtml(report.system.purpose)}</p>` : `<h1>${S.evaluationReport}</h1>`}

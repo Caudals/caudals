@@ -53,6 +53,8 @@ const EN = {
   sampleLabel: "Example",
   sampleNote: "Synthetic data about a fictitious company. It shows what a reviewed report looks like; no real expert reviewed it.",
   fix: "Fix", answersWord: "Answers", exactRate: "Strict pass rate (exact)",
+  // Partner white-label (launch L-28): the partner delivers, Caudals evaluates.
+  partnerDeliveredBy: "Delivered by", partnerMethod: "Evaluation and methodology by Caudals",
 };
 type Strings = typeof EN;
 
@@ -101,6 +103,7 @@ const ES: Strings = {
   sampleLabel: "Ejemplo",
   sampleNote: "Datos sintéticos sobre una empresa ficticia. Muestra cómo es un informe revisado; ningún experto real lo ha revisado.",
   fix: "Corrección", answersWord: "Respuestas", exactRate: "Tasa de acierto estricta (exacta)",
+  partnerDeliveredBy: "Entregado por", partnerMethod: "Evaluación y metodología de Caudals",
 };
 
 const LABEL_ES: Record<string, string> = {
