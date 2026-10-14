@@ -14,6 +14,13 @@ import { fill, summaryCopy, type SummaryCopy } from "./summary-copy";
 
 type Result = ReportSnapshot["results"][number];
 type Severity = Result["severity"];
+/**
+ * What a fix list reads from a result. A full report result has all of it;
+ * the vendor's fix-list share (launch P-54) carries only these fields.
+ */
+export type FixEvidence = Pick<Result, "assessment_id" | "case_revision_id" | "title" | "topic" | "severity" | "outcome" | "input" | "output" | "rationale">
+  & Partial<Pick<Result, "label" | "expected" | "failure_category" | "likely_cause" | "key_facts" | "contradictions" | "unsupported_claims">>
+  & { source_excerpts?: ReadonlyArray<{ title: string | null; excerpt: string }> };
 export const FIX_LIMIT = 5;
 const SEVERITY: readonly Severity[] = ["critical", "high", "medium", "low"];
 const WEIGHT: Record<Severity, number> = { critical: 8, high: 4, medium: 2, low: 1 };
@@ -56,7 +63,7 @@ export function causeOf(result: { likely_cause?: string | null }): FixCause | nu
   return (FIX_CAUSES as readonly string[]).includes(cause) ? (cause as FixCause) : null;
 }
 /** The source page a result's evidence cites: the first excerpt's title, if any. */
-export function sourceOf(result: Pick<Result, "source_excerpts">): string | null {
+export function sourceOf(result: { source_excerpts?: ReadonlyArray<{ title: string | null }> }): string | null {
   const title = result.source_excerpts?.find((excerpt) => excerpt.title?.trim())?.title?.trim();
   return title ? title.slice(0, 160) : null;
 }
@@ -71,9 +78,9 @@ function fixTitle(copy: SummaryCopy, key: FixCause | FixProblem, source: string 
  * severity weights, then by size, then by the most severe answer; ties keep a
  * deterministic order so every format lists the same fixes.
  */
-export function buildFixes(results: readonly Result[], locale: ReportLocale = "en", limit = FIX_LIMIT): Fix[] {
+export function buildFixes(results: readonly FixEvidence[], locale: ReportLocale = "en", limit = FIX_LIMIT): Fix[] {
   const copy = summaryCopy(locale);
-  type Group = { cause: FixCause | null; problems: Map<FixProblem, number>; source: string | null; members: Result[] };
+  type Group = { cause: FixCause | null; problems: Map<FixProblem, number>; source: string | null; members: FixEvidence[] };
   const groups = new Map<string, Group>();
   for (const result of results) {
     if (!isFailing(result)) continue;
@@ -141,13 +148,13 @@ function csv(rows: string[][]) {
   return rows.map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
 
-const resultIndex = (results: readonly Result[]) => new Map(results.map((item) => [item.assessment_id, item]));
+const resultIndex = <T extends FixEvidence>(results: readonly T[]) => new Map(results.map((item) => [item.assessment_id, item]));
 
 /**
  * The fix list for a vendor as CSV: one row per answer, with its fix. Columns
  * stay in English so a spreadsheet keeps the same shape in every language.
  */
-export function fixesCsv(results: readonly Result[], fixes: readonly Fix[]): string {
+export function fixesCsv(results: readonly FixEvidence[], fixes: readonly Fix[]): string {
   const byId = resultIndex(results);
   const header = ["fix", "fix_title", "likely_cause_hypothesis", "problem", "source", "severity", "what_to_do", "result", "question", "answer", "expected_answer", "why", "assessment_id", "case_revision_id"];
   const rows = fixes.flatMap((fix) =>
@@ -173,7 +180,7 @@ const quote = (value: string) => value.trim().replace(/([\\`<>[\]])/g, "\\$1").s
 const inline = (value: string) => value.replace(/\s+/g, " ").replace(/([\\`*_[\]<>#|])/g, "\\$1").trim();
 
 /** The fix list for a vendor as Markdown: each fix, what to do, and its evidence. */
-export function fixesMarkdown(report: { system?: { name: string }; created_at?: string; results: readonly Result[] }, fixes: readonly Fix[], locale: ReportLocale = "en", date = ""): string {
+export function fixesMarkdown(report: { system?: { name: string }; created_at?: string; results: readonly FixEvidence[] }, fixes: readonly Fix[], locale: ReportLocale = "en", date = ""): string {
   const copy = summaryCopy(locale);
   const byId = resultIndex(report.results);
   const lines = [`# ${copy.markdownTitle}${report.system?.name ? ` — ${inline(report.system.name)}` : ""}`, "", fill(copy.markdownIntro, { system: report.system?.name ? inline(report.system.name) : "—", date }), ""];

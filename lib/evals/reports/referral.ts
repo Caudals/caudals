@@ -6,6 +6,8 @@
  * never the id itself. Web Crypto, so the browser and the server compute the
  * same value.
  */
+import { localizePathname } from "@/lib/i18n/routing";
+
 const PREFIX = "caudals-workspace-ref-v1:";
 
 export async function workspaceRef(orgId: string): Promise<string> {
@@ -41,4 +43,23 @@ export function demoReferralLink(marketingOrigin: string, locale: "en" | "es", c
   url.searchParams.set("utm_campaign", "report_share");
   if (code) url.searchParams.set("ref", code);
   return url.toString();
+}
+
+/**
+ * The vendor fix-list page's invitation (launch P-54): a vendor that builds
+ * assistants is a prospective partner (launch L-28). Both links carry the
+ * sharing workspace's referral code, like the shared report's demo link: the
+ * free test, and the contact form to ask about the partner programme.
+ */
+export function vendorReferralLinks(marketingOrigin: string, locale: "en" | "es", code?: string | null): { demo: string; partner: string } {
+  const tag = (url: URL) => {
+    url.searchParams.set("utm_source", "vendor_fix_list");
+    url.searchParams.set("utm_medium", "referral");
+    url.searchParams.set("utm_campaign", "partner_programme");
+    if (code) url.searchParams.set("ref", code);
+    return url.toString();
+  };
+  const partner = new URL(localizePathname("/contact", locale), marketingOrigin);
+  partner.searchParams.set("offer", "not-sure");
+  return { demo: tag(new URL(`/${locale}/demo`, marketingOrigin)), partner: tag(partner) };
 }

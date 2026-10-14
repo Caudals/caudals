@@ -13,7 +13,7 @@ const properties: Record<ProductEventName, readonly string[]> = {
   demo_signup_requested: [], demo_report_shared: ["channel", "consent"], account_created: ["acquisition", "plan"],
   evaluation_created: ["connection_kind"], test_set_ready: ["question_count", "duration_s"],
   run_started: ["questions", "models", "estimate"], run_finished: ["questions", "models", "estimate", "credits_charged", "outcome", "duration_s"],
-  report_viewed: ["first_view"], report_shared: [], export_downloaded: ["format"], limit_hit: ["kind"],
+  report_viewed: ["first_view"], report_shared: ["scope"], export_downloaded: ["format"], limit_hit: ["kind"],
   expert_review_requested: ["surface"], pilot_requested: ["surface"], readout_link_clicked: ["surface"], example_viewed: ["surface"],
   schedule_created: ["destination_type"], api_token_created: ["destination_type"], webhook_created: ["destination_type"],
   sources_added: ["source_kind", "count"], scan_detected: ["source_kind", "count"], context_confirmed: ["count", "edited_fields"],
@@ -53,6 +53,6 @@ export function sanitizePayload(event: ProductEventName, payload?: ProductEventP
 /** Route templates only: remove query strings and any user-controlled slug/token. */
 export function analyticsPath(path?: string | null): string | null {
   if (!path?.startsWith("/") || path.startsWith("//")) return null;
-  const known = new Set("en es demo workspace ops review evaluations systems reports test-sets settings billing usage growth clients library platform sources signup sign-in legal privacy terms cookies dpa subprocessors security notice contact call blog sectors methodology example sample-report informe-de-ejemplo exports share".split(" "));
+  const known = new Set("en es demo workspace ops review evaluations systems reports test-sets settings billing usage growth clients library platform sources signup sign-in legal privacy terms cookies dpa subprocessors security notice contact call blog sectors methodology example sample-report informe-de-ejemplo exports share fixes".split(" "));
   return path.split(/[?#]/, 1)[0].split("/").slice(0, 8).map(part => !part || known.has(part) ? part : ":id").join("/");
 }

@@ -10,6 +10,7 @@ import { EvaluationJourney } from "../../components/evals/evaluation-detail";
 import { WorkspaceReports } from "../../components/evals/workspace-reports";
 import { WorkspaceSettings } from "../../components/evals/workspace-settings";
 import { AuthenticatedReport, ReportView, SharedReport } from "../../components/evals/report-view";
+import { VendorFixListPage } from "../../components/evals/vendor-fix-list";
 import { PublicFrame } from "../../components/evals/public-frame";
 import { ReviewQueue } from "../../components/evals/assessment-review";
 import { PlatformConsole } from "../../components/evals/platform-console";
@@ -128,7 +129,8 @@ const authPage =
   location.pathname === "/workspace/unsubscribe" ||
   location.pathname === "/workspace/security" ||
   location.pathname === "/workspace/reset-password" ||
-  location.pathname === "/share";
+  location.pathname === "/share" ||
+  location.pathname === "/share/fixes";
 const viewer = location.search.includes("viewer");
 const anonymous = location.search.includes("anonymous");
 const identity = {
@@ -183,6 +185,8 @@ const content =
       <SharedReport marketingOrigin="https://caudals.com" />
     </PublicFrame>
   ) :
+  // A vendor's fix list (launch P-54): its own Paper page; the exchange is routed by each test.
+  location.pathname === "/share/fixes" ? <VendorFixListPage marketingOrigin="https://caudals.com" /> :
   location.pathname === "/partner" ? <PartnerDashboard partnerId="00000000-0000-4000-8000-000000000a01" partners={[{ id: "00000000-0000-4000-8000-000000000a01", name: "Agencia Norte" }]} /> :
   location.pathname === "/ops/prospects" ? <ProspectSnapshots /> :
   location.pathname === "/ops/prospects/new" ? <NewProspectSnapshot limits={{ dailyCap: 25, maxQuestions: 10, requestsPerMinute: 4, concurrentSessions: 1, runsPerMonth: 3, helpPages: 10 }} /> :

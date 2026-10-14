@@ -1,0 +1,508 @@
+/*
+ * The vendor's fix-list page (launch P-54) in the Paper language (DESIGN.md
+ * §13): warm canvas, ink only, Geist for text, Newsreader for the document
+ * excerpts. Scoped to `.vf`; the palette repeats the sample report's values.
+ * The owner's preview renders the same markup inside a side panel.
+ */
+.vf {
+  --bg: #fafaf8;
+  --paper: #ffffff;
+  --ink: #141413;
+  --ink2: #3b3a36;
+  --mute: #6b6a63;
+  --line: #dcdad3;
+  --line2: #e9e7e1;
+  --serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.vf-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.vf *,
+.vf *::before,
+.vf *::after {
+  box-sizing: border-box;
+}
+.vf p,
+.vf h1,
+.vf h2,
+.vf h3,
+.vf h4,
+.vf dl,
+.vf dd,
+.vf ol,
+.vf ul,
+.vf blockquote,
+.vf figure {
+  margin: 0;
+}
+.vf ol,
+.vf ul {
+  padding: 0;
+  list-style: none;
+}
+.vf h1,
+.vf h2,
+.vf h3 {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.vf a:focus-visible,
+.vf button:focus-visible,
+.vf summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.vf-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+}
+
+/* Frame: the wordmark, one line of context, the language; no navigation. */
+.vf-bar {
+  border-bottom: 1px solid var(--line2);
+}
+.vf-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  min-height: 64px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.vf-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.vf-brand img {
+  width: 24px;
+  height: 24px;
+}
+.vf-context {
+  flex: 1 1 12rem;
+  font-size: 14px;
+  color: var(--mute);
+}
+.vf-lang {
+  display: inline-flex;
+  gap: 4px;
+}
+.vf-lang button {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mute);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.vf-lang button[aria-pressed="true"] {
+  border-color: var(--line);
+  color: var(--ink);
+}
+.vf-main {
+  flex: 1;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 40px 0 72px;
+}
+.vf-foot {
+  padding-top: 20px;
+  padding-bottom: 32px;
+  border-top: 1px solid var(--line2);
+  font-size: 13px;
+  color: var(--mute);
+}
+.vf-state {
+  display: grid;
+  gap: 12px;
+  padding: 64px 0;
+  max-width: 36rem;
+}
+.vf-state h1 {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.1;
+}
+.vf-state p {
+  color: var(--ink2);
+}
+.vf-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: vf-spin 900ms linear infinite;
+}
+@keyframes vf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* What this is */
+.vf-head {
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--line2);
+}
+.vf-kicker {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mute);
+}
+.vf .vf-title {
+  margin-top: 12px;
+  max-width: 22ch;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.vf .vf-standfirst {
+  margin-top: 20px;
+  max-width: 42rem;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink2);
+  text-wrap: pretty;
+}
+.vf .vf-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line2);
+}
+.vf-facts dt {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mute);
+}
+.vf-facts dd {
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.vf .vf-notes {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  max-width: 42rem;
+  font-size: 14px;
+  color: var(--mute);
+}
+.vf-link {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+}
+.vf-link:hover {
+  text-decoration-color: var(--ink);
+}
+.vf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+}
+.vf-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vf-pill:hover {
+  opacity: 0.86;
+}
+.vf-pill svg {
+  width: 16px;
+  height: 16px;
+}
+.vf-pill-ghost {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+
+/* Fix these first */
+.vf-section {
+  padding: 40px 0 8px;
+}
+.vf-section > h2 {
+  font-size: clamp(1.6rem, 3.4vw, 2.1rem);
+  line-height: 1.15;
+}
+.vf .vf-lead {
+  margin-top: 8px;
+  color: var(--mute);
+}
+.vf .vf-fixes {
+  margin-top: 20px;
+}
+.vf-fix {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 24px;
+}
+.vf-index {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.vf-fix > .vf-index {
+  padding-top: 6px;
+}
+.vf-fix h3 {
+  font-size: 22px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.vf .vf-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--mute);
+}
+.vf-tag {
+  display: inline-flex;
+  padding: 1px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+.vf-tag[data-strong="true"] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.vf .vf-basis {
+  margin-top: 14px;
+  color: var(--ink2);
+}
+.vf .vf-source {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--mute);
+  overflow-wrap: anywhere;
+}
+.vf .vf-todo {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.vf-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mute);
+}
+.vf .vf-evidence-title {
+  margin-top: 22px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+.vf .vf-results {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.vf-result {
+  border-bottom: 1px solid var(--line2);
+  scroll-margin-top: 24px;
+}
+.vf-result > summary {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 14px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.vf-result > summary::-webkit-details-marker {
+  display: none;
+}
+.vf-result-q {
+  color: var(--ink);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.vf-result-meta {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.vf-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.vf-mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink);
+}
+.vf-result-body {
+  display: grid;
+  gap: 16px;
+  padding: 0 0 24px 3.25rem;
+}
+.vf-sheet {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.vf-result-body p {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.vf-quote {
+  padding-left: 16px;
+  border-left: 2px solid var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--ink2);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.vf-quote cite {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-style: normal;
+  color: var(--mute);
+}
+.vf-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  padding: 3px 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.vf-list span:last-child:not(:first-child) {
+  color: var(--mute);
+}
+
+/* The partner programme invitation (launch L-28) */
+.vf-cta {
+  margin-top: 40px;
+  padding: 32px clamp(20px, 4vw, 40px);
+  border-radius: 20px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.vf-cta h2 {
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  line-height: 1.1;
+}
+.vf .vf-cta p {
+  margin-top: 12px;
+  max-width: 38rem;
+  color: #d8d6cf;
+}
+.vf-cta .vf-pill {
+  border-color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+}
+.vf-cta .vf-pill-ghost {
+  border-color: #5a5953;
+  background: transparent;
+  color: var(--paper);
+}
+.vf .vf-cta .vf-cta-note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #b9b7af;
+}
+
+/* The owner's preview inside the platform side panel. */
+.vf-preview {
+  padding: 8px 4px 24px;
+  border-radius: 12px;
+}
+.vf-preview .vf-main {
+  padding: 16px clamp(12px, 3vw, 24px) 24px;
+}
+
+@media (max-width: 559px) {
+  .vf-actions .vf-pill {
+    flex: 1 1 100%;
+  }
+  .vf-result-body {
+    padding-left: 0;
+  }
+}
+@media (min-width: 720px) {
+  .vf-main {
+    padding-top: 56px;
+  }
+  .vf .vf-facts {
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vf-pill {
+    transition: none;
+  }
+  .vf-spinner {
+    animation: none;
+  }
+}

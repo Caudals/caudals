@@ -10,20 +10,20 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Rea
 import { useRouter } from "next/navigation";
 import { BadgeCheck, ChevronDown, Download, Eye, FileText, GitCompare, History, Pencil, RefreshCcw, Share2, Sparkles, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
-import { Action, ActionAnchor, Badge, Check, DataTable, Field, FilterChips, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time, formatDate } from "./primitives";
+import { Action, ActionAnchor, Badge, Check, DataTable, Field, FilterChips, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { CompareRunsDialog } from "./run-comparison";
+import { SHARE_EXPIRY_PRESETS, isFixListLink, openedLabel, type ShareLink } from "./share-links";
+import { VendorShareDialog } from "./vendor-share";
 
 export type ReportRevision = { id: string; run_id: string; review_status: string; created_at: string; snapshot: ReportSnapshot };
 /** What the report's next-step row (ReportView `cta`) can ask these actions to do. */
-export type ReportCommands = { share: () => void; downloadPdf: () => void };
-/** `open_count` and `last_opened_at` count page opens only (launch L-17); `access_count` also counts downloads. */
-type Share = { id: string; report_revision_id: string; audience: string; recipient: string | null; permitted_fields: string[]; expires_at: string; revoked_at: string | null; access_count: number; open_count?: number; last_opened_at?: string | null };
-/** Link lifetimes offered when sharing (spec P-21). */
-export const SHARE_EXPIRY_PRESETS = [7, 30, 90] as const;
+export type ReportCommands = { share: () => void; downloadPdf: () => void; sendToVendor: () => void };
+type Share = ShareLink;
+export { SHARE_EXPIRY_PRESETS };
 type ExportJob = { id: string; status: string; download_path: string | null; reason_code: string | null };
 type Narrative = { id: string; status: string; reason_code: string | null; rejected_count: number };
 
@@ -78,7 +78,7 @@ export function ReportActions({
   /** Opens one answer of this report (the comparison's question links, launch L-18). */
   onOpenResult?: (assessmentId: string) => void;
 }) {
-  const [dialog, setDialog] = useState<"" | "share" | "compare" | "revisions" | "takeaways" | "release">("");
+  const [dialog, setDialog] = useState<"" | "share" | "vendor" | "compare" | "revisions" | "takeaways" | "release">("");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [error, setError] = useState("");
 
@@ -152,7 +152,7 @@ export function ReportActions({
   }, [autoExport, exportPdf]);
 
   const preparing = !!exportJob && ["queued", "running"].includes(exportJob.status);
-  useImperativeHandle(commands, () => ({ share: () => setDialog("share"), downloadPdf: () => void exportPdf() }), [exportPdf]);
+  useImperativeHandle(commands, () => ({ share: () => setDialog("share"), downloadPdf: () => void exportPdf(), sendToVendor: () => setDialog("vendor") }), [exportPdf]);
   useEffect(() => {
     onPreparingChange?.(preparing);
   }, [preparing, onPreparingChange]);
@@ -226,6 +226,9 @@ export function ReportActions({
           isCurrent={revision.id === currentRevisionId}
           renderPreview={renderPreview}
         />
+      )}
+      {canManage && (
+        <VendorShareDialog open={dialog === "vendor"} onOpenChange={(value) => setDialog(value ? "vendor" : "")} orgId={orgId} reportId={reportId} revision={revision} />
       )}
       <CompareRunsDialog open={dialog === "compare"} onOpenChange={(value) => setDialog(value ? "compare" : "")} orgId={orgId} runId={revision.run_id}
         openResult={(assessmentId) => (onOpenResult ? { onClick: () => { setDialog(""); onOpenResult(assessmentId); } } : null)} />
@@ -457,7 +460,7 @@ function ShareDialog({
             <DataTable caption={t("activeShares")} headers={[t("shareAudience"), t("expires"), t("shareOpens"), { label: t("actions"), align: "end", hidden: true }]}>
               {active.map((share) => (
                 <tr key={share.id}>
-                  <RowTitle meta={share.recipient ?? undefined}>{share.audience === "bearer" ? t("shareBearer") : share.audience === "named_recipient" ? t("shareNamed") : t("shareWorkspace")}</RowTitle>
+                  <RowTitle meta={isFixListLink(share) ? t("shareScopeFixList") : (share.recipient ?? undefined)}>{share.audience === "bearer" ? t("shareBearer") : share.audience === "named_recipient" ? t("shareNamed") : t("shareWorkspace")}</RowTitle>
                   <td className="p-cell-meta">
                     <Time value={share.expires_at} withTime={false} />
                   </td>
@@ -478,14 +481,6 @@ function ShareDialog({
       </SidePanel>
     </>
   );
-}
-
-/** "Opened 3 times, last on 12 Oct 2026" for the owner (spec P-21), from the share's access log. */
-function openedLabel(share: Share) {
-  const count = share.open_count ?? share.access_count;
-  if (!count) return t("shareNotOpened");
-  const date = share.last_opened_at ? formatDate(share.last_opened_at) : "—";
-  return count === 1 ? tv("shareOpenedOnce", { date }) : tv("shareOpenedMany", { count, date });
 }
 
 /* ------------------------------------------------------------ revisions --- */

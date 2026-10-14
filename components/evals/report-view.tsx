@@ -60,6 +60,9 @@ import { localizeReportText } from "@/lib/evals/reports/i18n";
 import { methodologyUrl } from "@/lib/evals/public-links";
 import { readoutCopy } from "@/lib/evals/reports/readout-copy";
 import { readoutAccess, type ReadoutMode } from "@/lib/evals/readout/access";
+import { isFixListShare } from "@/lib/evals/reports/fix-list-share";
+import { openSharePage, readShareToken } from "./share-token";
+import { SendToVendorButton } from "./vendor-share";
 /** Sentences Caudals generated from templates, shown in the interface language. */
 const gen = (text: string) => localizeReportText(text, getLocale());
 
@@ -198,6 +201,8 @@ export type ReportCta = {
   expertReview?: ReactNode;
   /** "Re-run these questions" on a fix (launch L-18): runs the approved test set again, these questions first in the comparison. */
   onRerun?: (caseRevisionIds: string[]) => void;
+  /** "Send to my vendor" beside the fix list (launch P-54): a private link to the fixes and their evidence only. */
+  onSendToVendor?: () => void;
 };
 
 /** Save text built in the browser (fix list, failing answers) as a file. */
@@ -295,7 +300,7 @@ function NextSteps({ cta }: { cta: ReportCta }) {
  * lists the fix's questions first. CSV and Markdown exports carry the
  * evidence for a vendor.
  */
-function FixList({ report, fixes, onRerun, onResults }: { report: Partial<ReportSnapshot>; fixes: Fix[]; onRerun?: (caseRevisionIds: string[]) => void; onResults: (ids: string[], label: string) => void }) {
+function FixList({ report, fixes, onRerun, onSendToVendor, onResults }: { report: Partial<ReportSnapshot>; fixes: Fix[]; onRerun?: (caseRevisionIds: string[]) => void; onSendToVendor?: () => void; onResults: (ids: string[], label: string) => void }) {
   const locale = getLocale();
   const copy = summaryCopy(locale);
   const results = report.results ?? [];
@@ -308,6 +313,7 @@ function FixList({ report, fixes, onRerun, onResults }: { report: Partial<Report
         title={copy.fixesTitle}
         actions={
           <>
+            {onSendToVendor && <SendToVendorButton onClick={onSendToVendor} />}
             <Action variant="ghost" size="sm" onClick={() => saveText(fileName(report, "fixes", "text/csv"), fixesCsv(results, fixes), "text/csv;charset=utf-8")}>
               <Download aria-hidden="true" />
               {copy.exportCsv}
@@ -454,7 +460,7 @@ function Overview({
         </StatGrid>
       </section>
 
-      {summary && summary.fixes.length > 0 && <FixList report={report} fixes={summary.fixes} onRerun={cta?.onRerun} onResults={onResults} />}
+      {summary && summary.fixes.length > 0 && <FixList report={report} fixes={summary.fixes} onRerun={cta?.onRerun} onSendToVendor={cta?.onSendToVendor} onResults={onResults} />}
 
       {report.takeaways && report.takeaways.length > 0 && (
         <section>
@@ -1210,6 +1216,8 @@ export function AuthenticatedReport({
     onRerun: canWrite && evaluationId
       ? (ids) => router.push(withOrg(`/workspace/evaluations/${evaluationId}?rerun=1${ids.length ? `&focus=${ids.slice(0, 50).join(",")}` : ""}`))
       : undefined,
+    // Links open only the current published revision (launch P-54), like every share.
+    onSendToVendor: canManage && isCurrent && data.report.publication_status === "published" ? () => commands.current?.sendToVendor() : undefined,
   };
   const intro = comparison.data?.baseline ? (
     <RunComparisonView runId={revision.run_id} {...comparison} compact openResult={(id) => ({ onClick: () => openResult(id) })}
@@ -1266,33 +1274,6 @@ export function AuthenticatedReport({
 }
 
 /* --------------------------------------------------------------- shared --- */
-
-/**
- * The share token arrives in the URL fragment and is removed from the address
- * bar as soon as it is read. It is kept for this tab only (sessionStorage), so
- * changing the language, which reloads the page, keeps the report open.
- */
-const SHARE_TOKEN_KEY = "caudals:share-token";
-let shareToken: string | null = null;
-function readShareToken() {
-  const fresh = new URLSearchParams(location.hash.slice(1)).get("token");
-  if (fresh && fresh !== shareToken) {
-    shareToken = fresh;
-    try {
-      sessionStorage.setItem(SHARE_TOKEN_KEY, fresh);
-    } catch {
-      // Storage blocked: the link still works until the page reloads.
-    }
-  }
-  if (!shareToken) {
-    try {
-      shareToken = sessionStorage.getItem(SHARE_TOKEN_KEY);
-    } catch {
-      shareToken = null;
-    }
-  }
-  return shareToken;
-}
 
 type SharedKind = "pdf" | "docx" | "csv" | "cef";
 
@@ -1388,6 +1369,8 @@ export function SharedReport({ marketingOrigin = "https://caudals.com" }: { mark
         return (await response.json()) as { data: Partial<ReportSnapshot>; meta?: { share?: { label: string | null; expiresAt: string | null } | null; referral?: unknown } };
       })
       .then((body) => {
+        // A vendor's fix-list link (launch P-54) has its own page.
+        if (isFixListShare(body.data)) return openSharePage("/share/fixes", token);
         setShare(body.meta?.share ?? null);
         setReport(body.data);
         setReferral(typeof body.meta?.referral === "string" && /^sr-[0-9a-f]{12}$/.test(body.meta.referral) ? body.meta.referral : null);
