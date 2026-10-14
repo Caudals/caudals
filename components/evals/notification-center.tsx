@@ -13,6 +13,8 @@ import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 type Notice = {
   id: string; kind: string; category: "completion" | "required_input" | "failure" | "progress" | "billing"; created_at: string; read: boolean;
   payload: { evaluationId?: string; evaluationTitle?: string; subjectTitle?: string; reportId?: string; reasonCode?: string; exportKind?: string; runId?: string; supersedes?: string | null; pass?: number | null; scored?: number | null;
+    // An expert-reviewed revision (launch L-26): the number of experts on its label.
+    expertReviewers?: string;
     // Billing notices (launch L-15): whole credits.
     balance?: number; threshold?: number; cap?: number; percent?: number; scope?: "monthly" | "run"; credits?: number; expiresAt?: string; amountCents?: number; average?: number };
 };
@@ -48,6 +50,7 @@ const KIND_LABEL: Record<string, MessageKey> = {
 };
 const JOB_LABEL: Record<Job["type"], MessageKey> = { website: "jobWebsite", document: "jobDocument", generation: "jobGeneration", run: "jobRun", export: "jobExport" };
 export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["payload"] }) {
+  if (notice.kind === "report_published" && Number(notice.payload?.expertReviewers) > 0) return t("noticeReportReviewed");
   if (notice.kind === "report_published" && notice.payload?.supersedes) return t("noticeResultsUpdated");
   const key = KIND_LABEL[notice.kind];
   return key ? t(key) : notice.kind.replaceAll("_", " ");

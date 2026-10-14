@@ -6,6 +6,8 @@ import {
   redactedAssignmentProjection,
 } from "../../lib/evals/experts/contracts";
 import { computeExpertQualityMetrics } from "../../lib/evals/experts/quality";
+import { buildExpertExcerpts, orderEvidence } from "../../lib/evals/experts/redaction";
+import { reportFixtures } from "../../scripts/evals/report-fixtures";
 
 const assignmentId = "00000000-0000-4000-8000-000000000101";
 const profileId = "00000000-0000-4000-8000-000000000102";
@@ -129,5 +131,23 @@ describe("WP-14 expert contracts", () => {
       severity: "critical",
       rationale: "The item is correct.",
     })).toThrow(/independent/i);
+  });
+});
+
+describe("L-26 order assignments through the WP-14 projection", () => {
+  it("an expert sees the order's redacted excerpts and guideline, and nothing of the report, order or customer", () => {
+    const report = reportFixtures()[1].report;
+    const ids = report.results.slice(0, 3).map((item) => item.assessment_id);
+    const evidence = orderEvidence(buildExpertExcerpts(report, ids, { locale: "es", names: [report.system.name] }));
+    const projected = redactedAssignmentProjection({
+      id: assignmentId, kind: "authoring", status: "assigned", evidence_snapshot: evidence,
+      guideline: { title: "Revisión experta: las respuestas incorrectas", instructions: "Trabaja solo con este material." },
+      due_at: "2026-10-20T16:00:00.000Z", own_revision: null, review_phase: "blind",
+      order_id: "PRIVATE_ORDER_SENTINEL", quote_note: "PRIVATE_QUOTE_SENTINEL", workspace: "PRIVATE_CUSTOMER_SENTINEL",
+    });
+    expect(Object.keys(projected).sort()).toEqual(["dueAt", "evidence", "guideline", "id", "kind", "ownRevision", "status"]);
+    const text = JSON.stringify(projected);
+    for (const hidden of ["PRIVATE_ORDER_SENTINEL", "PRIVATE_QUOTE_SENTINEL", "PRIVATE_CUSTOMER_SENTINEL", report.run_id, report.report_revision_id, ...ids]) expect(text).not.toContain(hidden);
+    expect(projected.evidence.excerpts.map((item) => item.anchor.split(" ")[0])).toEqual(["Q1", "Q2", "Q3"]);
   });
 });

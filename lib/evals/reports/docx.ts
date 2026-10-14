@@ -102,7 +102,7 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
 
   // Cover headline, then the executive summary and "Fix these first" on their own page (the same object the web and PDF render).
   const C = summaryCopy(language);
-  const summary = show("metrics") ? buildExecutiveSummary({ metrics: m, results: show("results") ? report.results : [], scope: show("scope") ? report.scope : undefined }, language, { sample: options.sample }) : null;
+  const summary = show("metrics") ? buildExecutiveSummary({ metrics: m, results: show("results") ? report.results : [], scope: show("scope") ? report.scope : undefined, expert_review: show("scope") ? report.expert_review : undefined }, language, { sample: options.sample }) : null;
   if (show("metrics")) {
     children.push(new Paragraph({ spacing: { before: 360, after: 40 }, children: [text(S.strictPassRate, { color: MUTED, size: 20 })] }));
     children.push(new Paragraph({ spacing: { after: 60 }, children: [text(summary?.percentText ?? pct(m.strict_pass_rate), { bold: true, size: 88 })] }));

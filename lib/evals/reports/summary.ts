@@ -7,10 +7,17 @@
  * behind it. The web report, the PDF and the Word document render this object
  * as it is, so the three formats say the same thing.
  */
-import type { ReportSnapshot } from "./contracts";
+import type { ExpertReviewLabel, ReportSnapshot } from "./contracts";
 import type { ReportLocale } from "./i18n";
 import { answerCount, buildFixes, isFailing, problemOf, type Fix, type FixProblem, FIX_PROBLEMS } from "./fixes";
 import { fill, summaryCopy, wholePercent } from "./summary-copy";
+
+/** "Reviewed by 2 experts on 13 October 2026, scope: …" — the label of an expert-reviewed revision (launch L-26). */
+export function expertReviewLabel(label: Pick<ExpertReviewLabel, "reviewer_count" | "reviewed_on" | "scope">, locale: ReportLocale = "en"): string {
+  const copy = summaryCopy(locale);
+  const date = new Intl.DateTimeFormat(locale === "es" ? "es-ES" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Madrid" }).format(new Date(label.reviewed_on));
+  return fill(label.reviewer_count === 1 ? copy.expertReviewedOne : copy.expertReviewedMany, { count: label.reviewer_count, date, scope: label.scope.trim().replace(/[.\s]+$/, "") });
+}
 
 export type SummarySentence = {
   key: "result" | "problems" | "start";
@@ -18,7 +25,7 @@ export type SummarySentence = {
   /** The results behind the sentence. Empty only when the results were not shared with this copy. */
   assessment_ids: string[];
 };
-export type SummaryStatus = { key: "preliminary" | "reviewed" | "incomplete" | "complete"; label: string; text: string };
+export type SummaryStatus = { key: "preliminary" | "reviewed" | "expert_reviewed" | "incomplete" | "complete"; label: string; text: string };
 export type ExecutiveSummary = {
   title: string;
   /** Strict pass rate as a whole percentage (decimals stay in Methodology). */
@@ -38,7 +45,7 @@ export type SummaryOptions = {
   sample?: boolean;
 };
 
-type Report = Partial<Pick<ReportSnapshot, "metrics" | "results" | "scope">>;
+type Report = Partial<Pick<ReportSnapshot, "metrics" | "results" | "scope" | "expert_review">>;
 
 /**
  * Null when the copy carries no metrics (a share without them): nothing can be
@@ -100,6 +107,8 @@ export function buildExecutiveSummary(report: Report, locale: ReportLocale = "en
   const review = report.scope?.review_status;
   if (review === "preliminary") status.push({ key: "preliminary", label: copy.labelPreliminary, text: copy.statusPreliminary });
   if (review === "reviewed") status.push({ key: "reviewed", label: copy.labelReviewed, text: options.sample ? copy.statusReviewedSample : copy.statusReviewed });
+  // The expert-review label (launch L-26): who reviewed what, recorded with the order (decision I-7).
+  if (report.expert_review) status.push({ key: "expert_reviewed", label: copy.labelExpertReviewed, text: expertReviewLabel(report.expert_review, locale) });
   status.push(m.headline_status === "incomplete"
     ? { key: "incomplete", label: copy.labelIncomplete, text: copy.statusIncomplete }
     : { key: "complete", label: copy.labelComplete, text: copy.statusComplete });

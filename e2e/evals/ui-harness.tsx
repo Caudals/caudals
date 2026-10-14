@@ -25,6 +25,7 @@ import { TwoFactorSettings } from "../../components/evals/two-factor-settings";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
 import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
 import { ExpertManagement } from "../../components/evals/expert-management";
+import { ReviewRequestDetail } from "../../components/evals/expert-reviews";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
 import { OperatorOverview } from "../../components/evals/operator-overview";
 import { NewProspectSnapshot, ProspectSnapshotDetail, ProspectSnapshots } from "../../components/evals/prospect-snapshot";
@@ -236,7 +237,9 @@ const content =
   ) : location.pathname === "/ops/clients" ? (
     <ClientManagement />
   ) : location.pathname === "/ops/experts" ? (
-    <ExpertManagement />
+    <ExpertManagement reviewOrders={params.has("reviews")} />
+  ) : location.pathname.startsWith("/ops/experts/reviews/") ? (
+    <ReviewRequestDetail requestId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname === "/ops/improvements" ? (
     <ImprovementDatasets />
   ) : location.pathname.startsWith("/review/assignments/") ? (
@@ -260,7 +263,7 @@ const content =
   ) : location.pathname.startsWith("/workspace/test-sets/") ? (
     <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
-    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} intakeV2={params.has("intake")} />
+    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} intakeV2={params.has("intake")} expertReview={params.has("expert-review")} />
   ) : location.pathname === "/ops/platform" ? (
     <PlatformConsole section="providers" admin={!location.search.includes("readonly")} />
   ) : location.pathname === "/ops/platform/usage" ? (
@@ -274,7 +277,7 @@ const content =
   ) : location.pathname === "/ops/review" ? (
     <ReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (
-    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} />
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} expertReview={params.has("expert-review")} />
   ) : location.pathname === "/workspace/reports/fixture-v2" ? (
     <ReportView initialTab={params.get("tab")} initialResult={params.get("result")} report={params.has("disclosure") ? { ...gradingV2Fixture(), ai_disclosure: disclosureFixture() } : gradingV2Fixture()} />
   ) : location.pathname === "/workspace/reports/fixture" ? (

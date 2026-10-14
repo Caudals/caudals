@@ -44,6 +44,8 @@ export function redactSharedSnapshot(raw: ReportSnapshot, permitted: Iterable<st
     takeaways: show("takeaways")
       ? source.takeaways.map((item) => ({ ...item, finding_ids: show("findings") ? item.finding_ids : [], assessment_ids: show("results") ? item.assessment_ids : [] }))
       : [],
+    // The expert-review label (launch L-26) travels with the scope section.
+    ...(show("scope") && source.expert_review ? { expert_review: source.expert_review } : {}),
   };
   return { report: reportSnapshotSchema.parse(report), hidden };
 }

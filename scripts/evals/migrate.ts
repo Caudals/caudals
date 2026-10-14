@@ -69,6 +69,7 @@ const migrations=[
  '093_evals_plans_v2.sql',
  '092_billing_invoices.sql',
  '099_evals_readout_decks.sql',
+ '101_evals_review_orders.sql',
  '107_auth_two_factor_lockout.sql',
  '109_evals_lifecycle_payg.sql',
  '098_evals_intake_v2.sql',

@@ -5,7 +5,7 @@
  * Each panel is a projection of persisted state, so closing the page or
  * switching devices never loses progress (spec §5.2, §5.3).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Activity, ArrowRight, CreditCard, Download, FileCheck2, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
@@ -40,6 +40,7 @@ import { ConnectionHealth } from "./workspace-systems";
 import { reviewModeForPlan } from "@/lib/evals/review/spot-check";
 import { FirstEvaluationPanel, OnboardingWelcome, useFirstEvaluation, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { HelpLink } from "./help";
+import { ExpertReviewRequest } from "./expert-review-request";
 import { evaluationStage, stepStates } from "./evaluation-stage";
 import { formatCredits, useBilling } from "./billing-state";
 import { ModelRates, RunEstimateDialog } from "./run-estimate-dialog";
@@ -72,13 +73,16 @@ function useElapsed(since: string | null | undefined, active: boolean) {
   return minutes ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
 }
 
-/** `intakeV2`: better document intake (launch L-34), INTAKE_V2_ENABLED read on the server. */
-export function EvaluationJourney({ evaluationId, intakeV2 = false }: { evaluationId: string; intakeV2?: boolean }) {
+/**
+ * `intakeV2`: better document intake (launch L-34), INTAKE_V2_ENABLED read on the server.
+ * `expertReview`: EXPERT_REVIEW_ORDERS_ENABLED, read on the server (launch L-26).
+ */
+export function EvaluationJourney({ evaluationId, intakeV2 = false, expertReview = false }: { evaluationId: string; intakeV2?: boolean; expertReview?: boolean }) {
   const { orgId } = useWorkspace();
-  return <EvaluationJourneyContent key={`${orgId}-${evaluationId}`} evaluationId={evaluationId} intakeV2={intakeV2} />;
+  return <EvaluationJourneyContent key={`${orgId}-${evaluationId}`} evaluationId={evaluationId} intakeV2={intakeV2} expertReview={expertReview} />;
 }
 
-function EvaluationJourneyContent({ evaluationId, intakeV2 }: { evaluationId: string; intakeV2: boolean }) {
+function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { evaluationId: string; intakeV2: boolean; expertReview: boolean }) {
   const { orgId, workspace, canWrite, canManage, operator, platformAdmin, withOrg } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const [loadedRun, setRun] = useState<RunView | null>(null);
@@ -511,7 +515,8 @@ function EvaluationJourneyContent({ evaluationId, intakeV2 }: { evaluationId: st
         </Panel>
       ) : terminal ? (
         report ? (
-          <ResultsSummary report={report} runStatus={runStatus!} targetCalls={run.run.execution_mode === "deployed_system" ? run.targetUsage : null} answersHref={reportRow ? withOrg(`/workspace/reports/${reportRow.id}`) : null} grading={run.run.phase !== "done" ? run.grading : undefined} />
+          <ResultsSummary report={report} runStatus={runStatus!} targetCalls={run.run.execution_mode === "deployed_system" ? run.targetUsage : null} answersHref={reportRow ? withOrg(`/workspace/reports/${reportRow.id}`) : null} grading={run.run.phase !== "done" ? run.grading : undefined}
+            expertReview={expertReview && canManage && reportRow ? <ExpertReviewRequest orgId={orgId} reportId={reportRow.id} surface="results" /> : undefined} />
         ) : runStatus === "failed" ? (
           <Panel title={t("runFailedTitle")}>
             <p>{run.run.reason_code ? `${humanize(run.run.reason_code)}. ` : ""}{t("runFailedHelp")}</p>
@@ -664,12 +669,15 @@ function ResultsSummary({
   targetCalls,
   answersHref,
   grading,
+  expertReview,
 }: {
   report: ReportSnapshot;
   runStatus: string;
   targetCalls: { calls: number; unknown: number } | null;
   answersHref: string | null;
   grading?: { queued: number; done: number; total: number };
+  /** "Have an expert review this" (launch L-26), for owners once the report is published. */
+  expertReview?: ReactNode;
 }) {
   const m = report.metrics;
   const findings = [...report.findings].sort((a, b) => ["critical", "high", "medium", "low"].indexOf(a.severity) - ["critical", "high", "medium", "low"].indexOf(b.severity)).slice(0, 3);
@@ -702,6 +710,7 @@ function ResultsSummary({
           <HelpLink topic="results" />
         </div>
       </div>
+      {expertReview && <div className="p-row" data-results-expert-review>{expertReview}</div>}
       <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} labels={{ pass: t("labelCorrect"), partial: t("labelPartiallyCorrect"), fail: t("labelIncorrect"), unscorable: t("filterNotScored") }} />
       {grading && grading.queued > 0 && (
         <Status tone="info">

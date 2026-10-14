@@ -61,7 +61,7 @@ export function composeBranded(kind: string, payload: Record<string, string>, or
   const name: BrandedKind = BRANDED_KINDS.has(kind as BrandedKind) ? (kind as BrandedKind) : "input_required";
   const links = { url: noticeLink(kind, payload, orgId), settingsUrl: workspaceLinks(appUrl(), orgId).notificationSettings };
   const email = name === "report_published"
-    ? renderEmail("report_published", locale, { ...links, updated: Boolean(payload.supersedes) })
+    ? renderEmail("report_published", locale, { ...links, updated: Boolean(payload.supersedes), ...(Number(payload.expertReviewers) > 0 ? { reviewers: Number(payload.expertReviewers) } : {}) })
     : renderEmail(name, locale, links);
   return { subject: email.subject, text: email.text, html: email.html };
 }
@@ -78,7 +78,9 @@ function compose(kind: string, payload: Record<string, string>, orgId: string): 
     export_failed: { subject: "A Caudals export failed", line: "A report export could not be prepared. Open the report and try again." },
     input_required: { subject: "Caudals needs one answer to continue", line: "An evaluation is waiting for a short answer about its scope before it can continue." },
   };
-  const body = kind === "report_published" && payload.supersedes
+  const body = kind === "report_published" && Number(payload.expertReviewers) > 0
+    ? { subject: "Experts reviewed your Caudals report", line: "Experts reviewed an evaluation report in your workspace. The new revision says how many experts reviewed it, when, and what they covered." }
+    : kind === "report_published" && payload.supersedes
     ? { subject: "Your Caudals evaluation results were updated", line: "An evaluation report in your workspace has a new revision with updated grades. Its review status is shown with the results." }
     : bodies[kind] ?? bodies.input_required;
   return { subject: body.subject, text: `${body.line}\n\nOpen it here: ${link}\n\nYou receive this because email notifications are on in your workspace settings.` };

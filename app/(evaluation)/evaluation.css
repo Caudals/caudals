@@ -283,3 +283,38 @@
     animation-name: p-readout-fade;
   }
 }
+
+/* Expert review (launch L-26): the request status beside its action, the
+   scope choices, and the workbench's save state and shortcuts line. */
+.eval-review-request {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.eval-review-request svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+.eval-review-scopes {
+  display: grid;
+  gap: 10px;
+}
+.eval-save-state {
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+}
+.eval-save-state[data-state="error"] {
+  color: var(--p-fail);
+}
+.eval-shortcuts {
+  margin: 0;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+}
+.eval-shortcuts .p-kbd + .p-kbd {
+  margin-left: 2px;
+}

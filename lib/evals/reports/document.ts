@@ -141,13 +141,13 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
 
   // The executive summary and "Fix these first" (launch L-17): the same object the web report renders.
   const C = summaryCopy(locale);
-  const summary = show("metrics") ? buildExecutiveSummary({ metrics: m, results: show("results") ? results : [], scope: show("scope") ? report.scope : undefined }, locale, { sample: options.sample }) : null;
+  const summary = show("metrics") ? buildExecutiveSummary({ metrics: m, results: show("results") ? results : [], scope: show("scope") ? report.scope : undefined, expert_review: show("scope") ? report.expert_review : undefined }, locale, { sample: options.sample }) : null;
   const fixes = summary?.fixes ?? [];
   const summaryBlock = summary
     ? `<div class="summary" data-summary>
   ${summary.sentences.map((item) => `<p class="sentence" data-sentence="${item.key}">${escapeHtml(item.text)}${item.assessment_ids.length && show("results") ? ` <span class="ref">${S.evidence}: ${refs(item.assessment_ids)}</span>` : ""}</p>`).join("\n  ")}
   <p class="sample-size" data-sample>${escapeHtml(summary.sample)}</p>
-  <dl class="status">${summary.status.map((item) => `<div><dt><span class="chip" data-tone="${item.key === "reviewed" || item.key === "complete" ? "pass" : item.key === "incomplete" ? "warn" : "neutral"}">${escapeHtml(item.label)}</span></dt><dd>${escapeHtml(item.text)}</dd></div>`).join("")}</dl>
+  <dl class="status">${summary.status.map((item) => `<div><dt><span class="chip" data-tone="${item.key === "reviewed" || item.key === "expert_reviewed" || item.key === "complete" ? "pass" : item.key === "incomplete" ? "warn" : "neutral"}">${escapeHtml(item.label)}</span></dt><dd>${escapeHtml(item.text)}</dd></div>`).join("")}</dl>
 </div>`
     : "";
   const fixesBlock = show("results") && results.some((item) => item.outcome === "fail" || item.outcome === "partial")

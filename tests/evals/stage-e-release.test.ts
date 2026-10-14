@@ -42,6 +42,14 @@ describe("Stage E release gate", () => {
     expect(() => assessStageERelease({ ...ready, ...changed })).toThrow();
   });
 
+  it("reports the expert review orders gate (launch L-26) and refuses the flag without migration 101", () => {
+    const triggers = ["report_revision_expert_review_guard", "review_crm_draft_immutable", "review_order_assignment_immutable"];
+    expect(assessStageERelease({ ...ready, reviewOrders: { migrationApplied: true, triggers, enabled: true } })).toMatchObject({ status: "ready", reviewOrders: "ready" });
+    expect(assessStageERelease({ ...ready, reviewOrders: { migrationApplied: false, triggers: [], enabled: false } })).toMatchObject({ reviewOrders: "not_installed" });
+    expect(() => assessStageERelease({ ...ready, reviewOrders: { migrationApplied: false, triggers, enabled: true } })).toThrow(/migration 101/);
+    expect(() => assessStageERelease({ ...ready, reviewOrders: { migrationApplied: true, triggers: triggers.slice(1), enabled: true } })).toThrow(/migration 101/);
+  });
+
   it("never returns signing material, expert identity or customer content", () => {
     const output = JSON.stringify(assessStageERelease({ ...ready,
       expertIdentity: "PRIVATE_EXPERT_IDENTITY", customerContent: "PRIVATE_CUSTOMER_CONTENT",

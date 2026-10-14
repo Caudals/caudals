@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Copy, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, Presentation, RotateCcw, Share2, UserCheck, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
+import { ExpertReviewRequest } from "./expert-review-request";
 import { buildExecutiveSummary, type ExecutiveSummary } from "@/lib/evals/reports/summary";
 import { answerCount, failingCsv, fixesCsv, fixesMarkdown, isFailing, type Fix } from "@/lib/evals/reports/fixes";
 import { summaryCopy } from "@/lib/evals/reports/summary-copy";
@@ -148,6 +149,7 @@ export function ReportView({
             <>
               {badge}
               {report.scope && <StatusBadge value={report.scope.review_status} />}
+              {report.expert_review && <StatusBadge value="expert_reviewed" label={t("erBadge")} />}
               {report.metrics && <StatusBadge value={report.metrics.headline_status} />}
               {report.system && <span>{MODE[report.system.execution_mode] ?? humanize(report.system.execution_mode)}</span>}
               {report.scope && (
@@ -191,6 +193,8 @@ export type ReportCta = {
   downloading?: boolean;
   readoutHref?: string | null;
   expertHref?: string | null;
+  /** The in-app expert-review request (launch L-26); replaces `expertHref` when its flag is on. */
+  expertReview?: ReactNode;
 };
 
 /** Save text built in the browser (fix list, failing answers) as a file. */
@@ -248,7 +252,7 @@ function SummaryBlock({ summary, hasResults, cta, onResults }: { summary: Execut
 
 /** Share · Download · Book a readout · Request expert review (spec P-11, P-20). */
 function NextSteps({ cta }: { cta: ReportCta }) {
-  if (!cta.onShare && !cta.onDownload && !cta.readoutHref && !cta.expertHref) return null;
+  if (!cta.onShare && !cta.onDownload && !cta.readoutHref && !cta.expertHref && !cta.expertReview) return null;
   return (
     <div className="p-summary-cta" role="group" aria-label={t("reportNextSteps")}>
       {cta.readoutHref && (
@@ -269,7 +273,8 @@ function NextSteps({ cta }: { cta: ReportCta }) {
           {cta.downloading ? t("pdfPreparing") : t("downloadPdf")}
         </Action>
       )}
-      {cta.expertHref && (
+      {cta.expertReview}
+      {!cta.expertReview && cta.expertHref && (
         <ActionAnchor variant="ghost" href={cta.expertHref} target="_blank" rel="noopener noreferrer" title={t("requestExpertReviewHelp")}>
           <UserCheck aria-hidden="true" />
           {t("requestExpertReview")}
@@ -1089,14 +1094,17 @@ export function AuthenticatedReport({
   readoutUrl,
   marketingOrigin,
   readoutMode = "off",
+  expertReview = false,
 }: {
   reportId: string;
   /** The booking page (`CALCOM_LINK`, read on the server); its link carries a hashed workspace id. */
   readoutUrl?: string | null;
-  /** caudals.com, for the expert-review request until the in-app request exists (L-26). */
+  /** caudals.com, for the expert-review link while the in-app request (L-26) is off. */
   marketingOrigin?: string | null;
   /** READOUT_MODE_ENABLED, read on the server: who sees "Present" (launch L-35). */
   readoutMode?: ReadoutMode;
+  /** EXPERT_REVIEW_ORDERS_ENABLED, read on the server (launch L-26). */
+  expertReview?: boolean;
 }) {
   const { orgId, role, operator, withOrg } = useWorkspace();
   const params = useSearchParams();
@@ -1178,6 +1186,9 @@ export function AuthenticatedReport({
     downloading: preparing,
     readoutHref: readoutUrl ? readoutLink(readoutUrl, "report", workspace) : null,
     expertHref: marketingOrigin ? `${marketingOrigin}${localizePathname("/contact", getLocale())}?offer=pilot-evaluation` : null,
+    // Owners ask from the current, published report (launch L-26, P-10).
+    expertReview: expertReview && canManage && isCurrent && data.report.publication_status === "published"
+      ? <ExpertReviewRequest orgId={orgId} reportId={reportId} surface="report" /> : undefined,
   };
   return (
     <>

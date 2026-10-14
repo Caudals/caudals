@@ -21,7 +21,8 @@ export type TemplateProps = {
   password_reset: { url: string; minutes: number };
   invitation: { url: string; workspace: string; inviter: string; role: "owner" | "editor" | "viewer"; hours: number };
   test_set_ready: Notice;
-  report_published: Notice & { updated?: boolean };
+  /** `reviewers`: an expert-reviewed revision (launch L-26), with the number of experts on its label. */
+  report_published: Notice & { updated?: boolean; reviewers?: number };
   run_failed: Notice;
   input_required: Notice;
   export_failed: Notice;
@@ -153,6 +154,13 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
     case "report_published": {
       const props = p as TemplateProps["report_published"];
       const r = c.resultsReady;
+      if (props.reviewers && props.reviewers > 0) {
+        return {
+          subject: r.subjectReviewed, preview: r.preview, heading: r.headingReviewed,
+          blocks: [{ kind: "text", text: props.reviewers === 1 ? r.bodyReviewedOne : fill(r.bodyReviewedMany, { count: props.reviewers }) }, { kind: "action", label: r.action, url: props.url }],
+          footer: [c.footer.notification], footerLink: { label: c.footer.notificationLink, url: props.settingsUrl },
+        };
+      }
       return {
         subject: props.updated ? r.subjectUpdated : r.subject, preview: r.preview, heading: props.updated ? r.headingUpdated : r.heading,
         blocks: [{ kind: "text", text: props.updated ? r.bodyUpdated : r.body }, { kind: "action", label: r.action, url: props.url }],

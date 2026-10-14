@@ -5,6 +5,7 @@ import { ClipboardCheck, Users } from "lucide-react";
 import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import { SidePanel } from "./overlays";
+import { ExpertBench, ReviewRequestList } from "./expert-reviews";
 import { t } from "@/lib/evals/messages/en";
 import {
   Action, Card, DataTable, EmptyState, Field, PageHeading, RowTitle,
@@ -16,12 +17,13 @@ type Assignment = { id: string; assigned_profile_id: string; kind: string; sever
 type Revision = { id: string; version: number; status: string; conflict: boolean; created_at: string };
 type Detail = Assignment & { revisions: Revision[] };
 
-export function ExpertManagement() {
+/** `reviewOrders`: EXPERT_REVIEW_ORDERS_ENABLED, read on the server (launch L-26): review requests and the expert bench. */
+export function ExpertManagement({ reviewOrders = false }: { reviewOrders?: boolean }) {
   const { orgId, workspace } = useWorkspace();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [detail, setDetail] = useState<Detail | null>(null);
-  const [tab, setTab] = useState<"assignments" | "experts">("assignments");
+  const [tab, setTab] = useState<"requests" | "assignments" | "experts" | "bench">(reviewOrders ? "requests" : "assignments");
   const [notice, setNotice] = useState(""); const [error, setError] = useState("");
   const [amount, setAmount] = useState(""); const [note, setNote] = useState("");
   async function load() {
@@ -54,7 +56,7 @@ export function ExpertManagement() {
     if (!detail) return;
     try {
       await evalRequest(`/expert-assignments/${detail.id}`, "PATCH", { orgId, ...action });
-      setNotice(action.action === "resolve_conflict" ? "Save conflict resolved with the selected immutable revision." : "Peer decisions are now revealed.");
+      setNotice(action.action === "resolve_conflict" ? t("expertConflictResolved") : t("expertPeersRevealed"));
       await load(); await inspect(detail.id, false);
     } catch { setError(t("expertAssignmentUpdateFailed")); }
   }
@@ -75,8 +77,12 @@ export function ExpertManagement() {
   return <div className="p-stack">
     <PageHeading title={t("expertWork")} meta={<span>{t("clientContext")} <strong>{workspace?.name ?? "—"}</strong></span>}>{t("expertWorkIntro")}</PageHeading>
     {!detail && notice && <Status tone="success">{notice}</Status>}{!detail && error && <Status error>{error}</Status>}
-    <Tabs value={tab} onChange={setTab} label={t("expertViewLabel")} options={[{ value: "assignments", label: t("expertTabAssignments") }, { value: "experts", label: t("expertTabQuality") }]} />
-    {tab === "assignments" ? assignments.length ? <DataTable caption={t("expertAssignmentsCaption")} headers={[t("expertColAssignment"), t("expertColExpert"), t("expertColSeverity"), t("expertColStatus"), { label: "", align: "end" }]}>
+    <Tabs value={tab} onChange={setTab} label={t("expertViewLabel")} options={[
+      ...(reviewOrders ? [{ value: "requests" as const, label: t("erTabRequests") }] : []),
+      { value: "assignments" as const, label: t("expertTabAssignments") }, { value: "experts" as const, label: t("expertTabQuality") },
+      ...(reviewOrders ? [{ value: "bench" as const, label: t("erTabBench") }] : []),
+    ]} />
+    {tab === "requests" ? <ReviewRequestList /> : tab === "bench" ? <ExpertBench /> : tab === "assignments" ? assignments.length ? <DataTable caption={t("expertAssignmentsCaption")} headers={[t("expertColAssignment"), t("expertColExpert"), t("expertColSeverity"), t("expertColStatus"), { label: "", align: "end" }]}>
       {assignments.map((item) => <tr key={item.id}><RowTitle meta={item.kind.replaceAll("_", " ")}>{item.id.slice(0, 8)}…</RowTitle><td>{item.assigned_profile_id.slice(0, 8)}…</td><td><StatusBadge value={item.severity} /></td><td><StatusBadge value={item.status} /></td><td className="p-table-action"><Action size="sm" variant="secondary" onClick={() => void inspect(item.id)}>{t("expertInspect")}</Action></td></tr>)}
     </DataTable> : <EmptyState title={t("expertNoAssignments")} icon={<ClipboardCheck />}><p>{t("expertNoAssignmentsHelp")}</p></EmptyState> :
     profiles.length ? <div className="p-grid">{quality.map(({ profile, reviewed, gold, agreement, reliable }) => <Card title={profile.user_id} key={profile.id}>

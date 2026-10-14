@@ -87,6 +87,10 @@ export const en = {
     headingUpdated: "Your results were updated",
     body: "An evaluation report is ready in your workspace. Its review status is shown with the results.",
     bodyUpdated: "An evaluation report in your workspace has a new revision with updated grades. Its review status is shown with the results.",
+    subjectReviewed: "Experts reviewed your Caudals report",
+    headingReviewed: "Your expert review is ready",
+    bodyReviewedOne: "One expert reviewed your report. The new revision says how many experts reviewed it, when, and what they covered; the earlier revision stays available.",
+    bodyReviewedMany: "{count} experts reviewed your report. The new revision says how many experts reviewed it, when, and what they covered; the earlier revision stays available.",
     action: "Open the report",
   },
   runFailed: {
@@ -356,6 +360,10 @@ export const es: EmailCopy = {
     headingUpdated: "Tus resultados se han actualizado",
     body: "Hay un informe de evaluación listo en tu espacio de trabajo. Su estado de revisión aparece junto a los resultados.",
     bodyUpdated: "Un informe de evaluación de tu espacio de trabajo tiene una nueva revisión con calificaciones actualizadas. Su estado de revisión aparece junto a los resultados.",
+    subjectReviewed: "Expertos han revisado tu informe de Caudals",
+    headingReviewed: "Tu revisión experta está lista",
+    bodyReviewedOne: "Un experto ha revisado tu informe. La nueva revisión indica cuántos expertos lo revisaron, cuándo y qué cubrieron; la revisión anterior sigue disponible.",
+    bodyReviewedMany: "{count} expertos han revisado tu informe. La nueva revisión indica cuántos expertos lo revisaron, cuándo y qué cubrieron; la revisión anterior sigue disponible.",
     action: "Abrir el informe",
   },
   runFailed: {

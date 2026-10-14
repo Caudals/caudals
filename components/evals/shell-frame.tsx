@@ -173,6 +173,7 @@ function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb 
     if (s[1] === "library" || s[1] === "improvements")
       return [{ label: t("library"), href: "/ops/library/test-sets" }, { label: name(s[1] === "improvements" ? "improvements" : s[2] ?? "test-sets") }];
     if (s[1] === "platform") return [{ label: t("platform"), href: "/ops/platform" }, { label: s[2] ? name(s[2]) : t("providersModels") }];
+    if (s[1] === "experts" && s[2] === "reviews" && s[3]) return [{ label: name("experts"), href: "/ops/experts" }, { label: detail ?? t("erRequestCard") }];
     if (s[1] === "prospects" && s[2]) return [{ label: name("prospects"), href: "/ops/prospects" }, { label: s[2] === "new" ? t("psNew") : detail ?? t("psSnapshot") }];
     return [{ label: name(s[1]) }];
   }
