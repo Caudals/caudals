@@ -285,6 +285,23 @@ export function startSourceRefresh(scope: EvidenceScope, sourceId: string, now =
   return withTenant(scope, (db) => startRefreshes(db, scope, periodOf(now), { sourceId, anyAge: true }));
 }
 
+/**
+ * Read a source again this month after its reading failed (ops): a new
+ * website job for the same refresh, whose previous reason is kept in its
+ * page summary. Only a failed refresh of the current month is retried.
+ */
+export function retrySourceRefresh(scope: EvidenceScope, sourceId: string, now = new Date()) {
+  return withTenant(scope, async (db) => {
+    const refresh = (await db.query("SELECT r.id,r.reason_code,w.evaluation_id,w.start_url,w.page_limit,w.sitemap_url,w.path_prefix,w.selected_urls FROM evals.source_refresh r JOIN evals.website_source_job w ON (w.org_id,w.id)=(r.org_id,r.website_job_id) WHERE r.org_id=$1 AND r.source_id=$2 AND r.period=$3 AND r.status='failed' FOR UPDATE OF r", [scope.orgId, sourceId, periodOf(now)])).rows[0];
+    if (!refresh) return 0;
+    const job = (await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,page_limit,sitemap_url,path_prefix,selected_urls,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
+      [scope.orgId, refresh.evaluation_id, sourceId, refresh.start_url, refresh.page_limit, refresh.sitemap_url, refresh.path_prefix, refresh.selected_urls, scope.actorId])).rows[0];
+    await db.query("UPDATE evals.source_refresh SET status='reading',website_job_id=$3,reason_code=NULL,new_revision_id=NULL,workflow_id=NULL,step_id=NULL,pages=$4,updated_at=now() WHERE org_id=$1 AND id=$2",
+      [scope.orgId, refresh.id, job.id, JSON.stringify({ retried_after: refresh.reason_code })]);
+    return 1;
+  });
+}
+
 /* ------------------------------------------------------ proposals view --- */
 
 export function listProposals(scope: EvidenceScope, suiteId: string) {

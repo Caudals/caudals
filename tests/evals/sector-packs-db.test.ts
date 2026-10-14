@@ -13,7 +13,7 @@ import {
   addSectorQuestions, getPackVersion, importPackFile, listPacks, openPackVersion, packRole, removePackItem, reviewPackItem,
   savePackItem, sectorSuggestion, setLibrarySetting, transitionPackVersion,
 } from "../../lib/evals/sector-packs/store";
-import { advanceSourceRefreshes, decideProposals, listProposals, monthlyQuestionsDue, periodOf, startSourceRefresh } from "../../lib/evals/sector-packs/refresh";
+import { advanceSourceRefreshes, decideProposals, listProposals, monthlyQuestionsDue, periodOf, retrySourceRefresh, startSourceRefresh } from "../../lib/evals/sector-packs/refresh";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
@@ -408,6 +408,11 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("sector packs and monthly new question
     await advanceSourceRefreshes(scheduler);
     const refresh = await withTenant({ orgId: fixture.orgId, actorId: customerId }, async (db) => (await db.query("SELECT status,reason_code FROM evals.source_refresh WHERE org_id=$1", [fixture.orgId])).rows[0]);
     expect(refresh).toEqual({ status: "failed", reason_code: "website_capture_unavailable" });
+    // Ops can read it again this month: a new website job for the same refresh, the old reason kept.
+    expect(await retrySourceRefresh(scheduler, fixture.sourceId)).toBe(1);
+    expect(await retrySourceRefresh(scheduler, fixture.sourceId)).toBe(0);
+    const retried = await withTenant({ orgId: fixture.orgId, actorId: customerId }, async (db) => (await db.query("SELECT r.status,r.pages,w.status AS job FROM evals.source_refresh r JOIN evals.website_source_job w ON (w.org_id,w.id)=(r.org_id,r.website_job_id) WHERE r.org_id=$1", [fixture.orgId])).rows[0]);
+    expect(retried).toEqual({ status: "reading", pages: { retried_after: "website_capture_unavailable" }, job: "queued" });
   });
 });
 

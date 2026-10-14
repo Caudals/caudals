@@ -8,6 +8,7 @@
  *   validate                                   < pack.json
  *   import --actor <staff user id>              < pack.json
  *   refresh-start --org <id> --source <id> --actor <id>
+ *   refresh-retry --org <id> --source <id> --actor <id>     (this month's failed reading, again)
  *   refresh-advance --org <id> --actor <id>
  *   proposals --org <id> --suite <id> --actor <id>
  *   reject-proposals --org <id> --suite <id> --actor <id>
@@ -20,7 +21,7 @@ import { z } from "zod";
 import { getEvalsPool } from "../../lib/evals/repositories/db";
 import { validatePackFile } from "../../lib/evals/sector-packs/schema";
 import { importPackFile } from "../../lib/evals/sector-packs/store";
-import { advanceSourceRefreshes, decideProposals, listProposals, startSourceRefresh } from "../../lib/evals/sector-packs/refresh";
+import { advanceSourceRefreshes, decideProposals, listProposals, retrySourceRefresh, startSourceRefresh } from "../../lib/evals/sector-packs/refresh";
 
 async function stdinJson() {
   const chunks: Buffer[] = [];
@@ -48,6 +49,9 @@ async function main() {
   } else if (command === "refresh-start") {
     const scope = { orgId: uuid("org"), actorId: actor() };
     console.log(JSON.stringify({ started: await startSourceRefresh(scope, uuid("source")) }));
+  } else if (command === "refresh-retry") {
+    const scope = { orgId: uuid("org"), actorId: actor() };
+    console.log(JSON.stringify({ retried: await retrySourceRefresh(scope, uuid("source")) }));
   } else if (command === "refresh-advance") {
     console.log(JSON.stringify(await advanceSourceRefreshes({ orgId: uuid("org"), actorId: actor() })));
   } else if (command === "proposals") {
@@ -66,7 +70,7 @@ async function main() {
     const result = await decideProposals(scope, suite, { approve: [], reject: ids }, `ops-reject-${randomUUID()}`);
     console.log(JSON.stringify({ rejected: result.rejected, added: result.added }));
   } else {
-    console.error("usage: sector-packs.ts validate|import|refresh-start|refresh-advance|proposals|reject-proposals [--org --source --suite --actor]");
+    console.error("usage: sector-packs.ts validate|import|refresh-start|refresh-retry|refresh-advance|proposals|reject-proposals [--org --source --suite --actor]");
     process.exitCode = 64;
   }
 }
