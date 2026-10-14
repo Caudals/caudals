@@ -16,7 +16,8 @@ export async function notifyFoundersOfReviewRequest(input: {
   requestId: string; workspace: string; report: string; scopeKind: string; sector: string;
   deadline: string | null; replyDueAt: string; hasNote: boolean;
 }) {
-  const to = process.env.COLLABORATION_NOTIFICATION_EMAIL?.trim() || process.env.CONTACT_NOTIFICATION_EMAIL?.trim() || "hello@caudals.com";
+  // The variable or its _FILE secret (the workers mount it as a file), so every service sends to the internal address.
+  const to = getSecretEnvValue("COLLABORATION_NOTIFICATION_EMAIL") || process.env.CONTACT_NOTIFICATION_EMAIL?.trim() || "hello@caudals.com";
   const from = getSecretEnvValue("RESEND_FROM_EMAIL");
   if (!from) throw new Error("email_unconfigured");
   const clean = (value: string) => value.replace(/[\r\n]+/g, " ").slice(0, 160);
