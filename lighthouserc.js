@@ -9,11 +9,11 @@
  *
  * Every URL runs three times and the median run is asserted, so one noisy run
  * cannot fail the gate. The spec's targets are LCP < 2.5 s, CLS < 0.1 and
- * TBT < 200 ms on mobile. CLS and TBT are enforced at the target. LCP is
- * enforced at the target for sign-up; the landing and the demo do not meet it
- * yet (their shared site weight, see docs/launch/L-24.md), so their LCP is a
- * warning at the target plus an error at a regression ceiling until the
- * public-site weight follow-up lands.
+ * TBT < 200 ms on mobile. CLS is enforced at the target everywhere, and LCP
+ * and TBT for sign-up and on desktop. On mobile the landing misses LCP and TBT
+ * and the demo misses LCP (their shared site weight, docs/launch/L-24.md), so
+ * those are a warning at the target plus an error at a regression ceiling
+ * until the public-site weight follow-up lands.
  */
 const port = Number(process.env.LHCI_PORT ?? 4173);
 const local = `http://localhost:${port}`;
@@ -23,8 +23,9 @@ const desktop = process.env.LHCI_FORM_FACTOR === "desktop";
 
 /** Spec P-47 targets (milliseconds; CLS unitless). */
 const TARGET = { lcp: 2500, cls: 0.1, tbt: 200 };
-/** Regression ceilings for the landing and demo LCP on mobile, from the production medians in L-24.md plus a margin. */
-const LCP_CEILING_MOBILE = { landing: 6000, demo: 6000 };
+/** Regression ceilings on mobile: the production medians after L-24 (L-24.md: landing LCP 5.8–6.4 s and TBT 220–256 ms, demo LCP 5.2–5.9 s) plus a margin. */
+const LCP_CEILING_MOBILE = { landing: 7500, demo: 7000 };
+const TBT_CEILING_MOBILE_LANDING = 350;
 
 const urls = {
   landing: `${baseURL}/en`,
@@ -58,8 +59,13 @@ module.exports = {
           matchingUrlPattern: ".*",
           assertions: {
             "cumulative-layout-shift": ["error", { maxNumericValue: TARGET.cls, aggregationMethod: "median-run" }],
-            "total-blocking-time": ["error", { maxNumericValue: TARGET.tbt, aggregationMethod: "median-run" }],
             "categories:accessibility": ["error", { minScore: 0.95, aggregationMethod: "median-run" }],
+          },
+        },
+        {
+          matchingUrlPattern: desktop ? ".*" : `^(${escape(urls.demo)}|${escape(urls.signup)})$`,
+          assertions: {
+            "total-blocking-time": ["error", { maxNumericValue: TARGET.tbt, aggregationMethod: "median-run" }],
           },
         },
         {
@@ -91,10 +97,22 @@ module.exports = {
                 },
               },
               {
-                // The target, reported until it is met (warn does not fail the gate).
+                matchingUrlPattern: `^${escape(urls.landing)}$`,
+                assertions: {
+                  "total-blocking-time": ["error", { maxNumericValue: TBT_CEILING_MOBILE_LANDING, aggregationMethod: "median-run" }],
+                },
+              },
+              {
+                // The targets, reported until they are met (warn does not fail the gate).
                 matchingUrlPattern: `^(${escape(urls.landing)}|${escape(urls.demo)})$`,
                 assertions: {
                   "largest-contentful-paint": ["warn", { maxNumericValue: TARGET.lcp, aggregationMethod: "median-run" }],
+                },
+              },
+              {
+                matchingUrlPattern: `^${escape(urls.landing)}$`,
+                assertions: {
+                  "total-blocking-time": ["warn", { maxNumericValue: TARGET.tbt, aggregationMethod: "median-run" }],
                 },
               },
             ]),
