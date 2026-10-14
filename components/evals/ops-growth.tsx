@@ -6,9 +6,9 @@ import { Action, Badge, DataTable, PageHeading, Stat, StatGrid, Time, humanize, 
 import { evalRequest } from "./api";
 import { notify } from "./overlays";
 import { t, type MessageKey } from "@/lib/evals/messages/en";
-import { tr } from "@/lib/evals/messages/phrases";
+import { tr, type Phrase } from "@/lib/evals/messages/phrases";
 /** Connection kinds as people say them (launch L-21). */
-const CONNECTION: Record<string, string> = { website: "Website chatbot", openai_compatible: "OpenAI-compatible API", https_json: "HTTPS JSON API", provider_native: "Provider API", imported_responses: "Uploaded answers", private_runner: "Private runner" };
+const CONNECTION: Record<string, Phrase> = { website: "Website chatbot", openai_compatible: "OpenAI-compatible API", https_json: "HTTPS JSON API", provider_native: "Provider API", imported_responses: "Uploaded answers", private_runner: "Private runner" };
 const score = (value: number | null | undefined, scored: number | null | undefined) => (value === null || value === undefined ? "—" : `${Math.round(value * 100)} %${scored ? ` · ${scored}` : ""}`);
 const credits = (value: number | null | undefined) => (value === null || value === undefined ? "—" : value.toLocaleString("en-GB", { maximumFractionDigits: 2 }));
 /** Welcome answers (launch L-06) in the operator's language; unknown values degrade to a humanised label. */

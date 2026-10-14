@@ -281,7 +281,7 @@ export function ReadoutView(props: ReadoutViewProps) {
   }
 
   return createPortal(
-    <div ref={root} tabIndex={-1} className="p-root p-readout" data-view="audience" role="dialog" aria-modal="true" aria-roledescription="slides" aria-label={`${copy.present}: ${deck.system}`} lang={locale}>
+    <div ref={root} tabIndex={-1} className="p-root p-readout" data-view="audience" role="dialog" aria-modal="true" aria-roledescription={copy.slidesRole} aria-label={`${copy.present}: ${deck.system}`} lang={locale}>
       {style}
       <div className="p-readout-stage">
         <div key={current} className="rd-frame p-readout-slide" data-current dangerouslySetInnerHTML={{ __html: html[current] }} />

@@ -4,14 +4,14 @@ import { useRef, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, ActionAnchor, Progress, Status } from "./primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 
 export async function publishPreliminaryManualReport(orgId: string, runId: string, evaluationTitle?: string) {
   await evalRequest(`/runs/${runId}/score`, "POST", { orgId, graderRevisionId: "caudals-grader-v2" });
   const report = await evalRequest<{ reportId: string; revisionId: string }>(
     "/reports",
     "POST",
-    { orgId, runId, title: evaluationTitle ? `${evaluationTitle} — preliminary results` : "Preliminary evaluation results", reviewStatus: "preliminary", scorerVersion: "auto-preliminary-v2" },
+    { orgId, runId, title: evaluationTitle ? tv("manualReportTitle", { title: evaluationTitle }) : t("manualReportTitleDefault"), reviewStatus: "preliminary", scorerVersion: "auto-preliminary-v2" },
     `customer-manual-report-${runId}`,
   );
   await evalRequest(`/reports/${report.reportId}/publish`, "POST", { orgId, revisionId: report.revisionId });

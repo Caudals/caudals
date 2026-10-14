@@ -788,7 +788,7 @@ export function DeveloperAccess({ orgId, canManage, integrationsV2 = false }: { 
           <CopyField label={secret.label} value={secret.value} />
         ) : (
           <form id="token-form" className="p-stack" onSubmit={createToken}>
-            <Field id="token-name" name="name" label={t("name")} required maxLength={120} placeholder="CI pipeline" />
+            <Field id="token-name" name="name" label={t("name")} required maxLength={120} placeholder={t("tokenNamePlaceholder")} />
             <SelectField id="token-scope" name="scope" label={t("scope")} value={tokenScope} onChange={(event) => setTokenScope(event.target.value)}>
               {integrationsV2 && <option value="ci">{t("tokenScopeCi")}</option>}
               <option value="runs:read">{t("scopeRuns")}</option>
@@ -826,7 +826,7 @@ export function DeveloperAccess({ orgId, canManage, integrationsV2 = false }: { 
           <CopyField label={secret.label} value={secret.value} />
         ) : !integrationsV2 ? (
           <form id="webhook-form" className="p-stack" onSubmit={createEndpoint}>
-            <Field id="webhook-name" name="label" label={t("name")} required maxLength={120} placeholder="Slack relay" />
+            <Field id="webhook-name" name="label" label={t("name")} required maxLength={120} placeholder={t("webhookNamePlaceholder")} />
             <Field id="webhook-url" name="url" type="url" label={t("httpsUrl")} required placeholder="https://hooks.example.com/caudals" />
           </form>
         ) : (
@@ -836,7 +836,7 @@ export function DeveloperAccess({ orgId, canManage, integrationsV2 = false }: { 
                 <option key={type} value={type}>{t(DESTINATION_LABEL[type])}</option>
               ))}
             </SelectField>
-            <Field id="webhook-name" name="label" label={t("name")} required maxLength={120} placeholder={destinationType === "email" ? "QA team" : destinationType === "webhook" ? "Release pipeline" : "#ai-quality"} />
+            <Field id="webhook-name" name="label" label={t("name")} required maxLength={120} placeholder={destinationType === "email" ? t("destinationNameEmailPlaceholder") : destinationType === "webhook" ? t("destinationNameWebhookPlaceholder") : "#ai-quality"} />
             {destinationType === "email" ? (
               <Field key="email" id="destination-email" name="email" type="email" label={t("destinationEmailAddress")} required maxLength={254} placeholder="ai-alerts@example.com" autoComplete="off" />
             ) : (

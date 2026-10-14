@@ -6,6 +6,7 @@
  * intake flag on (`?intake`); the API is routed per test.
  */
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { expectSpanishOnly } from "./spanish-leaks";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const EVALUATION = "00000000-0000-4000-8000-000000000340";
@@ -302,6 +303,7 @@ test("skipping keeps the inferred context and says the report will mention it (S
   await expect(screen).toBeVisible();
   await expect(screen.getByText("Si lo omites, las pruebas usan lo que hemos entendido y el informe indica que el contexto no se confirmó.")).toBeVisible();
   await expect(screen.locator(".p-ctx-row").filter({ hasText: "Quién lo usa" })).toContainText("Revísalo");
+  await expectSpanishOnly(browser, "evaluation page, context confirmation");
   await noHorizontalScroll(browser, 390);
   await screen.getByRole("button", { name: "Omitir y usarlo tal cual" }).click();
   await expect(screen).toBeHidden();

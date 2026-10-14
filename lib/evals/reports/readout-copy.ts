@@ -89,6 +89,8 @@ const EN = {
   segment_next: "Next step",
   // Controls.
   present: "Present",
+  /** Screen readers announce the presentation as this kind of element. */
+  slidesRole: "slides",
   presentHelp: "Full-screen readout of this report revision",
   loading: "Loading the readout…",
   loadFailed: "The readout could not be loaded.",
@@ -216,6 +218,7 @@ const ES: ReadoutCopy = {
   segment_fixes: "Qué corregir primero",
   segment_next: "Siguiente paso",
   present: "Presentar",
+  slidesRole: "diapositivas",
   presentHelp: "Presentación a pantalla completa de esta revisión del informe",
   loading: "Cargando la presentación…",
   loadFailed: "No se ha podido cargar la presentación.",

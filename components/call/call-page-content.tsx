@@ -79,7 +79,7 @@ export function CallPageContent({ calLink }: CallPageContentProps) {
           {booking ? (
             <BookingConfirmed booking={booking} t={t} />
           ) : calLink ? (
-            <BookingEmbed calLink={calLink} onBooked={onBooked} />
+            <BookingEmbed calLink={calLink} onBooked={onBooked} title={t("scheduler")} />
           ) : (
             <SchedulerNotConfigured t={t} />
           )}

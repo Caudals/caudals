@@ -99,7 +99,7 @@ export function HeroChat({ sectors = LANDING_SECTORS }: { sectors?: readonly Sec
       ref={rootRef}
       className="hc"
       role="region"
-      aria-roledescription={single ? undefined : "carousel"}
+      aria-roledescription={single ? undefined : t("carousel")}
       aria-label={t("label")}
       data-auto={ready && !reducedMotion && !single}
       data-held={held}
@@ -121,7 +121,7 @@ export function HeroChat({ sectors = LANDING_SECTORS }: { sectors?: readonly Sec
               key={item.id}
               className="hc-conv"
               role="group"
-              aria-roledescription={single ? undefined : "slide"}
+              aria-roledescription={single ? undefined : t("slide")}
               aria-label={
                 single
                   ? t(`sectors.${item.id}.name`)

@@ -377,7 +377,7 @@ export function NewEvaluationFlow() {
           const stored = await evalRequest<{ targetRevisionId: string }>(
             `/targets/${target.target_id}/credentials`,
             "POST",
-            { orgId, label: "API key", kind: "bearer", headerName: "Authorization", value: apiKey },
+            { orgId, label: t("apiKey"), kind: "bearer", headerName: "Authorization", value: apiKey },
             `${submitKey.current}-credential`,
           );
           setApiKey("");

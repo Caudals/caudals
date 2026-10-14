@@ -25,6 +25,8 @@
   "heroChat": {
     "label": "Conversaciones de ejemplo, revisadas por Caudals",
     "sectorsLabel": "Sector",
+    "carousel": "carrusel",
+    "slide": "diapositiva",
     "show": "Ver {sector}",
     "source": "Fuente",
     "verdicts": {

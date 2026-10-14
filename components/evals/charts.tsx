@@ -4,6 +4,7 @@
  * Every graphic carries its numbers as text as well — colour and length are
  * never the only encoding.
  */
+import { tv } from "@/lib/evals/messages/en";
 import { tr } from "@/lib/evals/messages/phrases";
 
 export type OutcomeCounts = { pass: number; partial: number; fail: number; unscorable: number };
@@ -31,7 +32,7 @@ export function OutcomeBar({
   const description = outcomes.map((item) => `${counts[item.key]} ${item.label.toLowerCase()}`).join(", ");
   return (
     <figure className="p-outcomes">
-      <div className="p-outcomes-bar" role="img" aria-label={`${label}: ${description}, of ${total}.`}>
+      <div className="p-outcomes-bar" role="img" aria-label={tv("outcomesBarLabel", { label, description, total })}>
         {total === 0 ? (
           <span data-tone="empty" style={{ flexGrow: 1 }} />
         ) : (

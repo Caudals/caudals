@@ -81,9 +81,10 @@ evaluation page requested with `?lang=es` or `?lang=en` (for example a shared
 report sent in outreach, `/share?lang=es#token=…`) has the cookie set by
 `proxy.ts` and is redirected to the same URL without the parameter; the
 browser keeps the `#token` fragment. Strings live in `lib/evals/messages/en.ts` and `es.ts`
-(missing Spanish keys fall back to English); fixed labels in data tables go
-through `tr()` in `lib/evals/messages/phrases.ts`, and curated server messages
-through `trServer()`. Spanish pages render on the client only, so the server
+(a missing Spanish key would fall back to English, so `npm run i18n:check-parity`
+fails on one); fixed labels in data tables go through `tr()` in
+`lib/evals/messages/phrases.ts` (marked `phrase("…")` where they are defined),
+and curated server messages through `trServer()`. Spanish pages render on the client only, so the server
 never sends English text they would replace. PDF and Word exports are written
 in the requester's language (`lib/evals/reports/i18n.ts`); recorded questions,
 answers and model-written text keep their own words. Retained `/auth/*`
@@ -140,8 +141,32 @@ routes remain English-only; `/admin` is removed and returns 404.
   message falls back to Zod's own English text, which is a defect.
 - Do not ship hardcoded user-facing strings in public components, and do not
   reintroduce runtime DOM translation.
-- `npm run i18n:check-parity` verifies key parity, blank values and
-  interpolation slots. It runs against the message files, not the source.
+- EN/ES parity guard (launch L-23). The ESLint rule `caudals/no-ui-literals`
+  (`scripts/lint/no-ui-literals.mjs`, part of `npm run lint` and of
+  `npm run i18n:check-parity`) reports JSX text, visible attributes
+  (`aria-label`, `title`, `placeholder`, `alt`, `label`, `*Label`,
+  `description`, column `headers`…), visible object fields (`label:`,
+  `title:`…) and messages passed to `setError`-style setters, under
+  `components/evals`, `components/demo`, `app/(evaluation)`, the email
+  templates and the public site's components and `app/[locale]` pages. Brand
+  names, units, file formats and identifiers that read the same in both
+  languages are in its `ALLOWED_TERMS`; a genuine exception takes
+  `// eslint-disable-next-line caudals/no-ui-literals -- reason`. Fixed labels
+  in data tables are written `phrase("…")` (or typed `Phrase`) and shown with
+  `tr()`, so the Spanish entry must exist.
+- `npm run i18n:check-parity` verifies every catalogue: the site JSON, the
+  evaluation app (`lib/evals/messages`), the phrase table (every literal
+  passed to `tr()`/`phrase()`), the emails (`lib/email/copy.ts`), the PDF/Word
+  labels, the report summary and readout copy, the invoice wording, the legal
+  JSON and the help articles. It fails on missing or extra keys, blank values,
+  mismatched `{slots}` and Spanish values left identical to the English ones
+  (unless language-neutral). Rendered checks: `tests/email/templates.test.ts`
+  (structure and no copy from the other language), and
+  `tests/evals/report-language-parity.test.ts` (PDF and Word); the UI harness
+  scans Spanish screens with `e2e/evals/spanish-leaks.ts`
+  (`spanish.contract.ts` and the Spanish tests of the other contracts). The
+  image build runs the parity script and these tests, because the
+  general CI workflow is disabled.
 
 ### SEO
 

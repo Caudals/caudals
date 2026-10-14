@@ -455,7 +455,7 @@ export function PrepareEvaluation({
     setError("");
     try {
       const sourceRevisionIds = sources.map((item) => item.revisionId);
-      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: AUTOMATIC_PROMPT_REVISION, maxCases: scopeSize, complexity, locale: getLocale() };
+      const input = { mode: "automatic", orgId, sourceRevisionIds, title: tv("generatedTestSetTitle", { title: evaluation.title }), executionMode, promptRevision: AUTOMATIC_PROMPT_REVISION, maxCases: scopeSize, complexity, locale: getLocale() };
       const previous = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null } | null }>(`/evaluations/${evaluation.id}/generate?orgId=${orgId}`);
       if (previous.job && ["profiling", "profile_ready", "drafting", "draft_ready", "needs_input"].includes(previous.status)) {
         setPending("");
@@ -525,7 +525,7 @@ export function PrepareEvaluation({
       const contextInput = { orgId, purpose, tasks: [question], languages: ["en"], asOf: new Date(`${asOf}T00:00:00.000Z`).toISOString(), sources: [{ revisionId: source.revisionId, authority: "customer_supplied" }], promptRevision: "customer-context-v1" };
       const context = await evalRequest<{ status: string }>(`/evaluations/${evaluation.id}/context`, "POST", contextInput, await stableKey("evaluation-context", contextInput));
       if (context.status === "needs_input") throw new Error(t("manualNeedsInput"));
-      const generationInput = { orgId, sourceRevisionId: source.revisionId, title: `${evaluation.title} test set`, executionMode, questions: [{ question, expected, anchor }], promptRevision: "customer-example-v1" };
+      const generationInput = { orgId, sourceRevisionId: source.revisionId, title: tv("generatedTestSetTitle", { title: evaluation.title }), executionMode, questions: [{ question, expected, anchor }], promptRevision: "customer-example-v1" };
       const prepared = await evalRequest<Draft & { status: string }>(`/evaluations/${evaluation.id}/generate`, "POST", generationInput, await stableKey("evaluation-generate", generationInput));
       if (prepared.status !== "needs_review") throw new Error(t("manualNeedsReview"));
       setDraft(prepared);

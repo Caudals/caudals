@@ -47,9 +47,16 @@ type BookingEmbedProps = {
    * Cal account's language, not the page's (launch L-30).
    */
   onBooked?: (booking: BookingConfirmation) => void;
+  /**
+   * Accessible name of Cal's iframe in the visitor's language. Cal hard-codes
+   * "Book a call", which a screen reader would read on the Spanish page
+   * (launch L-23).
+   */
+  title: string;
 };
 
-export function BookingEmbed({ calLink, onBooked }: BookingEmbedProps) {
+export function BookingEmbed({ calLink, onBooked, title }: BookingEmbedProps) {
+  const frame = useRef<HTMLDivElement>(null);
   const normalizedCalLink = normalizeCalLink(calLink);
   const onBookedRef = useRef(onBooked);
   useEffect(() => {
@@ -94,12 +101,27 @@ export function BookingEmbed({ calLink, onBooked }: BookingEmbedProps) {
     };
   }, []);
 
+  // Cal creates its iframe after mounting; name it as soon as it appears.
+  useEffect(() => {
+    const root = frame.current;
+    if (!root) return;
+    const name = () => root.querySelectorAll("iframe").forEach((iframe) => {
+      if (iframe.title !== title) iframe.title = title;
+    });
+    name();
+    const observer = new MutationObserver(name);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [title]);
+
   return (
-    <Cal
-      namespace={CAL_NAMESPACE}
-      calLink={normalizedCalLink}
-      config={{ layout: "month_view", theme: "light" }}
-      style={{ width: "100%", minHeight: "620px", overflow: "auto" }}
-    />
+    <div ref={frame}>
+      <Cal
+        namespace={CAL_NAMESPACE}
+        calLink={normalizedCalLink}
+        config={{ layout: "month_view", theme: "light" }}
+        style={{ width: "100%", minHeight: "620px", overflow: "auto" }}
+      />
+    </div>
   );
 }

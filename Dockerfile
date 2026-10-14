@@ -35,6 +35,11 @@ COPY . .
 # methodology whose intervals differ from the scorer.
 RUN npx vitest run lib/legal lib/evals/example lib/evals/help/content lib/methodology
 
+# EN/ES parity (launch L-23): every catalogue has both languages, no text in
+# the evaluation app, the demo or the email templates bypasses them, and the
+# rendered emails and PDF/Word exports carry no copy from the other language.
+RUN npm run i18n:check-parity && npx vitest run tests/email/templates.test.ts tests/evals/report-language-parity.test.ts tests/i18n
+
 RUN npm run build
 
 FROM base AS runtime

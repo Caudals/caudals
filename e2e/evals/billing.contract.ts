@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { evaluationId, id, order, reportId, routeBilling, widths, workspaceSummary } from "./billing-fixtures";
+import { expectSpanishOnly } from "./spanish-leaks";
 
 /**
  * Launch L-15 UI contracts: Settings → Billing and usage (every tab), the
@@ -186,9 +187,11 @@ test("billing: Facturación y uso in Spanish at 390 and 1440 px", async ({ page 
   await expect(page.getByTestId("billing-available")).toHaveText("1820");
   await expect(page.getByText("≈ 18,20 € sin IVA")).toBeVisible();
   await expect(page.getByTestId("billing-pill").first()).toContainText("Pago por uso · 1820 créditos");
+  await expectSpanishOnly(page, "billing overview");
   for (const view of ["usage", "limits", "top-up"]) {
     await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=${view}`);
     await expect(page.getByTestId("workspace-billing")).toBeVisible();
+    await expectSpanishOnly(page, `billing ${view}`);
     await page.setViewportSize({ width: 390, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -309,6 +312,7 @@ test("run estimate: Spanish copy at 390 px", async ({ page }) => {
   await expect(dialog.getByTestId("estimate-range")).toHaveText("Unos 270–340 créditos (≈ 2,70 €–3,40 €).");
   await expect(dialog.getByTestId("estimate-balance")).toHaveText("Tienes 1820.");
   await expect(dialog.getByText("Solo pagas por el trabajo completado. Las reservas no usadas se liberan.")).toBeVisible();
+  await expectSpanishOnly(page, "evaluation page with the run estimate");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await axe(page, "[role=dialog]");
 });

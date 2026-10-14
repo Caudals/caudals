@@ -739,10 +739,11 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
 
 For translation-impacting work run:
 
-- `npm run i18n:check-parity`
-- optional strict sweep: `npm run i18n:check-parity -- --strict-orphans`
+- `npm run i18n:check-parity`: every EN/ES catalogue (site, app, phrase table, emails, PDF/Word, readout, invoices, legal, help) and the `caudals/no-ui-literals` lint rule (also part of `npm run lint`); fails on missing keys, blank values, mismatched `{slots}`, untranslated values and text that bypasses the catalogues (launch L-23). About 10 seconds
+- `npx vitest run tests/email/templates.test.ts tests/evals/report-language-parity.test.ts tests/i18n`: rendered emails and PDF/Word in both languages, and the rule's own tests
+- `npx playwright test --config=e2e/evals/ui.config.ts spanish.contract.ts`: Spanish app screens in the UI harness, scanned for English and saved as screenshots under `/tmp/evals-ui-test-results/spanish/`
 
-If the parity script is missing, update `lib/i18n/es.json`, `translations-es.json`, and `translations-source.json` manually and verify the JSON parses.
+The image build runs the first two (the general CI workflow is disabled). The native-speaker review checklist is `docs/launch/es-review-checklist.md`.
 
 ## Sensitive Data Rule
 

@@ -1,4 +1,4 @@
-import { tr } from "@/lib/evals/messages/phrases";
+import { tr, type Phrase } from "@/lib/evals/messages/phrases";
 import type { MessageKey } from "@/lib/evals/messages/en";
 /**
  * Customer-facing projection of an evaluation's separate state dimensions
@@ -109,7 +109,7 @@ export function nextStep(evaluation: Input, stage: Stage): MessageKey | null {
   return null;
 }
 
-export const STEP_LABELS = ["Connect", "Prepare tests", "Run", "Results"] as const;
+export const STEP_LABELS = ["Connect", "Prepare tests", "Run", "Results"] as const satisfies readonly Phrase[];
 
 export function stepStates(stage: Stage) {
   return STEP_LABELS.map((label, index) => ({

@@ -56,7 +56,7 @@ export function TargetCredentials({ orgId, targetId, canRevoke, onChanged }: { o
       const stored = await evalRequest<{ targetRevisionId: string }>(
         `/targets/${targetId}/credentials`,
         "POST",
-        { orgId, recordId: active?.id, label: label.trim() || "API key", kind: headerName.toLowerCase() === "authorization" ? "bearer" : "header_token", headerName, value },
+        { orgId, recordId: active?.id, label: label.trim() || t("apiKey"), kind: headerName.toLowerCase() === "authorization" ? "bearer" : "header_token", headerName, value },
         crypto.randomUUID(),
       );
       setValue("");

@@ -492,8 +492,8 @@ function Providers({ admin }: { admin: boolean }) {
               ))}
             </SelectField>
             <SelectField id="rev-adapter" name="adapter" label={t("adapter")} value={adapter} onChange={(event) => setAdapter(event.target.value)}>
-              <option value="dgx">DGX Spark (private route)</option>
-              <option value="openai_compatible">OpenAI-compatible HTTPS</option>
+              <option value="dgx">{t("adapterDgxPrivate")}</option>
+              <option value="openai_compatible">{t("adapterOpenAiHttps")}</option>
             </SelectField>
             {adapter !== "dgx" && <Field id="rev-endpoint" name="endpoint" type="url" label={t("endpointHttps")} placeholder="https://api.example.com/v1" required />}
             <Field id="rev-model" name="modelId" label={t("modelId")} required />
@@ -548,7 +548,7 @@ function Providers({ admin }: { admin: boolean }) {
               <Field key={name} id={`price-${name}`} name={name} label={t(name)} defaultValue="0" required inputMode="decimal" />
             ))}
           </div>
-          <Field id="price-source" name="source" label={t("priceSource")} required placeholder="Provider price page, 2026-09" />
+          <Field id="price-source" name="source" label={t("priceSource")} required placeholder={t("priceSourcePlaceholder")} />
         </form>
       </Modal>
 

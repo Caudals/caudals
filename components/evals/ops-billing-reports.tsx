@@ -139,7 +139,7 @@ function DraftDialog({ open, list, onClose, onCreated }: { open: boolean; list: 
             <Field id="ob-draft-fx" name="fxRate" label={t("billingOpsFxRate")} inputMode="decimal" placeholder="1.1605" />
             <Field id="ob-draft-fx-date" name="fxDate" type="date" label={t("billingOpsFxDate")} />
           </div>
-          <Field id="ob-draft-fx-source" name="fxSource" label={t("billingOpsFxSource")} placeholder="ECB reference rate" />
+          <Field id="ob-draft-fx-source" name="fxSource" label={t("billingOpsFxSource")} placeholder={t("billingOpsFxSourcePlaceholder")} />
         </fieldset>
         <Check name="useCheck" disabled={!changed.length} defaultChecked={changed.length > 0}
           label={tv("billingOpsUseCheck", { count: changed.length })}

@@ -9,6 +9,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
+import { expectSpanishOnly } from "./spanish-leaks";
 
 const WIDTHS = [390, 768, 1440] as const;
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -247,6 +248,7 @@ test("a shared copy without results keeps the metric sentence and the Spanish re
   await expect(page.locator("[data-fixes]")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Qué es este informe" })).toBeVisible();
   await expect(page.locator("[data-share-cta]").getByRole("link", { name: "Prueba gratis tu asistente" })).toHaveAttribute("href", /^https:\/\/caudals\.com\/es\/demo\?utm_source=shared_report&.*ref=sr-0123456789ab$/);
+  await expectSpanishOnly(page, "shared report");
 });
 
 test("the Spanish report reads the same summary as the Spanish PDF", async ({ page }) => {
@@ -257,4 +259,5 @@ test("the Spanish report reads the same summary as the Spanish PDF", async ({ pa
   await expect(page.locator("[data-summary-text]")).toHaveText(SUMMARY_ES);
   await expect(page.locator("[data-summary]").getByRole("link", { name: "Pide una revisión experta" })).toHaveAttribute("href", "https://caudals.com/es/contacto?offer=pilot-evaluation");
   await expect(page.locator(".p-fix-title").first()).toHaveText("Actualiza el contenido desactualizado de «Fees and charges 2026»");
+  await expectSpanishOnly(page, "report");
 });

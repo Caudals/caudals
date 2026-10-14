@@ -46,8 +46,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: i18n parity
-        run: npm run i18n:check-parity
+      # EN/ES parity (launch L-23, spec P-45). `npm run lint` above applies
+      # the literal rule (caudals/no-ui-literals). The parity script checks
+      # every catalogue (site, app, emails, PDF/Word, invoices, legal, help) and
+      # the phrase table; the tests render the emails and the PDF/Word exports
+      # in both languages and check the legal and help content. Seconds, not
+      # minutes; the image build (Dockerfile) runs the same gate.
+      - name: EN/ES parity
+        run: |
+          npm run i18n:check-parity
+          npx vitest run tests/email/templates.test.ts tests/evals/report-language-parity.test.ts tests/i18n lib/legal lib/evals/help/content.test.ts
 
       - name: Unit tests
         run: npm test -- --run

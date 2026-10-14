@@ -8,6 +8,7 @@
  */
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { expectSpanishOnly } from "./spanish-leaks";
 
 const WIDTHS = [390, 768, 1440] as const;
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -155,12 +156,14 @@ test("Home in Spanish, the Home nav item only with the flag, and an empty worksp
   await expect(page.getByRole("region", { name: "Última puntuación por sistema" })).toContainText("Aún no hay sistemas conectados.");
   await expect(page.getByRole("region", { name: "Próxima ejecución programada" })).toContainText("no incluye ejecuciones programadas");
   await expect(page.getByRole("region", { name: "Plan" })).toContainText("Gestionado");
+  await expectSpanishOnly(page, "home");
   expect(await noHorizontalScroll(page)).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
   const nav = page.getByRole("navigation", { name: /Navegación|Navigation/ });
   await expect(nav.getByRole("link").first()).toHaveText("Inicio");
   await page.goto(`/workspace/evaluations?orgId=${ORG}&editor`);
   await expect(page.getByRole("navigation", { name: /Navegación|Navigation/ }).getByRole("link", { name: "Inicio" })).toHaveCount(0);
+  await expectSpanishOnly(page, "evaluations list");
   await page.screenshot({ path: "/tmp/caudals-l22-home-es-empty.png", fullPage: true });
 });
 
@@ -448,6 +451,7 @@ test("a managed workspace keeps the full review and approves without a spot chec
   await expect(page.getByRole("button", { name: /Aprobar y ejecutar/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Volver a la comprobación/ })).toHaveCount(0);
   await expect(page.locator(".p-review-list > li")).toHaveCount(14);
+  await expectSpanishOnly(page, "evaluation page, test set review");
   expect(await noHorizontalScroll(page)).toBe(true);
   await page.locator(".p-review-bar button").last().click();
   await expect.poll(() => writes.some((write) => write.path === `/evaluations/${EVAL}/approve-suite`)).toBe(true);

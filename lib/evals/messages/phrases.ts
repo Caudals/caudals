@@ -4,9 +4,11 @@ import { getLocale } from "./en";
  * Spanish for fixed English labels that live in data tables rather than the
  * message catalogue (status badges, evaluation stages, chart legends,
  * connection kinds, severities). `tr` returns the label unchanged in English
- * or when no translation exists.
+ * or when no translation exists, so every label written as `tr("…")` or
+ * `phrase("…")` needs an entry here: `npm run i18n:check-parity` fails
+ * otherwise (launch L-23).
  */
-const ES: Record<string, string> = {
+const ES = {
   Pass: "Superada", Partial: "Parcial", Fail: "Fallida", "Not scored": "Sin puntuar",
   Running: "En curso", "Waiting for your answers": "Esperando tus respuestas", "Waiting for your runner": "Esperando a tu ejecutor",
   Paused: "En pausa", Failed: "Con error", "Results ready": "Resultados listos", Cancelled: "Cancelada", "Finalizing results": "Finalizando resultados",
@@ -42,7 +44,10 @@ const ES: Record<string, string> = {
   Comparable: "Comparable", "Not comparable": "No comparable", Inconclusive: "No concluyente", Improved: "Mejorada", Regressed: "Empeorada",
   Unchanged: "Sin cambios", Regression: "Regresión", Unknown: "Desconocido", Critical: "Crítica", High: "Alta", Medium: "Media", Low: "Baja",
   Assigned: "Asignado", "In progress": "En curso", Active: "Activo", Quarantined: "En cuarentena", Released: "Publicado",
-  Disputed: "Disputado", Approved: "Aprobado", Captured: "Capturado", Persisting: "Guardando", Extracting: "Extrayendo",
+  Disputed: "Disputado", Approved: "Aprobado", Captured: "Capturado",
+  // Expert review states (launch L-23: shown in the expert and ops screens).
+  "Save conflict": "Conflicto al guardar", "Guideline changed": "Guía modificada", Submitted: "Enviado", "In review": "En revisión",
+  "Changes requested": "Cambios solicitados", Rejected: "Rechazado", Adjudicated: "Resuelto", "Not required": "No necesario", Persisting: "Guardando", Extracting: "Extrayendo",
   Profiling: "Analizando", "Profile ready": "Perfil listo", Drafting: "Redactando", "Draft ready": "Borrador listo",
   Exploratory: "Exploratoria", "Source grounded": "Basada en fuentes", "Source-grounded": "Basada en fuentes", Expired: "Caducado",
   "Imported answers": "Respuestas importadas", Proposed: "Propuesta", Planned: "Planificada", Closed: "Cerrada",
@@ -116,10 +121,32 @@ const ES: Record<string, string> = {
   "Worker": "Proceso",
   "System": "Sistema",
   "User": "Persona",
-};
+} satisfies Record<string, string>;
+
+/** A fixed English label with a Spanish entry in the table above. */
+export type Phrase = keyof typeof ES;
 
 export function tr(text: string): string {
-  return getLocale() === "es" ? ES[text] ?? text : text;
+  return getLocale() === "es" ? (ES as Record<string, string>)[text] ?? text : text;
+}
+
+/**
+ * Marks a fixed label in a data table that is shown through `tr` later (for
+ * example the status pills). It returns the label unchanged; the type only
+ * accepts labels the Spanish table has.
+ */
+export function phrase<T extends Phrase>(text: T): T {
+  return text;
+}
+
+/** Whether the Spanish table has this label (for the parity check). */
+export function hasPhrase(text: string): boolean {
+  return Object.hasOwn(ES, text);
+}
+
+/** Every fixed label with its Spanish, as [English, Spanish] (for the parity checks). */
+export function phraseLabels(): Array<[string, string]> {
+  return Object.entries(ES);
 }
 
 /** Curated server messages (API errors) that people commonly see, in Spanish. */
@@ -129,8 +156,8 @@ const SERVER_ES: Record<string, string> = {
   "A workspace generation budget must be configured before preparing this dataset.": "Hay que configurar un presupuesto de generación del espacio antes de preparar este conjunto.",
   "Set a positive evaluation budget before generating a dataset.": "Define un presupuesto de evaluación positivo antes de generar un conjunto.",
   "Answer each question in 1 to 2,000 characters.": "Responde cada pregunta con entre 1 y 2.000 caracteres.",
-  "The free plan includes one AI system. Delete the current one or talk to us about a pilot.": "El plan gratis incluye un sistema de IA. Borra el actual o habla con nosotros de un piloto.",
-  "The free plan includes three runs a month. Talk to us about a pilot for more.": "El plan gratis incluye tres ejecuciones al mes. Habla con nosotros de un piloto para hacer más.",
+  "The free plan includes one AI system. Delete the current one or talk to us about a pilot.": "El plan gratuito incluye un sistema de IA. Borra el actual o habla con nosotros de un piloto.",
+  "The free plan includes three runs a month. Talk to us about a pilot for more.": "El plan gratuito incluye tres ejecuciones al mes. Habla con nosotros de un piloto para hacer más.",
   "Enter the effective date as YYYY-MM-DD. A year such as 2027 or a month such as 2027-03 also works.": "Escribe la fecha de vigencia como AAAA-MM-DD. También vale un año, como 2027, o un mes, como 2027-03.",
   "Enter language tags such as en or es-ES, separated by commas.": "Escribe códigos de idioma como en o es-ES, separados por comas.",
   "That answer no longer matches an open question. Reload the page and answer again.": "Esa respuesta ya no corresponde a una pregunta abierta. Recarga la página y vuelve a responder.",

@@ -148,6 +148,47 @@ describe("email templates", () => {
     }
   });
 
+  it("has the same structure in both languages (launch L-23)", () => {
+    for (const name of NAMES) {
+      const shape = (locale: "en" | "es") => {
+        const content = emailContent(name, locale, FIXTURES[name] as never);
+        return {
+          blocks: content.blocks.map((block) => block.kind === "action" || block.kind === "link" ? `${block.kind}:${block.url}`
+            : block.kind === "steps" ? `steps:${block.items.length}` : block.kind === "facts" ? `facts:${block.rows.length}` : block.kind),
+          footer: content.footer.length,
+          footerLink: content.footerLink?.url ?? null,
+        };
+      };
+      expect(shape("es"), name).toEqual(shape("en"));
+    }
+  });
+
+  it("leaks no copy from the other language into a rendered email (launch L-23)", () => {
+    const flatten = (tree: object, prefix = ""): Record<string, string> =>
+      Object.entries(tree).reduce<Record<string, string>>((out, [key, value]) =>
+        typeof value === "string" ? { ...out, [prefix + key]: value } : { ...out, ...flatten(value, `${prefix}${key}.`) }, {});
+    const english = flatten(en), spanish = flatten(es);
+    // The fixed wording of each catalogue that differs from the other language, cut at its {slots}.
+    const fragments = (own: Record<string, string>, other: Record<string, string>) => [...new Set(Object.entries(own)
+      .filter(([key, value]) => value !== other[key])
+      .flatMap(([, value]) => value.split(/\{\w+\}/))
+      .map((part) => part.replace(/\s+/g, " ").replace(/^[\s.,:;·—–-]+|[\s.,:;·—–-]+$/g, ""))
+      .filter((part) => (part.match(/\p{L}{2,}/gu) ?? []).length >= 2))];
+    const englishOnly = fragments(english, spanish), spanishOnly = fragments(spanish, english);
+    // Props written by the caller in the reader's language (the demo email's wording comes from the site catalogue).
+    const props = (name: TemplateName, locale: "en" | "es") => name === "demo_report" && locale === "es"
+      ? { ...FIXTURES.demo_report, subject: "Tu prueba de acme.example está lista", heading: "Tu prueba de acme.example está lista", lines: ["5 de 8 respuestas coinciden con tu web."], footer: "Pediste este correo en caudals.com." }
+      : FIXTURES[name];
+    for (const name of NAMES) {
+      for (const [locale, foreign] of [["es", englishOnly], ["en", spanishOnly]] as const) {
+        const email = renderEmail(name, locale, props(name, locale) as never);
+        const visible = `${email.subject}\n${email.text}`.replace(/\s+/g, " ");
+        const leaks = foreign.filter((fragment) => new RegExp(`(?<![\\p{L}\\p{N}])${fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "u").test(visible));
+        expect(leaks, `${name} (${locale})`).toEqual([]);
+      }
+    }
+  });
+
   it("keeps the two catalogues in step and filled", () => {
     const flatten = (tree: object, prefix = ""): Record<string, string> =>
       Object.entries(tree).reduce<Record<string, string>>((out, [key, value]) =>

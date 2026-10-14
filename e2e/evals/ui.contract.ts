@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { expectSpanishOnly } from "./spanish-leaks";
 const id = "00000000-0000-4000-8000-000000000001";
 const token = "a".repeat(43);
 for (const failure of ["selector_unavailable", "website_usage_limit"]) {
@@ -2182,6 +2183,7 @@ test("direct sign-up reads in Spanish and links the Spanish demo", async ({ page
   await page.getByLabel("Empresa").fill("Acme");
   await page.getByRole("button", { name: "Enviarme el enlace" }).click();
   await expect(page.getByRole("alert")).toContainText("Demasiadas solicitudes");
+  await expectSpanishOnly(page, "direct sign-up");
   expect(bodies[0]).toMatchObject({ locale: "es" });
 });
 
@@ -2317,6 +2319,7 @@ test("the queued demo reads in Spanish", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Eres el número 3 de la fila" })).toBeVisible();
   await expect(page.getByText("Tu informe debería estar listo en unos 4–16 min.")).toBeVisible();
   await expect(page.getByLabel(/Envíame un enlace a este informe cuando esté listo/)).toBeVisible();
+  await expectSpanishOnly(page, "demo, queued");
 });
 
 test("a running website demo shows its ETA, a degraded notice and tips after a minute of finding the chat, with reduced motion", async ({ page }) => {
@@ -2422,6 +2425,7 @@ test("the public demo report reads in Spanish and explains a share limit", async
   await card.getByLabel(/Envío mi propio informe a un colega que lo espera/).check();
   await card.getByRole("button", { name: "Enviar el informe" }).click();
   await expect(card.getByRole("alert")).toHaveText("Has llegado al límite de envíos de este informe. Copia el enlace privado.");
+  await expectSpanishOnly(page, "demo report");
   await noHorizontalScroll(page);
 });
 
