@@ -88,7 +88,8 @@ async function main() {
           // Each task runs on its own: one failing step (a bad generation job,
           // say) must not stop grading, reports or notifications for the workspace.
           const tasks: Array<[string, () => Promise<unknown>]> = [
-            ["schedules", () => tickSchedules(scope)],
+            // Launch L-18: due slots are checked for credits; a skip for credits or a cap alerts owners.
+            ["schedules", () => tickSchedules(scope, undefined, { send })],
             ["alerts", () => tickScheduledAlerts(scope)],
             ["webhooks", () => tickWebhookDeliveries(scope, keys)],
             ["restarts", () => advanceEvaluationRestarts(scope)],

@@ -110,7 +110,7 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const pending=await createSchedule(scope,base,"monitor-fixture-key-4");
     const runId=randomUUID();
     await owner.query(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,
-      execution_mode,status,phase,created_by) VALUES($1,$2,$3,$4,$5,'deployed_system','completed','grading',$6)`,
+      execution_mode,status,phase,created_by) VALUES($1,$2,$3,$4,$5,'deployed_system','completed','done',$6)`,
       [runId,orgId,evaluationId,targetRevisionId,suiteVersionId,actorId]);
     await owner.query("INSERT INTO evals.case_unit(org_id,run_id,case_revision_id,repetition,status) VALUES($1,$2,$3,0,'capture_incomplete')",
       [orgId,runId,revisionId]);

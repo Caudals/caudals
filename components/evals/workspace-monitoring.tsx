@@ -4,6 +4,12 @@
  * Repeatable service (spec WP-13): scheduled reruns of an approved test set,
  * their outcomes, and the customer's own integrations — scoped read-only API
  * tokens and signed webhooks. Secrets are shown exactly once.
+ *
+ * Launch L-18 (spec v2 P-24, P-25, §6.7, §6.10): where the workspace pays with
+ * credits (pay as you go), a schedule is weekly or monthly, shows its estimate
+ * per run and per month, and may carry a monthly credit limit (owners); a run
+ * the balance or a limit cannot cover is skipped and owners are alerted. Each
+ * outcome shows the score against last time and the newly broken questions.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarClock, KeyRound, Plus, Webhook } from "lucide-react";
@@ -13,7 +19,12 @@ import { ActionMenu, CopyField, Modal, notify } from "./overlays";
 import type { WorkspaceSummary } from "./workspace-data";
 import { openLimitDialog, usePlanSummary } from "./limit-dialog";
 import { HelpLink } from "./help";
-import { t } from "@/lib/evals/messages/en";
+import { useWorkspace } from "./workspace-context";
+import { formatCount, formatCredits, useBilling } from "./billing-state";
+import type { RunEstimate } from "./run-estimate-dialog";
+import { comparisonReasons, scorePercent } from "./run-comparison";
+import { monthlyProjection } from "@/lib/evals/monitoring/projection";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Schedule = {
   id: string;
@@ -32,14 +43,39 @@ type Schedule = {
   latest_dispatch_status: string | null;
   latest_dispatch_reason: string | null;
   latest_alert_status: string | null;
+  /** The schedule's monthly credit limit (µcr), launch L-18. */
+  credit_cap_ucr?: string | null;
 };
-type Alert = { id: string; schedule_id: string; candidate_run_id: string; status: string; reason_codes: string[]; created_at: string };
+type Summary = { comparable: boolean; reasons: string[]; candidate: { reportId: string | null; score: { pass: number; scored: number } }; baseline: { score: { pass: number; scored: number } } | null; newlyBrokenTotal: number } | null;
+type Alert = { id: string; schedule_id: string; candidate_run_id: string; status: string; reason_codes: string[]; created_at: string; summary?: Summary };
+
+/** Dispatch reasons in words (launch L-18); anything else is humanised. */
+const REASON: Record<string, MessageKey> = {
+  credits_exhausted: "scheduleReasonCreditsExhausted", cap_reached: "scheduleReasonCapReached", overlap_skipped: "scheduleReasonOverlap",
+  suite_changed: "scheduleReasonSuiteChanged", sources_stale: "scheduleReasonSourcesStale", monthly_budget_exhausted: "scheduleReasonBudget",
+  schedule_not_funded: "scheduleReasonNotIncluded", dispatch_failed: "scheduleReasonFailed", manual_pause: "scheduleReasonPaused",
+};
+const reasonText = (code: string) => (REASON[code] ? t(REASON[code]) : code.replaceAll("_", " "));
+/** "€2.70–€3.40" in the interface language. */
+function euroRange(euros: { p50: string; p90: string }) {
+  const format = new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB", { style: "currency", currency: "EUR" });
+  return `${format.format(Number(euros.p50))}–${format.format(Number(euros.p90))}`;
+}
 type Endpoint = { id: string; label: string; url: string; events: string[]; enabled: boolean; failed_deliveries: number };
 type Token = { id: string; name: string; scopes: string[]; expires_at: string; revoked_at: string | null };
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: string; canManage: boolean; summary: WorkspaceSummary }) {
+  const { withOrg } = useWorkspace();
+  // Launch L-18: on credits (billing shows and the workspace is not on a contract), schedules use credits.
+  const { summary: billing } = useBilling();
+  const credits = !!billing && billing.billingMode !== "contract";
+  const owner = billing?.level === "owner";
+  const [creditCap, setCreditCap] = useState("");
+  const [estimate, setEstimate] = useState<{ key: string; value: RunEstimate | null; failed: boolean } | null>(null);
+  const [capFor, setCapFor] = useState<Schedule | null>(null);
+  const [capValue, setCapValue] = useState("");
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [error, setError] = useState("");
@@ -62,6 +98,22 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
   const systems = summary.systems.filter((item) => (evaluation?.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation?.project_id) && item.document.kind !== "imported_responses");
   const selectedTarget = systems.find((item) => item.target_revision_id === targetRevisionId) ?? systems[0];
   const current = useMemo(() => new Map(summary.evaluations.map((item) => [item.id, item])), [summary.evaluations]);
+  const effectiveCadence = credits && cadence === "daily" ? "weekly" : cadence;
+
+  // The estimate for the chosen evaluation and system (§6.7: per run plus a monthly projection).
+  const estimateKey = open && credits && evaluation && selectedTarget ? `${evaluation.id}|${selectedTarget.target_revision_id}` : "";
+  useEffect(() => {
+    if (!estimateKey || !evaluation || !selectedTarget) return;
+    let live = true;
+    void evalRequest<RunEstimate>("/billing/estimates", "POST", { orgId, evaluationId: evaluation.id, suiteVersionId: evaluation.selected_suite_version_id, targetRevisionId: selectedTarget.target_revision_id }, crypto.randomUUID())
+      .then((value) => live && setEstimate({ key: estimateKey, value, failed: false }))
+      .catch(() => live && setEstimate({ key: estimateKey, value: null, failed: true }));
+    return () => { live = false; };
+  }, [estimateKey, evaluation, orgId, selectedTarget]);
+  const shownEstimate = estimate?.key === estimateKey ? estimate : null;
+  const perRun = shownEstimate?.value ? { p50: Number(shownEstimate.value.credits.p50), p90: Number(shownEstimate.value.credits.p90) } : null;
+  const projection = perRun ? monthlyProjection(effectiveCadence, perRun) : null;
+  const capBelowRun = !!perRun && creditCap !== "" && Number(creditCap) < perRun.p90;
 
   const refresh = useCallback(async () => {
     const [s, a] = await Promise.all([
@@ -108,19 +160,30 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
             targetRevisionId: selectedTarget.target_revision_id,
             suiteVersionId: evaluation.selected_suite_version_id,
             timezone,
-            cadence,
+            cadence: effectiveCadence,
             localTime,
-            weekday: cadence === "weekly" ? weekday : null,
-            dayOfMonth: cadence === "monthly" ? dayOfMonth : null,
-            maxRunSpend: maxRunSpend || String(Number(evaluation.commercial_cap)),
+            weekday: effectiveCadence === "weekly" ? weekday : null,
+            dayOfMonth: effectiveCadence === "monthly" ? dayOfMonth : null,
+            maxRunSpend: credits ? String(Number(evaluation.commercial_cap)) : maxRunSpend || String(Number(evaluation.commercial_cap)),
             currency: evaluation.currency,
             sourceMaxAgeDays: sourceMaxAgeDays ? Number(sourceMaxAgeDays) : null,
+            ...(credits && owner && creditCap ? { creditCapCredits: Number(creditCap) } : {}),
           },
           crypto.randomUUID(),
         ),
       t("scheduleCreated"),
     );
-    if (ok) setOpen(false);
+    if (ok) {
+      setOpen(false);
+      setCreditCap("");
+    }
+  }
+
+  async function saveCap(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!capFor) return;
+    const ok = await mutate(() => evalRequest(`/schedules/${capFor.id}`, "PATCH", { orgId, expectedVersion: capFor.version, creditCapCredits: capValue ? Number(capValue) : null }), t("scheduleCapSaved"));
+    if (ok) setCapFor(null);
   }
 
   const canCreate = summary.entitlement.can_schedule && !!evaluation && !!selectedTarget;
@@ -157,15 +220,16 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
               <tr key={item.id}>
                 <RowTitle meta={drift ? t("approvedSuiteChanged") : undefined}>{current.get(item.evaluation_id)?.title ?? t("evaluation")}</RowTitle>
                 <td>
-                  {item.cadence[0].toUpperCase() + item.cadence.slice(1)} · {String(item.local_time).slice(0, 5)}
+                  {t(item.cadence === "daily" ? "daily" : item.cadence === "weekly" ? "weekly" : "monthly")} · {String(item.local_time).slice(0, 5)}
                   <span className="p-cell-meta p-cell-note">{item.timezone}</span>
+                  {item.credit_cap_ucr && <span className="p-cell-meta p-cell-note" data-testid="schedule-cap">{tv("scheduleCapLabel", { cap: formatCredits(item.credit_cap_ucr) })}</span>}
                 </td>
                 <td className="p-cell-meta">
                   <Time value={item.next_due_at} />
                 </td>
                 <td>
                   <StatusBadge value={item.status} />
-                  {(item.reason_code || item.latest_dispatch_reason) && <span className="p-cell-meta p-cell-note">{(item.reason_code ?? item.latest_dispatch_reason ?? "").replaceAll("_", " ")}</span>}
+                  {(item.reason_code || item.latest_dispatch_reason) && <span className="p-cell-meta p-cell-note" data-testid="schedule-reason">{reasonText(item.reason_code ?? item.latest_dispatch_reason ?? "")}</span>}
                 </td>
                 <td className="p-table-action">
                   {canManage && (
@@ -178,6 +242,9 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
                         },
                         ...(drift
                           ? [{ label: t("useApprovedSuite"), onSelect: () => void mutate(() => evalRequest(`/schedules/${item.id}`, "PATCH", { orgId, expectedVersion: item.version, suiteVersionId: approved }), t("scheduleUsesApproved")) }]
+                          : []),
+                        ...(credits && owner
+                          ? [{ label: t("scheduleEditCap"), onSelect: () => { setCapFor(item); setCapValue(item.credit_cap_ucr ? String(Number(BigInt(item.credit_cap_ucr) / BigInt(1_000_000))) : ""); } }]
                           : []),
                       ]}
                     />
@@ -196,18 +263,31 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
       {alerts.length > 0 && (
         <div className="p-section">
           <SectionHeading title={t("monitoringOutcomes")}>{t("monitoringOutcomesHelp")}</SectionHeading>
-          <DataTable caption={t("monitoringOutcomes")} headers={[t("when"), t("outcome"), t("reason")]}>
-            {alerts.map((item) => (
-              <tr key={item.id}>
-                <RowTitle>
-                  <Time value={item.created_at} />
-                </RowTitle>
-                <td>
-                  <StatusBadge value={item.status} />
-                </td>
-                <td className="p-cell-meta">{item.reason_codes.map((code) => code.replaceAll("_", " ")).join(", ") || "—"}</td>
-              </tr>
-            ))}
+          <DataTable caption={t("monitoringOutcomes")} headers={[t("when"), t("outcome"), t("monitorScore"), t("monitorDetails")]}>
+            {alerts.map((item) => {
+              const s = item.summary;
+              const now = s ? scorePercent(s.candidate.score) : "—";
+              return (
+                <tr key={item.id}>
+                  <RowTitle href={s?.candidate.reportId ? withOrg(`/workspace/reports/${s.candidate.reportId}`) : undefined}>
+                    <Time value={item.created_at} />
+                  </RowTitle>
+                  <td>
+                    <StatusBadge value={item.status} />
+                  </td>
+                  <td data-testid="outcome-score">
+                    {s && s.baseline && s.comparable ? tv("monitorScoreChange", { now, before: scorePercent(s.baseline.score) }) : now}
+                  </td>
+                  <td className="p-cell-meta">
+                    {s && !s.comparable
+                      ? (s.baseline ? `${t("monitorNotComparable")}: ${comparisonReasons(s.reasons)}` : t("monitorFirstRun"))
+                      : s && s.newlyBrokenTotal
+                        ? (s.newlyBrokenTotal === 1 ? t("monitorNewlyBrokenOne") : tv("monitorNewlyBroken", { n: s.newlyBrokenTotal }))
+                        : item.reason_codes.map((code) => code.replaceAll("_", " ")).join(", ") || "—"}
+                  </td>
+                </tr>
+              );
+            })}
           </DataTable>
         </div>
       )}
@@ -216,7 +296,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
         open={open}
         onOpenChange={setOpen}
         title={t("newSchedule")}
-        description={t("newScheduleHelp")}
+        description={credits ? t("newScheduleHelpCredits") : t("newScheduleHelp")}
         size="lg"
         footer={
           <>
@@ -241,25 +321,58 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
                 <option key={item.target_revision_id} value={item.target_revision_id}>{item.title}</option>
               ))}
             </SelectField>
-            <SelectField id="monitor-cadence" label={t("cadence")} value={cadence} onChange={(event) => setCadence(event.target.value as typeof cadence)}>
-              <option value="daily">{t("daily")}</option>
+            <SelectField id="monitor-cadence" label={t("cadence")} value={effectiveCadence} onChange={(event) => setCadence(event.target.value as typeof cadence)}>
+              {!credits && <option value="daily">{t("daily")}</option>}
               <option value="weekly">{t("weekly")}</option>
               <option value="monthly">{t("monthly")}</option>
             </SelectField>
-            {cadence === "weekly" && (
+            {effectiveCadence === "weekly" && (
               <SelectField id="monitor-weekday" label={t("weekday")} value={weekday} onChange={(event) => setWeekday(Number(event.target.value))}>
                 {WEEKDAYS.map((day, index) => (
                   <option key={day} value={index + 1}>{day}</option>
                 ))}
               </SelectField>
             )}
-            {cadence === "monthly" && <Field id="monitor-day" label={t("dayOfMonth")} type="number" min={1} max={31} value={dayOfMonth} onChange={(event) => setDayOfMonth(Number(event.target.value))} required />}
+            {effectiveCadence === "monthly" && <Field id="monitor-day" label={t("dayOfMonth")} type="number" min={1} max={31} value={dayOfMonth} onChange={(event) => setDayOfMonth(Number(event.target.value))} required />}
             <Field id="monitor-time" label={t("localTime")} type="time" value={localTime} onChange={(event) => setLocalTime(event.target.value)} required />
             <Field id="monitor-zone" label={t("timezone")} value={timezone} onChange={(event) => setTimezone(event.target.value)} required />
-            <Field id="monitor-spend" label={`${t("maxRunSpend")} (${evaluation?.currency ?? summary.entitlement.currency})`} inputMode="decimal" value={maxRunSpend || (evaluation?.commercial_cap ? String(Number(evaluation.commercial_cap)) : "")} onChange={(event) => setMaxRunSpend(event.target.value)} required />
+            {!credits && <Field id="monitor-spend" label={`${t("maxRunSpend")} (${evaluation?.currency ?? summary.entitlement.currency})`} inputMode="decimal" value={maxRunSpend || (evaluation?.commercial_cap ? String(Number(evaluation.commercial_cap)) : "")} onChange={(event) => setMaxRunSpend(event.target.value)} required />}
             <Field id="monitor-freshness" label={t("maxSourceAge")} type="number" min={1} max={3650} value={sourceMaxAgeDays} onChange={(event) => setSourceMaxAgeDays(event.target.value)} hint={t("optional")} />
           </div>
+          {credits && (
+            <div className="p-schedule-estimate" data-testid="schedule-estimate" aria-live="polite">
+              <p className="p-eyebrow">{t("scheduleEstimateTitle")}</p>
+              {!shownEstimate ? <p className="p-cell-meta">{t("scheduleEstimateLoading")}</p>
+                : !shownEstimate.value || !perRun || !projection ? <p className="p-cell-meta">{t("scheduleEstimateUnavailable")}</p>
+                  : <>
+                    <p>{tv("scheduleEstimatePerRun", { p50: formatCount(perRun.p50), p90: formatCount(perRun.p90), euros: euroRange(shownEstimate.value.euros) })}</p>
+                    <p>{projection.runs.max === 1
+                      ? tv("scheduleEstimateMonthlyOne", { low: formatCount(projection.low), high: formatCount(projection.high) })
+                      : tv("scheduleEstimateMonthly", { low: formatCount(projection.low), high: formatCount(projection.high), min: projection.runs.min, max: projection.runs.max })}</p>
+                    {shownEstimate.value.balance && <p className="p-cell-meta">{tv("scheduleEstimateBalance", { balance: formatCount(Math.floor(Number(shownEstimate.value.balance.availableCredits))) })}</p>}
+                  </>}
+              {owner && <Field id="monitor-credit-cap" label={t("scheduleCreditCap")} type="number" min={1} step={1} inputMode="numeric" value={creditCap} onChange={(event) => setCreditCap(event.target.value)} hint={t("scheduleCreditCapHint")} />}
+              {capBelowRun && <Status tone="warn">{t("scheduleCreditCapBelow")}</Status>}
+              <p className="p-field-hint">{t("scheduleCreditsCadenceHelp")} {t("scheduleEstimateHelp")}</p>
+            </div>
+          )}
           <p className="p-field-hint">{t("scheduleSlotHelp")}</p>
+        </form>
+      </Modal>
+      <Modal
+        open={!!capFor}
+        onOpenChange={(value) => !value && setCapFor(null)}
+        title={t("scheduleEditCap")}
+        description={t("scheduleCapDialogHelp")}
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setCapFor(null)}>{t("cancel")}</Action>
+            <Action type="submit" form="schedule-cap-form" disabled={busy}>{t("scheduleCapSave")}</Action>
+          </>
+        }
+      >
+        <form id="schedule-cap-form" onSubmit={saveCap}>
+          <Field id="schedule-cap" label={t("scheduleCreditCap")} type="number" min={1} step={1} inputMode="numeric" value={capValue} onChange={(event) => setCapValue(event.target.value)} hint={t("scheduleCreditCapHint")} />
         </form>
       </Modal>
     </section>

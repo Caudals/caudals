@@ -1,25 +1,30 @@
 ---
 title: Programaciones y alertas de regresión
-summary: Repite un conjunto de pruebas aprobado cada día, semana o mes, y recibe una alerta cuando las respuestas empeoran respecto a la ejecución anterior.
-keywords: [programación, ejecuciones programadas, monitorización, periódica, mensual, semanal, diaria, regresión, alerta, comparar, webhook, notificación]
+summary: Repite un conjunto de pruebas aprobado cada semana o cada mes, consulta lo que cuesta y recibe una alerta cuando las respuestas empeoran respecto a la ejecución anterior.
+keywords: [programación, ejecuciones programadas, monitorización, periódica, mensual, semanal, diaria, regresión, alerta, comparar, volver a ejecutar, omitida, webhook, notificación]
 related: [prepare-and-run, reading-results, getting-help]
 owner: engineering
-reviewed: 2026-10-12
-review_by: 2027-01-12
+reviewed: 2026-10-14
+review_by: 2027-01-14
 ---
 
 Una programación vuelve a ejecutar el mismo conjunto de pruebas congelado a una hora fija, para que veas si un cambio en tu asistente, su modelo o sus documentos ha empeorado las respuestas.
 
 ## Crear una programación {#create}
 
-Las programaciones están en **Ajustes → Monitorización**, en **Ejecuciones programadas**. Los propietarios pueden crearlas para evaluaciones con un conjunto de pruebas aprobado. La programación se habilita por espacio y no forma parte del plan gratuito.
+Las programaciones están en **Ajustes → Monitorización**, en **Ejecuciones programadas**. Los propietarios pueden crearlas para evaluaciones con un conjunto de pruebas aprobado. La programación forma parte del pago por uso y de los planes gestionados, no del plan gratuito.
 
 1. Elige **Nueva programación**.
 2. Elige la evaluación y el sistema que se va a probar.
-3. Indica la frecuencia (**Diaria**, **Semanal** o **Mensual**), el día, la hora local y la zona horaria.
-4. Si quieres, indica un **Gasto máximo por ejecución** y una **Antigüedad máxima de las fuentes (días)**. Cuando tus fuentes son más antiguas, la ejecución programada se omite en lugar de probar con material desactualizado.
+3. Indica la frecuencia, el día, la hora local y la zona horaria. Los espacios de trabajo con créditos programan ejecuciones **Semanales** o **Mensuales**; los planes gestionados también pueden elegir **Diaria**.
+4. Con créditos, el diálogo muestra la **estimación**: créditos por ejecución y al mes. Los propietarios pueden fijar un **Límite de créditos al mes**, lo máximo que pueden usar las ejecuciones de la programación en un mes natural. En un plan gestionado indicas un **Gasto máximo por ejecución**.
+5. Si quieres, indica una **Antigüedad máxima de las fuentes (días)**. Cuando tus fuentes son más antiguas, la ejecución programada se omite en lugar de probar con material desactualizado.
 
-Cada programación se puede pausar y reanudar. Cuando existe un conjunto aprobado más reciente, **Usar el conjunto aprobado** cambia la programación a ese conjunto.
+Cada programación se puede pausar y reanudar. Cuando existe un conjunto aprobado más reciente, **Usar el conjunto aprobado** cambia la programación a ese conjunto. Los propietarios cambian el límite de créditos de una programación desde su menú.
+
+## Cuándo se omite una ejecución programada {#skipped}
+
+Antes de que empiece cada ejecución programada, Caudals comprueba que el saldo cubre su estimación y que no supera el límite de la programación ni los de tu espacio de trabajo. Si no, esa ejecución se omite, no se cobra nada y los propietarios reciben un aviso en la aplicación y por correo con lo que conviene hacer antes de la siguiente: añadir créditos o subir el límite. La programación sigue activa. Las ejecuciones se cobran como cualquier otra: solo el trabajo completado.
 
 ## Cómo se juzga cada resultado {#outcomes}
 
@@ -30,6 +35,12 @@ Cada ejecución programada se compara, pregunta por pregunta, con la ejecución 
 - **No concluyente**: las ejecuciones no se pueden comparar con justicia, por ejemplo en la primera ejecución, cuando se puntuó menos del 90 % de las pruebas o cuando mejoraron tantas preguntas como empeoraron.
 - **Desconocido**: la ejecución falló o se canceló.
 
+Las ejecuciones con otro conjunto de pruebas (o con otra rúbrica, otro corrector u otra configuración de conexión) **no son comparables**: nunca se ponen sus puntuaciones lado a lado y no se envía ninguna alerta de regresión.
+
 ## Dónde aparecen las alertas {#alerts}
 
-Los resultados aparecen en **Resultados de la monitorización** y en el centro de notificaciones. Para enviarlos a tus propios sistemas, añade un webhook firmado en **Ajustes → Desarrolladores**; allí tienes la referencia de la API.
+Los resultados aparecen en **Resultados de la monitorización**, con la puntuación frente a la vez anterior, y en el centro de notificaciones con las preguntas que han empeorado. Una regresión también se envía por correo a quienes tienen activado **Regresiones** en **Ajustes → Notificaciones**: la puntuación de esta vez y de la anterior, y hasta cinco preguntas que han empeorado, cada una con un enlace a su respuesta. Para enviar los resultados a tus propios sistemas, añade un webhook firmado en **Ajustes → Desarrolladores**; allí tienes la referencia de la API.
+
+## Volver a ejecutar y comparar {#compare}
+
+En los resultados de una evaluación, **Volver a ejecutar** repite el mismo conjunto de pruebas aprobado (primero con su estimación si tu espacio de trabajo paga con créditos). Cuando termina la nueva ejecución, la comparación con la anterior se abre sola: preguntas que mejoran, empeoran o no cambian, cada una con su respuesta. **Comparar** te deja elegir otra ejecución anterior. En un informe, **Volver a ejecutar estas preguntas** en una corrección hace lo mismo y muestra primero las preguntas de esa corrección.

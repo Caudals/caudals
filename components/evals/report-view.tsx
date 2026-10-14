@@ -47,6 +47,7 @@ import {
 import { BarList, OutcomeBar, StackedBars, percent } from "./charts";
 import { ActionMenu, notify } from "./overlays";
 import { ReportActions, type ReportCommands, type ReportRevision } from "./report-actions";
+import { RunComparisonView, useRunComparison } from "./run-comparison";
 import { AiDisclosureEvidence } from "./ai-disclosure-evidence";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { rememberTab, rememberedTab } from "./settings-tabs";
@@ -195,6 +196,8 @@ export type ReportCta = {
   expertHref?: string | null;
   /** The in-app expert-review request (launch L-26); replaces `expertHref` when its flag is on. */
   expertReview?: ReactNode;
+  /** "Re-run these questions" on a fix (launch L-18): runs the approved test set again, these questions first in the comparison. */
+  onRerun?: (caseRevisionIds: string[]) => void;
 };
 
 /** Save text built in the browser (fix list, failing answers) as a file. */
@@ -287,11 +290,12 @@ function NextSteps({ cta }: { cta: ReportCta }) {
 /**
  * "Fix these first" (spec P-18): three to five fixes grouped by likely cause
  * and source page, each with its evidence. Causes are labelled hypotheses.
- * Re-running only a fix's questions arrives with re-run and compare (L-18),
- * so the button is shown disabled with that note. CSV and Markdown exports
- * carry the evidence for a vendor.
+ * "Re-run these questions" (launch L-18) runs the whole approved test set
+ * again, so scores stay comparable, and the comparison that opens afterwards
+ * lists the fix's questions first. CSV and Markdown exports carry the
+ * evidence for a vendor.
  */
-function FixList({ report, fixes, rerun, onResults }: { report: Partial<ReportSnapshot>; fixes: Fix[]; rerun: boolean; onResults: (ids: string[], label: string) => void }) {
+function FixList({ report, fixes, onRerun, onResults }: { report: Partial<ReportSnapshot>; fixes: Fix[]; onRerun?: (caseRevisionIds: string[]) => void; onResults: (ids: string[], label: string) => void }) {
   const locale = getLocale();
   const copy = summaryCopy(locale);
   const results = report.results ?? [];
@@ -334,8 +338,9 @@ function FixList({ report, fixes, rerun, onResults }: { report: Partial<ReportSn
                   {copy.fixEvidence} ({fix.assessment_ids.length})
                   <ArrowRight aria-hidden="true" />
                 </Action>
-                {rerun && (
-                  <Action variant="ghost" size="sm" disabled title={copy.rerunSoon} aria-describedby="report-fixes-rerun">
+                {onRerun && (
+                  <Action variant="ghost" size="sm" aria-describedby="report-fixes-rerun"
+                    onClick={() => onRerun([...new Set(results.filter(item => fix.assessment_ids.includes(item.assessment_id)).map(item => item.case_revision_id))])}>
                     <RotateCcw aria-hidden="true" />
                     {copy.rerun}
                   </Action>
@@ -345,7 +350,7 @@ function FixList({ report, fixes, rerun, onResults }: { report: Partial<ReportSn
           </li>
         ))}
       </ol>
-      <p className="p-field-hint" id="report-fixes-rerun">{rerun ? `${copy.rerunSoon} ` : ""}{t("fixesExportNote")}</p>
+      <p className="p-field-hint" id="report-fixes-rerun">{onRerun ? `${copy.rerunNote} ` : ""}{t("fixesExportNote")}</p>
     </section>
   );
 }
@@ -449,7 +454,7 @@ function Overview({
         </StatGrid>
       </section>
 
-      {summary && summary.fixes.length > 0 && <FixList report={report} fixes={summary.fixes} rerun={!!cta} onResults={onResults} />}
+      {summary && summary.fixes.length > 0 && <FixList report={report} fixes={summary.fixes} onRerun={cta?.onRerun} onResults={onResults} />}
 
       {report.takeaways && report.takeaways.length > 0 && (
         <section>
@@ -1142,6 +1147,9 @@ export function AuthenticatedReport({
   }, [load]);
   const revision = data ? (data.revisions.find((item) => item.id === (revisionId ?? data.report.current_revision_id)) ?? data.revisions[0] ?? null) : null;
   usePageCrumb(revision?.snapshot.system.name);
+  // Launch L-18: the comparison with the run before this one opens on its own at the top of the Overview.
+  const comparison = useRunComparison(orgId, revision?.run_id);
+  const [opened, setOpened] = useState<{ id: string | null; key: number }>(() => ({ id: params.get("result"), key: 0 }));
 
   const setResult = useCallback(
     (id: string | null) => {
@@ -1151,6 +1159,14 @@ export function AuthenticatedReport({
       router.replace(`${pathname}?${next.toString()}`, { scroll: false });
     },
     [params, pathname, router],
+  );
+  /** Opens one answer in the results drawer (the comparison's question links). */
+  const openResult = useCallback(
+    (id: string) => {
+      setOpened((current) => ({ id, key: current.key + 1 }));
+      setResult(id);
+    },
+    [setResult],
   );
 
   if (error)
@@ -1180,6 +1196,7 @@ export function AuthenticatedReport({
   const canWrite = ["owner", "editor", "operator"].includes(role);
   const canManage = ["owner", "operator"].includes(role);
   const isCurrent = revision.id === data.report.current_revision_id;
+  const evaluationId = comparison.data?.candidate.evaluationId;
   const cta: ReportCta = {
     onShare: canManage ? () => commands.current?.share() : undefined,
     onDownload: canWrite ? () => commands.current?.downloadPdf() : undefined,
@@ -1189,7 +1206,14 @@ export function AuthenticatedReport({
     // Owners ask from the current, published report (launch L-26, P-10).
     expertReview: expertReview && canManage && isCurrent && data.report.publication_status === "published"
       ? <ExpertReviewRequest orgId={orgId} reportId={reportId} surface="report" /> : undefined,
+    onRerun: canWrite && evaluationId
+      ? (ids) => router.push(withOrg(`/workspace/evaluations/${evaluationId}?rerun=1${ids.length ? `&focus=${ids.slice(0, 50).join(",")}` : ""}`))
+      : undefined,
   };
+  const intro = comparison.data?.baseline ? (
+    <RunComparisonView runId={revision.run_id} {...comparison} compact openResult={(id) => ({ onClick: () => openResult(id) })}
+      baselineReportHref={(id) => withOrg(`/workspace/reports/${id}`)} />
+  ) : undefined;
   return (
     <>
       {!isCurrent && (
@@ -1198,13 +1222,14 @@ export function AuthenticatedReport({
         </Status>
       )}
       <ReportView
-        key={revision.id}
+        key={`${revision.id}-${opened.key}`}
         report={revision.snapshot}
-        initialResult={params.get("result")}
+        initialResult={opened.key ? opened.id : params.get("result")}
         initialTab={params.get("tab")}
         onResultChange={setResult}
         rememberAs="report"
         cta={cta}
+        overviewIntro={intro}
         actions={
           <>
           {readoutAccess(readoutMode, role, operator).present && (
@@ -1228,6 +1253,7 @@ export function AuthenticatedReport({
             onSelectRevision={setRevisionId}
             renderPreview={(snapshot) => <ReportView report={snapshot} />}
             reportTitle={data.report.title}
+            onOpenResult={openResult}
             autoExport={params.get("export") === "pdf"}
             onDeleted={() => router.push(withOrg("/workspace/reports"))}
           />

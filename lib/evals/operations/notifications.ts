@@ -48,16 +48,50 @@ export function queueRequiredInputNotifications(scope: Scope) {
     ON CONFLICT (org_id,event_id,audience) DO NOTHING`, [scope.orgId])).rowCount ?? 0);
 }
 
-const noticeLink = (kind: string, payload: Record<string, string>, orgId: string) =>
-  kind === "report_published" && payload.reportId
-    ? `${appUrl()}/workspace/reports/${payload.reportId}?orgId=${orgId}`
-    : payload.evaluationId ? `${appUrl()}/workspace/evaluations/${payload.evaluationId}?orgId=${orgId}` : `${appUrl()}/workspace/evaluations`;
+type Payload = Record<string, unknown>;
+const str = (value: unknown) => (typeof value === "string" ? value : "");
+const noticeLink = (kind: string, payload: Payload, orgId: string) =>
+  (kind === "report_published" || kind === "monitor_regression") && str(payload.reportId)
+    ? `${appUrl()}/workspace/reports/${str(payload.reportId)}?orgId=${orgId}`
+    : str(payload.evaluationId) ? `${appUrl()}/workspace/evaluations/${str(payload.evaluationId)}?orgId=${orgId}` : `${appUrl()}/workspace/evaluations`;
 
+/** Notices that may be emailed; their recipients follow evals.notification_email_recipients. */
+const EMAILED_KINDS = ["report_published", "run_failed", "input_required", "test_set_ready", "generation_failed", "website_failed", "document_failed", "export_failed", "monitor_regression"];
 const BRANDED_KINDS = new Set(["report_published", "run_failed", "input_required", "test_set_ready", "generation_failed", "website_failed", "document_failed", "export_failed"] as const);
 type BrandedKind = typeof BRANDED_KINDS extends Set<infer K> ? K : never;
 
+/**
+ * The regression summary after a scheduled run (launch L-18, P-25), from the
+ * notice the summary wrote (lib/evals/monitoring/destinations.ts): the score
+ * against last time and up to five newly broken questions, each linking to its
+ * answer in the run's report.
+ */
+export function regressionEmailProps(payload: Payload, orgId: string) {
+  const report = noticeLink("monitor_regression", payload, orgId);
+  const reportId = str(payload.reportId);
+  const broken = (Array.isArray(payload.broken) ? payload.broken : []) as Array<{ title?: unknown; assessmentId?: unknown }>;
+  const count = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+  return {
+    evaluation: str(payload.evaluationTitle) || "Evaluation",
+    scheduledFor: str(payload.scheduledFor) || new Date().toISOString(),
+    now: { pass: count(payload.pass), scored: count(payload.scored) },
+    before: { pass: count(payload.previousPass), scored: count(payload.previousScored) },
+    broken: broken.slice(0, 5).map(item => ({
+      title: str(item.title) || "Question",
+      url: reportId && str(item.assessmentId) ? `${report}&result=${encodeURIComponent(str(item.assessmentId))}` : report,
+    })),
+    brokenTotal: Math.max(count(payload.brokenTotal), broken.length),
+    reportUrl: report,
+    settingsUrl: workspaceLinks(appUrl(), orgId).notificationSettings,
+  };
+}
+
 /** The branded template for one notice, in the recipient's language. */
-export function composeBranded(kind: string, payload: Record<string, string>, orgId: string, locale: "en" | "es"): Omit<EmailMessage, "to"> {
+export function composeBranded(kind: string, payload: Payload, orgId: string, locale: "en" | "es"): Omit<EmailMessage, "to"> {
+  if (kind === "monitor_regression") {
+    const email = renderEmail("monitor_regression", locale, regressionEmailProps(payload, orgId));
+    return { subject: email.subject, text: email.text, html: email.html };
+  }
   const name: BrandedKind = BRANDED_KINDS.has(kind as BrandedKind) ? (kind as BrandedKind) : "input_required";
   const links = { url: noticeLink(kind, payload, orgId), settingsUrl: workspaceLinks(appUrl(), orgId).notificationSettings };
   const email = name === "report_published"
@@ -66,7 +100,19 @@ export function composeBranded(kind: string, payload: Record<string, string>, or
   return { subject: email.subject, text: email.text, html: email.html };
 }
 
-function compose(kind: string, payload: Record<string, string>, orgId: string): { subject: string; text: string } {
+function compose(kind: string, payload: Payload, orgId: string): { subject: string; text: string } {
+  if (kind === "monitor_regression") {
+    const props = regressionEmailProps(payload, orgId);
+    const rate = (value: { pass: number; scored: number }) => (value.scored ? `${Math.round((value.pass / value.scored) * 100)}% (${value.pass} of ${value.scored} correct)` : "no score");
+    const lines = [
+      `The scheduled run of ${props.evaluation} scored lower than the run before it, on the same test set.`,
+      `Score this run: ${rate(props.now)}\nScore last time: ${rate(props.before)}`,
+      ...(props.broken.length ? [`Questions that worked last time and now fail:\n${props.broken.map(item => `- ${item.title}: ${item.url}`).join("\n")}`] : []),
+      `Open the report: ${props.reportUrl}`,
+      "You receive this because email for regressions is on in your workspace settings.",
+    ];
+    return { subject: `${props.evaluation}: ${props.brokenTotal} ${props.brokenTotal === 1 ? "question" : "questions"} got worse since the last run`, text: lines.join("\n\n") };
+  }
   const link = noticeLink(kind, payload, orgId);
   const bodies: Record<string, { subject: string; line: string }> = {
     report_published: { subject: "Your Caudals evaluation results are ready", line: "An evaluation report is ready in your workspace. Its review status is shown with the results." },
@@ -89,8 +135,8 @@ function compose(kind: string, payload: Record<string, string>, orgId: string): 
 export async function deliverEmailNotifications(scope: Scope, send: SendEmail) {
   const pending = await withTenant(scope, async (db) => {
     const notices = (await db.query(`SELECT id,kind,payload FROM evals.notification WHERE org_id=$1 AND created_at>now()-interval '3 days'
-      AND kind IN ('report_published','run_failed','input_required','test_set_ready','generation_failed','website_failed','document_failed','export_failed') ORDER BY created_at LIMIT 50`, [scope.orgId])).rows;
-    const out: Array<{ id: string; notificationId: string; email: string; locale: "en" | "es"; kind: string; payload: Record<string, string> }> = [];
+      AND kind=ANY($2::text[]) ORDER BY created_at LIMIT 50`, [scope.orgId, EMAILED_KINDS])).rows;
+    const out: Array<{ id: string; notificationId: string; email: string; locale: "en" | "es"; kind: string; payload: Payload }> = [];
     for (const notice of notices) {
       const recipients = (await db.query("SELECT * FROM evals.notification_email_recipients($1,$2)", [scope.orgId, notice.kind])).rows;
       for (const recipient of recipients) {

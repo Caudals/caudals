@@ -51,6 +51,16 @@ export type TemplateProps = {
   auto_recharge_failed: { workspace: string; amountCents: number; currency: string; billingUrl: string; settingsUrl: string };
   credits_expiring: { workspace: string; credits: number; expiresAt: string; workspaceUrl: string; settingsUrl: string };
   cap_reached: { workspace: string; cap: number; percent: 50 | 80 | 100; scope: "monthly" | "run" | "schedule"; limitsUrl: string; settingsUrl: string };
+  /** A scheduled run skipped before it started (launch L-18): too few credits, or a credit limit it would pass. */
+  schedule_skipped: {
+    workspace: string; evaluation: string; scheduledFor: string; reason: "credits" | "cap"; capScope?: "monthly" | "run" | "schedule" | null;
+    needed: number; available: number; cap?: number | null; nextRunAt?: string | null; actionUrl: string; settingsUrl: string;
+  };
+  /** The regression summary after a scheduled run (launch L-18, P-25): score against last time and up to five newly broken questions. */
+  monitor_regression: {
+    evaluation: string; scheduledFor: string; now: { pass: number; scored: number }; before: { pass: number; scored: number };
+    broken: Array<{ title: string; url: string }>; brokenTotal: number; reportUrl: string; settingsUrl: string;
+  };
   /** The public demo's report email (L-03), with its own localized lines. */
   demo_report: { subject: string; heading: string; lines: string[]; url: string; failed: boolean; footer: string };
 };
@@ -63,6 +73,7 @@ export const TEMPLATE_CATEGORY: Record<TemplateName, EmailCategory> = {
   test_set_ready: "notification", report_published: "notification", run_failed: "notification", input_required: "notification",
   export_failed: "notification", generation_failed: "notification", website_failed: "notification", document_failed: "notification",
   low_balance: "billing", auto_recharge_succeeded: "billing", auto_recharge_failed: "billing", credits_expiring: "billing", cap_reached: "billing",
+  schedule_skipped: "billing", monitor_regression: "notification",
   welcome: "lifecycle", d1_test_set: "lifecycle", d3_run: "lifecycle", d7_report: "lifecycle", first_report: "lifecycle",
   d21_rerun: "lifecycle", d30_winback: "lifecycle",
 };
@@ -71,6 +82,8 @@ const intlLocale = (locale: EmailLocale) => (locale === "es" ? "es-ES" : "en-GB"
 const number = (locale: EmailLocale, value: number) => new Intl.NumberFormat(intlLocale(locale), { maximumFractionDigits: 0 }).format(value);
 const money = (locale: EmailLocale, cents: number, currency: string) =>
   new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency }).format(cents / 100);
+const percentOf = (locale: EmailLocale, score: { pass: number; scored: number }) =>
+  score.scored > 0 ? new Intl.NumberFormat(intlLocale(locale), { style: "percent", maximumFractionDigits: 0 }).format(score.pass / score.scored) : "—";
 const date = (locale: EmailLocale, iso: string) =>
   new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Madrid" }).format(new Date(iso));
 
@@ -336,6 +349,47 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
         subject: full ? k.subject : fill(k.subjectPartial, values), preview: fill(k.preview, values), heading: full ? k.heading : fill(k.headingPartial, values),
         blocks: [{ kind: "text", text: fill(full ? k.body : k.bodyPartial, values) }, { kind: "action", label: k.action, url: props.limitsUrl }],
         ...billingFooter(c, props.workspace, props.settingsUrl),
+      };
+    }
+    case "schedule_skipped": {
+      const props = p as TemplateProps["schedule_skipped"];
+      const k = c.scheduleSkipped;
+      const credits = props.reason === "credits";
+      const scope = props.capScope === "monthly" ? c.capReached.scopeMonthly : props.capScope === "run" ? c.capReached.scopeRun : c.capReached.scopeSchedule;
+      const values = {
+        workspace: props.workspace, evaluation: props.evaluation, date: date(locale, props.scheduledFor), needed: number(locale, props.needed),
+        available: number(locale, props.available), cap: number(locale, props.cap ?? 0), scope, next: props.nextRunAt ? date(locale, props.nextRunAt) : "",
+      };
+      return {
+        subject: credits ? k.subjectCredits : k.subjectCap, preview: fill(k.preview, values), heading: k.heading,
+        blocks: [
+          { kind: "text", text: fill(credits ? k.bodyCredits : k.bodyCap, values) },
+          ...(props.nextRunAt ? [{ kind: "text" as const, text: fill(credits ? k.nextCredits : k.nextCap, values) }] : []),
+          { kind: "action", label: credits ? k.actionCredits : k.actionCap, url: props.actionUrl },
+        ],
+        ...billingFooter(c, props.workspace, props.settingsUrl),
+      };
+    }
+    case "monitor_regression": {
+      const props = p as TemplateProps["monitor_regression"];
+      const k = c.monitorRegression;
+      const values = {
+        evaluation: props.evaluation, count: number(locale, props.brokenTotal), now: percentOf(locale, props.now), before: percentOf(locale, props.before),
+        date: date(locale, props.scheduledFor),
+      };
+      const score = (value: { pass: number; scored: number }) =>
+        fill(k.scoreValue, { percent: percentOf(locale, value), pass: number(locale, value.pass), scored: number(locale, value.scored) });
+      const broken = props.broken.slice(0, 5);
+      return {
+        subject: props.brokenTotal === 1 ? fill(k.subjectOne, values) : fill(k.subject, values), preview: fill(k.preview, values), heading: k.heading,
+        blocks: [
+          { kind: "text", tone: "lead", text: fill(k.lead, values) },
+          { kind: "facts", rows: [[k.scoreNow, score(props.now)], [k.scoreBefore, score(props.before)]] },
+          ...(broken.length ? [{ kind: "text" as const, text: k.brokenIntro }, ...broken.map((item): EmailBlock => ({ kind: "link", label: item.title.slice(0, 160), url: item.url }))] : []),
+          ...(props.brokenTotal > broken.length ? [{ kind: "text" as const, tone: "muted" as const, text: fill(k.brokenMore, { count: number(locale, props.brokenTotal - broken.length) }) }] : []),
+          { kind: "action", label: k.action, url: props.reportUrl },
+        ],
+        footer: [c.footer.notification], footerLink: { label: c.footer.notificationLink, url: props.settingsUrl },
       };
     }
     case "demo_report": {

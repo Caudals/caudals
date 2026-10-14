@@ -16,7 +16,10 @@ type Notice = {
     // An expert-reviewed revision (launch L-26): the number of experts on its label.
     expertReviewers?: string;
     // Billing notices (launch L-15): whole credits.
-    balance?: number; threshold?: number; cap?: number; percent?: number; scope?: "monthly" | "run"; credits?: number; expiresAt?: string; amountCents?: number; average?: number };
+    balance?: number; threshold?: number; cap?: number | null; percent?: number; scope?: "monthly" | "run" | "schedule"; credits?: number; expiresAt?: string; amountCents?: number; average?: number;
+    // Scheduled runs (launch L-18): a skipped slot, and the summary after each run.
+    reason?: string; needed?: number; available?: number; comparable?: boolean; previousPass?: number | null; previousScored?: number | null;
+    brokenTotal?: number; broken?: Array<{ title: string; assessmentId: string | null }> };
 };
 type Cursor = { createdAt: string; id: string };
 type NoticePage = { notifications: Notice[]; unread: number; nextCursor: Cursor | null };
@@ -47,6 +50,8 @@ const KIND_LABEL: Record<string, MessageKey> = {
   // Billing notices (launch L-15).
   auto_recharge_succeeded: "noticeAutoRechargeSucceeded", low_balance: "noticeLowBalance", cap_reached: "noticeCapReached",
   credits_expiring: "noticeCreditsExpiring", unusual_spend: "noticeUnusualSpend",
+  // Scheduled runs (launch L-18).
+  schedule_skipped: "noticeScheduleSkipped", monitor_unknown: "noticeMonitorUnknown",
 };
 const JOB_LABEL: Record<Job["type"], MessageKey> = { website: "jobWebsite", document: "jobDocument", generation: "jobGeneration", run: "jobRun", export: "jobExport" };
 export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["payload"] }) {
@@ -60,22 +65,50 @@ function billingDetail(notice: Notice): string | null {
   const p = notice.payload;
   switch (notice.kind) {
     case "low_balance": return tv("noticeLowBalanceDetail", { balance: count(p.balance), threshold: count(p.threshold) });
-    case "cap_reached": return p.scope === "run" ? tv("noticeCapRunDetail", { cap: count(p.cap) }) : tv("noticeCapMonthDetail", { percent: p.percent ?? 100, cap: count(p.cap) });
+    case "cap_reached": return p.scope === "run" ? tv("noticeCapRunDetail", { cap: count(p.cap ?? 0) })
+      : p.scope === "schedule" ? tv("noticeCapScheduleDetail", { cap: count(p.cap ?? 0) })
+      : tv("noticeCapMonthDetail", { percent: p.percent ?? 100, cap: count(p.cap ?? 0) });
+    case "schedule_skipped": {
+      const why = p.reason === "credits_exhausted" ? tv("noticeScheduleSkippedCredits", { needed: count(p.needed), available: count(p.available) })
+        : typeof p.cap === "number" ? tv("noticeScheduleSkippedCap", { cap: count(p.cap) }) : t("noticeScheduleSkippedCapAny");
+      return [why, p.evaluationTitle].filter(Boolean).join(" · ");
+    }
     case "credits_expiring": return tv("noticeCreditsExpiringDetail", { credits: count(p.credits), date: formatDate(p.expiresAt ?? null) });
     case "auto_recharge_succeeded": return tv("noticeAutoRechargeSucceededDetail", { credits: count(p.credits) });
     case "unusual_spend": return tv("noticeUnusualSpendDetail", { credits: count(p.credits), average: count(p.average) });
     default: return null;
   }
 }
+const percentOf = (pass: number | null | undefined, scored: number | null | undefined) =>
+  scored ? new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB", { style: "percent", maximumFractionDigits: 0 }).format(Number(pass ?? 0) / scored) : null;
+/** The summary after a scheduled run (launch L-18, P-25): score against last time and newly broken questions. */
+function monitorDetail(notice: Notice): string | null {
+  const p = notice.payload;
+  if (!notice.kind.startsWith("monitor_") || typeof p.scored !== "number") return null;
+  const now = percentOf(p.pass, p.scored), before = percentOf(p.previousPass, p.previousScored);
+  const parts = [
+    now ? (before && p.comparable ? tv("noticeMonitorScore", { now, before }) : tv("noticeMonitorScoreFirst", { now })) : null,
+    p.comparable === false && p.previousScored != null ? t("noticeMonitorNotComparable") : null,
+    p.brokenTotal ? (p.brokenTotal === 1 ? t("monitorNewlyBrokenOne") : tv("monitorNewlyBroken", { n: p.brokenTotal })) : null,
+    p.evaluationTitle,
+  ];
+  return parts.filter(Boolean).join(" · ");
+}
 function noticeDetail(notice: Notice) {
   if (notice.category === "billing") return billingDetail(notice) ?? "";
+  const monitor = monitorDetail(notice);
+  if (monitor !== null) return monitor;
   const score = notice.kind === "report_published" && typeof notice.payload.scored === "number" && notice.payload.scored > 0
     ? tv("answersCorrectOf", { pass: notice.payload.pass ?? 0, scored: notice.payload.scored }) : null;
   return [notice.payload.subjectTitle, notice.payload.evaluationTitle, score].filter(Boolean).join(" · ");
 }
 function noticeHref(notice: Notice, withOrg: (href: string) => string) {
+  if (notice.kind === "schedule_skipped") {
+    return withOrg(notice.payload.reason === "credits_exhausted" ? "/workspace/settings?tab=billing&view=top-up" : "/workspace/settings?tab=monitoring");
+  }
   if (notice.category === "billing") {
-    const view = notice.kind === "cap_reached" ? "&view=limits" : notice.kind === "low_balance" || notice.kind === "auto_recharge_failed" ? "&view=top-up" : notice.kind === "unusual_spend" ? "&view=usage" : "";
+    const view = notice.kind === "cap_reached" ? (notice.payload.scope === "schedule" ? "" : "&view=limits") : notice.kind === "low_balance" || notice.kind === "auto_recharge_failed" ? "&view=top-up" : notice.kind === "unusual_spend" ? "&view=usage" : "";
+    if (notice.kind === "cap_reached" && notice.payload.scope === "schedule") return withOrg("/workspace/settings?tab=monitoring");
     return withOrg(`/workspace/settings?tab=billing${view}`);
   }
   if (notice.payload.reportId) return withOrg(`/workspace/reports/${notice.payload.reportId}`);
@@ -342,9 +375,17 @@ function WorkspaceNotifications() {
             {noticeDetail(item) && <span className="p-cell-meta">{noticeDetail(item)}</span>}
             <time className="p-cell-meta" dateTime={item.created_at} title={formatDate(item.created_at, true)}>{relativeTime(item.created_at)}</time>
           </span></>;
+          const link = href ? <Link className="p-notice-link" href={href} onClick={() => { if (!item.read) void markRead([item.id]); setOpen(false); }}>{body}</Link>
+            : <div className="p-notice-link">{body}</div>;
+          // Launch L-18: a scheduled run's newly broken questions, each opening its answer in the report.
+          const broken = item.kind.startsWith("monitor_") && item.payload.reportId && item.payload.broken?.length ? item.payload.broken.slice(0, 5) : [];
           return <li key={item.id} className="p-notice" data-read={item.read} data-category={item.category}>
-            {href ? <Link className="p-notice-link" href={href} onClick={() => { if (!item.read) void markRead([item.id]); setOpen(false); }}>{body}</Link>
-              : <div className="p-notice-link">{body}</div>}
+            {broken.length ? <div className="p-notice-stack">{link}
+              <ul className="p-notice-sublist" aria-label={t("noticeMonitorBrokenList")}>{broken.map((question, index) => <li key={`${question.assessmentId ?? index}`}>
+                {question.assessmentId ? <Link href={withOrg(`/workspace/reports/${item.payload.reportId}?result=${encodeURIComponent(question.assessmentId)}`)}
+                  onClick={() => { if (!item.read) void markRead([item.id]); setOpen(false); }}>{question.title}</Link> : question.title}
+              </li>)}</ul>
+            </div> : link}
             {!item.read && <Action variant="ghost" size="sm" shape="icon" aria-label={`${t("markRead")}: ${noticeTitle(item)}`} title={t("markRead")}
               onClick={() => void markRead([item.id])}><Check aria-hidden="true" /></Action>}
           </li>;

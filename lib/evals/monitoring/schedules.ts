@@ -7,21 +7,70 @@ import { plansV2For } from "../../billing/overrides";
 import { idempotent, type EvidenceScope } from "../repositories/evidence";
 import { withTenant } from "../repositories/db";
 import { createSelfServiceRun } from "../repositories/stage-c";
+import { engineBillingMode } from "../../billing/engine";
+import { UCR_PER_CREDIT } from "../../billing/units";
+import type { SendEmail } from "../operations/notifications";
 import { latestDueSlot, nextScheduleSlot, scheduleConfigSchema, type ScheduleConfig } from "./calendar";
+import { scheduleAdmission, type ScheduleAdmission } from "./schedule-credits";
+import { tickSkipAlerts } from "./skip-alerts";
+
+/**
+ * Scheduled re-runs of an approved (frozen) test set (WP-13), on credits since
+ * launch L-18 (spec v2 P-24, §6.7, §6.10): pay-as-you-go workspaces schedule
+ * through plans v2's `can_schedule`, weekly or monthly, with an optional
+ * credit cap per schedule (credits its runs may use in a UTC month); managed
+ * workspaces keep every cadence and their euro limits. Each due slot is
+ * checked for credits before its run starts (./schedule-credits.ts) and, where
+ * credits are enforced, skipped with an alert when the balance or a cap is
+ * short (./skip-alerts.ts). DST and catch-up rules (./calendar.ts) are
+ * unchanged: a missing local time is skipped, a repeated one runs once, and
+ * after downtime only the latest missed slot runs.
+ */
 
 const money=z.string().regex(/^(0|[1-9]\d{0,14})(?:\.\d{1,9})?$/);
+/** A schedule's credit cap: whole credits its runs may use in one UTC month (none by default). */
+const creditCap=z.int().min(1).max(10_000_000).nullable();
 export const createScheduleSchema=scheduleConfigSchema.extend({
   evaluationId:z.uuid(),targetRevisionId:z.uuid(),suiteVersionId:z.uuid(),
   maxRunSpend:money,currency:z.string().regex(/^[A-Z]{3}$/),
   sourceMaxAgeDays:z.int().min(1).max(3650).nullable(),
+  creditCapCredits:creditCap.optional(),
 });
 export const updateScheduleSchema=z.strictObject({expectedVersion:z.int().positive(),
   status:z.enum(["active","paused"]).optional(),targetRevisionId:z.uuid().optional(),
-  suiteVersionId:z.uuid().optional(),maxRunSpend:money.optional(),sourceMaxAgeDays:z.int().min(1).max(3650).nullable().optional()});
+  suiteVersionId:z.uuid().optional(),maxRunSpend:money.optional(),sourceMaxAgeDays:z.int().min(1).max(3650).nullable().optional(),
+  creditCapCredits:creditCap.optional()});
 function config(row:Record<string,unknown>):ScheduleConfig{return scheduleConfigSchema.parse({timezone:row.timezone,cadence:row.cadence,
   localTime:String(row.local_time),weekday:row.weekday===null?null:Number(row.weekday),
   dayOfMonth:row.day_of_month===null?null:Number(row.day_of_month)});}
 function notFound():never{throw new EvalError("SCOPE_DENIED",404);}
+
+/** The workspace's credit mode: "contract" (managed), or "free"/"credits" (self-serve, pay as you go). */
+async function billingModeOf(db:PoolClient,orgId:string){
+  return String((await db.query("SELECT billing_mode FROM billing.credit_account WHERE org_id=$1",[orgId])).rows[0]?.billing_mode??"contract");
+}
+/** Saves (or, with null, removes) a schedule's credit cap through billing.set_spend_cap: owners only, audited. */
+async function saveScheduleCap(db:PoolClient,orgId:string,scheduleId:string,credits:number|null,requestId:string|null){
+  await db.query("SAVEPOINT schedule_cap");
+  try{
+    await db.query("SELECT billing.set_spend_cap($1,'schedule',$2,$3,NULL,$4)",[orgId,scheduleId,
+      credits===null?null:(BigInt(credits)*UCR_PER_CREDIT).toString(),requestId]);
+    await db.query("RELEASE SAVEPOINT schedule_cap");
+  }catch(error){
+    await db.query("ROLLBACK TO SAVEPOINT schedule_cap");
+    if(error instanceof Error&&error.message==="SCOPE_DENIED")throw new EvalError("SCOPE_DENIED",403,"Only a workspace owner can set a schedule's credit limit.");
+    if(error instanceof Error&&error.message==="INPUT_INVALID")throw new EvalError("INPUT_INVALID",422,"That credit limit cannot be saved for this schedule.");
+    throw error;
+  }
+}
+/** Credit workspaces schedule weekly or monthly (spec P-24); contract workspaces keep daily. */
+function assertCreditCadence(mode:string,cadence:string,creditCapCredits:number|null|undefined){
+  if(mode==="contract"){
+    if(creditCapCredits!==undefined&&creditCapCredits!==null)throw new EvalError("INPUT_INVALID",422,"Credit limits apply to workspaces that pay with credits.");
+    return;
+  }
+  if(cadence==="daily")throw new EvalError("INPUT_INVALID",422,"Choose a weekly or monthly schedule.");
+}
 
 export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
   const input=createScheduleSchema.parse(raw),first=nextScheduleSlot({timezone:input.timezone,
@@ -40,6 +89,7 @@ export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
       units(String(evaluation.commercial_cap))>units(input.maxRunSpend) ||
       units(input.maxRunSpend)>units(String(entitlement.monthly_spend_limit)))
       throw new EvalError("BUDGET_PAUSED",409,"The schedule must fit the agreed run and monthly spending limits.");
+    assertCreditCadence(await billingModeOf(db,scope.orgId),input.cadence,input.creditCapCredits);
     const row=(await db.query(`INSERT INTO evals.monitor_schedule
       (org_id,project_id,evaluation_id,target_revision_id,suite_version_id,timezone,cadence,local_time,
        weekday,day_of_month,max_run_spend,currency,source_max_age_days,next_due_at)
@@ -48,18 +98,20 @@ export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
       [scope.orgId,evaluation.project_id,input.evaluationId,input.targetRevisionId,input.suiteVersionId,
         input.timezone,input.cadence,input.localTime,input.weekday,input.dayOfMonth,input.maxRunSpend,
         input.currency,input.sourceMaxAgeDays,first.scheduledFor])).rows[0];
-    return {...row,localSlotKey:first.localSlotKey};
+    if(input.creditCapCredits!==undefined&&input.creditCapCredits!==null)await saveScheduleCap(db,scope.orgId,row.id,input.creditCapCredits,key||null);
+    return {...row,localSlotKey:first.localSlotKey,creditCapCredits:input.creditCapCredits??null};
   }));
 }
 export function listSchedules(scope:EvidenceScope){return withTenant(scope,async db=>(await db.query(`SELECT s.id,s.project_id,s.evaluation_id,s.target_revision_id,s.suite_version_id,
   s.timezone,s.cadence,s.local_time,s.weekday,s.day_of_month,s.max_run_spend,s.currency,
   s.source_max_age_days,s.status,s.reason_code,s.next_due_at,s.version,s.updated_at,
   d.status AS latest_dispatch_status,d.reason_code AS latest_dispatch_reason,d.scheduled_for AS latest_scheduled_for,
-  a.status AS latest_alert_status
+  a.status AS latest_alert_status,c.cap_ucr::text AS credit_cap_ucr
   FROM evals.monitor_schedule s
   LEFT JOIN LATERAL (SELECT * FROM evals.schedule_dispatch x WHERE x.org_id=s.org_id AND x.schedule_id=s.id
     ORDER BY x.scheduled_for DESC,x.id DESC LIMIT 1) d ON true
   LEFT JOIN evals.regression_alert a ON (a.org_id,a.schedule_dispatch_id)=(d.org_id,d.id)
+  LEFT JOIN billing.spend_cap c ON c.org_id=s.org_id AND c.scope='schedule' AND c.subject_id=s.id
   WHERE s.org_id=$1 ORDER BY s.updated_at DESC,s.id LIMIT 100`,[scope.orgId])).rows);}
 export function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
   const input=updateScheduleSchema.parse(raw);
@@ -67,6 +119,18 @@ export function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
     const previous=(await db.query("SELECT * FROM evals.monitor_schedule WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,id])).rows[0];
     if(!previous)notFound();
     if(previous.version!==input.expectedVersion)throw new EvalError("VERSION_CONFLICT",409,"The schedule changed. Reload it before saving.");
+    // A schedule's credit cap lives with the other caps (billing.spend_cap); it does not change the schedule's version.
+    if(input.creditCapCredits!==undefined){
+      assertCreditCadence(await billingModeOf(db,scope.orgId),"weekly",input.creditCapCredits);
+      await saveScheduleCap(db,scope.orgId,id,input.creditCapCredits,null);
+    }
+    const rest=input.status!==undefined||input.targetRevisionId!==undefined||input.suiteVersionId!==undefined||
+      input.maxRunSpend!==undefined||input.sourceMaxAgeDays!==undefined;
+    if(!rest){
+      return (await db.query(`SELECT s.id,s.status,s.reason_code,s.version,s.next_due_at,s.updated_at,c.cap_ucr::text AS credit_cap_ucr
+        FROM evals.monitor_schedule s LEFT JOIN billing.spend_cap c ON c.org_id=s.org_id AND c.scope='schedule' AND c.subject_id=s.id
+        WHERE s.org_id=$1 AND s.id=$2`,[scope.orgId,id])).rows[0];
+    }
     if(input.status==="paused"&&input.targetRevisionId===undefined&&input.suiteVersionId===undefined&&
       input.maxRunSpend===undefined&&input.sourceMaxAgeDays===undefined){
       return (await db.query(`UPDATE evals.monitor_schedule SET status='paused',reason_code='manual_pause',version=version+1,updated_at=now()
@@ -144,7 +208,32 @@ async function eligibility(db:PoolClient,scope:EvidenceScope,dispatch:Record<str
   }
   return null;
 }
-export async function dispatchScheduleSlot(scope:EvidenceScope,id:string){
+/** Admission errors a dispatched run can meet, as dispatch reason codes (they alert the owners). */
+const CREDIT_SKIPS:Record<string,"credits_exhausted"|"cap_reached">={CREDITS_EXHAUSTED:"credits_exhausted",CAP_REACHED:"cap_reached"};
+
+/**
+ * The credit check for a slot that passed every other check (L-18). Runs in a
+ * savepoint: an estimator failure where credits are enforced counts as a
+ * failed attempt (retried, at most five), never as a stuck transaction.
+ */
+async function creditAdmission(db:PoolClient,scope:EvidenceScope,dispatch:Record<string,unknown>,evaluationId:string,env:Env):Promise<ScheduleAdmission|null|"failed">{
+  await db.query("SAVEPOINT schedule_admission");
+  try{
+    const admission=await scheduleAdmission(db,engineBillingMode(env),scope.orgId,{scheduleId:String(dispatch.schedule_id),evaluationId,
+      suiteVersionId:String(dispatch.suite_version_id),targetRevisionId:String(dispatch.target_revision_id)},env);
+    await db.query("RELEASE SAVEPOINT schedule_admission");
+    return admission;
+  }catch(error){
+    await db.query("ROLLBACK TO SAVEPOINT schedule_admission");
+    console.error(JSON.stringify({event:"schedule_admission_failed",org:scope.orgId,code:error instanceof Error?error.name:"unknown"}));
+    return "failed";
+  }
+}
+type Env=Record<string,string|undefined>;
+export interface ScheduleTickDeps{send?:SendEmail|null;env?:Env}
+
+export async function dispatchScheduleSlot(scope:EvidenceScope,id:string,deps:ScheduleTickDeps={}){
+  const env=deps.env??process.env;
   const prepared=await withTenant(scope,async db=>{
     const dispatch=(await db.query("SELECT * FROM evals.schedule_dispatch WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,id])).rows[0];
     if(!dispatch)notFound();
@@ -159,11 +248,28 @@ export async function dispatchScheduleSlot(scope:EvidenceScope,id:string){
       await db.query("UPDATE evals.schedule_dispatch SET status='skipped',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,id,reason]);
       return {done:true,dispatch:{...dispatch,status:"skipped",reason_code:reason}};
     }
-    await db.query("UPDATE evals.schedule_dispatch SET status='starting',attempt_count=attempt_count+1,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,id]);
     const schedule=(await db.query("SELECT evaluation_id FROM evals.monitor_schedule WHERE org_id=$1 AND id=$2",[scope.orgId,dispatch.schedule_id])).rows[0];
+    // Launch L-18: credits and caps before the run exists. Enforced: a short slot is
+    // skipped (and alerted); shadow: the verdict is recorded and the run goes ahead.
+    const admission=await creditAdmission(db,scope,dispatch,schedule.evaluation_id as string,env);
+    if(admission==="failed"){
+      await db.query("UPDATE evals.schedule_dispatch SET status='claimed',reason_code='dispatch_failed',attempt_count=attempt_count+1,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,id]);
+      return {done:true,dispatch:{...dispatch,status:"claimed",reason_code:"dispatch_failed"}};
+    }
+    if(admission)await db.query("UPDATE evals.schedule_dispatch SET admission=$3 WHERE org_id=$1 AND id=$2",[scope.orgId,id,admission]);
+    if(admission?.mode==="enforce"&&admission.verdict!=="admit"){
+      await db.query("UPDATE evals.schedule_dispatch SET status='skipped',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,id,admission.verdict]);
+      console.info(JSON.stringify({event:"schedule_skipped",org:scope.orgId,dispatch:id,reason:admission.verdict,cap:admission.capScope}));
+      return {done:true,dispatch:{...dispatch,status:"skipped",reason_code:admission.verdict,admission},alert:true};
+    }
+    if(admission&&admission.verdict!=="admit")console.info(JSON.stringify({event:"schedule_shadow_would_skip",org:scope.orgId,dispatch:id,reason:admission.verdict,cap:admission.capScope}));
+    await db.query("UPDATE evals.schedule_dispatch SET status='starting',attempt_count=attempt_count+1,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,id]);
     return {done:false,dispatch,evaluationId:schedule.evaluation_id as string};
   });
-  if(prepared.done)return prepared.dispatch;
+  if(prepared.done){
+    if("alert" in prepared&&prepared.alert)await tickSkipAlerts(scope,deps).catch(()=>undefined);
+    return prepared.dispatch;
+  }
   try{
     const run=await createSelfServiceRun({orgId:scope.orgId,actorId:"evals-scheduler"},{evaluationId:prepared.evaluationId!,
       targetRevisionId:prepared.dispatch.target_revision_id,suiteVersionId:prepared.dispatch.suite_version_id},
@@ -171,18 +277,23 @@ export async function dispatchScheduleSlot(scope:EvidenceScope,id:string){
     return withTenant(scope,async db=>(await db.query(`UPDATE evals.schedule_dispatch SET status='started',run_id=$3,
       reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING *`,[scope.orgId,id,run.id])).rows[0]);
   }catch(error){
-    const reason=error instanceof EvalError?error.code:"dispatch_failed";
-    return withTenant(scope,async db=>(await db.query(`UPDATE evals.schedule_dispatch SET status=$3,
+    const reason=error instanceof EvalError?CREDIT_SKIPS[error.code]??error.code:"dispatch_failed";
+    const row=await withTenant(scope,async db=>(await db.query(`UPDATE evals.schedule_dispatch SET status=$3,
       reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING *`,
       [scope.orgId,id,error instanceof EvalError?"skipped":"claimed",reason])).rows[0]);
+    // Admission refused what the slot's own check let through (a race): alert the same way.
+    if(error instanceof EvalError&&CREDIT_SKIPS[error.code])await tickSkipAlerts(scope,deps).catch(()=>undefined);
+    return row;
   }
 }
-export async function tickSchedules(scope:EvidenceScope,now=new Date().toISOString()){
+export async function tickSchedules(scope:EvidenceScope,now=new Date().toISOString(),deps:ScheduleTickDeps={}){
   const fresh=await claimDueSchedules(scope,now);
   const stale=await withTenant(scope,async db=>(await db.query(`SELECT id FROM evals.schedule_dispatch
     WHERE org_id=$1 AND status IN ('claimed','starting') AND updated_at<now()-interval '1 minute'
     ORDER BY updated_at,id LIMIT 20`,[scope.orgId])).rows.map(row=>row.id as string));
   const ids=[...new Set([...fresh,...stale])];
-  const results=[];for(const id of ids)results.push(await dispatchScheduleSlot(scope,id));
+  const results=[];for(const id of ids)results.push(await dispatchScheduleSlot(scope,id,deps));
+  // Alerts still owed for skipped slots (a failed email is retried, three attempts in all).
+  await tickSkipAlerts(scope,deps).catch(error=>console.error(JSON.stringify({event:"schedule_skip_alert_failed",org:scope.orgId,code:error instanceof Error?error.name:"unknown"})));
   return results;
 }

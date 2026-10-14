@@ -6,8 +6,8 @@
  * switching devices never loses progress (spec §5.2, §5.3).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, CreditCard, Download, FileCheck2, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Activity, ArrowRight, CreditCard, Download, FileCheck2, GitCompare, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest, EvalRequestError } from "./api";
 import {
@@ -26,7 +26,7 @@ import {
   humanize,
 } from "./primitives";
 import { OutcomeBar, percent } from "./charts";
-import { ActionMenu, notify } from "./overlays";
+import { ActionMenu, Modal, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { useEvaluationControls } from "./evaluation-controls";
 import { EvaluationModels } from "./evaluation-models";
@@ -45,6 +45,7 @@ import { evaluationStage, stepStates } from "./evaluation-stage";
 import { formatCredits, useBilling } from "./billing-state";
 import { ModelRates, RunEstimateDialog } from "./run-estimate-dialog";
 import { TopUpDialog } from "./billing-top-up";
+import { CompareRunsDialog, RunComparisonPanel } from "./run-comparison";
 import { billingHref } from "./workspace-billing";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import type { HelpContextKey } from "@/lib/evals/help/articles";
@@ -98,6 +99,15 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
   const [actionError, setActionError] = useState<{ message: string; help: string } | null>(null);
   const startKey = useRef(crypto.randomUUID());
   const router = useRouter();
+  // Run again → compare (launch L-18): "Re-run these questions" arrives with ?rerun=1&focus=<case ids>.
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const focus = useMemo(() => (params.get("focus") ?? "").split(",").filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 50), [params]);
+  const [rerunConfirm, setRerunConfirm] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  /** Set once a run starts from this page: its comparison scrolls into view when it lands. */
+  const [awaitingComparison, setAwaitingComparison] = useState(false);
+  const rerunHandled = useRef(false);
   const deletedRef = useRef(false);
   const gradedInput = useRef<HTMLInputElement>(null);
   const items = useItemActions(orgId, async () => {
@@ -195,6 +205,9 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
     if (!evaluation) return;
     await evalRequest(`/evaluations/${evaluationId}/start`, "POST", { orgId, ...(system ? { targetRevisionId: system.target_revision_id } : {}) }, startKey.current);
     startKey.current = crypto.randomUUID();
+    setAwaitingComparison(true);
+    // A run after an earlier one: its comparison opens here when it finishes.
+    if (evaluation.latest_run_id) notify(t("rerunStarted"));
     await reload();
   }
   async function start() {
@@ -215,6 +228,24 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
     if (billing) setEstimateOpen(true);
     else void start();
   }
+  /**
+   * "Re-run these questions" from a report (L-18): ask first (the estimate
+   * where billing shows, else a short confirmation), never start on arrival,
+   * and drop `rerun` from the address so a reload does not ask again.
+   */
+  useEffect(() => {
+    if (rerunHandled.current || params.get("rerun") !== "1" || !summary) return;
+    const current = summary.evaluations.find((item) => item.id === evaluationId);
+    if (!current) return;
+    rerunHandled.current = true;
+    const next = new URLSearchParams(params.toString());
+    next.delete("rerun");
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+    const busy = current.latest_run_status != null && ["queued", "running", "pause_requested", "cancel_requested", "paused"].includes(current.latest_run_status);
+    if (!canWrite || !current.selected_suite_version_id || busy) return;
+    if (billing) setEstimateOpen(true);
+    else setRerunConfirm(true);
+  }, [billing, canWrite, evaluationId, params, pathname, router, summary]);
   async function cancel() {
     if (!latestRunId) return;
     setPending(true);
@@ -515,8 +546,15 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
         </Panel>
       ) : terminal ? (
         report ? (
-          <ResultsSummary report={report} runStatus={runStatus!} targetCalls={run.run.execution_mode === "deployed_system" ? run.targetUsage : null} answersHref={reportRow ? withOrg(`/workspace/reports/${reportRow.id}`) : null} grading={run.run.phase !== "done" ? run.grading : undefined}
-            expertReview={expertReview && canManage && reportRow ? <ExpertReviewRequest orgId={orgId} reportId={reportRow.id} surface="results" /> : undefined} />
+          <>
+            <ResultsSummary report={report} runStatus={runStatus!} targetCalls={run.run.execution_mode === "deployed_system" ? run.targetUsage : null} answersHref={reportRow ? withOrg(`/workspace/reports/${reportRow.id}`) : null} grading={run.run.phase !== "done" ? run.grading : undefined}
+              expertReview={expertReview && canManage && reportRow ? <ExpertReviewRequest orgId={orgId} reportId={reportRow.id} surface="results" /> : undefined}
+              onRunAgain={canWrite && evaluation.selected_suite_version_id ? requestStart : undefined} runAgainPending={pending} onCompare={() => setCompareOpen(true)} />
+            {/* Launch L-18: after a second run, the comparison with the one before opens on its own. */}
+            <RunComparisonPanel orgId={orgId} runId={run.run.id} focus={focus} scrollIntoView={awaitingComparison}
+              openResult={(id) => (reportRow ? { href: withOrg(`/workspace/reports/${reportRow.id}?result=${encodeURIComponent(id)}`) } : null)}
+              baselineReportHref={(id) => withOrg(`/workspace/reports/${id}`)} />
+          </>
         ) : runStatus === "failed" ? (
           <Panel title={t("runFailedTitle")}>
             <p>{run.run.reason_code ? `${humanize(run.run.reason_code)}. ` : ""}{t("runFailedHelp")}</p>
@@ -555,6 +593,21 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
           onStart={launch} onChangeModels={platformAdmin ? () => setConnectOpen(true) : undefined} />
       )}
       {topUpOpen && <TopUpDialog orgId={orgId} open onClose={() => setTopUpOpen(false)} returnTo={`/workspace/evaluations/${evaluationId}?orgId=${orgId}`} />}
+      {latestRunId && <CompareRunsDialog open={compareOpen} onOpenChange={setCompareOpen} orgId={orgId} runId={latestRunId}
+        openResult={(id) => (reportRow ? { href: withOrg(`/workspace/reports/${reportRow.id}?result=${encodeURIComponent(id)}`) } : null)} />}
+      <Modal open={rerunConfirm} onOpenChange={setRerunConfirm} title={t("rerunConfirmTitle")}
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setRerunConfirm(false)}>{t("cancel")}</Action>
+            <Action onClick={() => { setRerunConfirm(false); void start(); }} disabled={pending}>
+              <RotateCcw aria-hidden="true" />
+              {t("runAgain")}
+            </Action>
+          </>
+        }>
+        <p>{tv("rerunConfirmBody", { n: caseCount ?? "—" })}</p>
+        {focus.length > 0 && <p className="p-cell-meta">{tv("rerunConfirmFocus", { k: focus.length })}</p>}
+      </Modal>
     </>
   );
 }
@@ -670,6 +723,9 @@ function ResultsSummary({
   answersHref,
   grading,
   expertReview,
+  onRunAgain,
+  runAgainPending = false,
+  onCompare,
 }: {
   report: ReportSnapshot;
   runStatus: string;
@@ -678,6 +734,11 @@ function ResultsSummary({
   grading?: { queued: number; done: number; total: number };
   /** "Have an expert review this" (launch L-26), for owners once the report is published. */
   expertReview?: ReactNode;
+  /** "Run again" on the frozen test set (launch L-18): the estimate first where billing shows. */
+  onRunAgain?: () => void;
+  runAgainPending?: boolean;
+  /** "Compare" with an earlier run of this evaluation. */
+  onCompare?: () => void;
 }) {
   const m = report.metrics;
   const findings = [...report.findings].sort((a, b) => ["critical", "high", "medium", "low"].indexOf(a.severity) - ["critical", "high", "medium", "low"].indexOf(b.severity)).slice(0, 3);
@@ -701,6 +762,18 @@ function ResultsSummary({
           <StatusBadge value={report.scope.review_status} />
           {m.headline_status === "incomplete" && <StatusBadge value="incomplete" />}
           {runStatus === "partial" && <StatusBadge value="partial" />}
+          {onRunAgain && (
+            <Action variant="secondary" onClick={onRunAgain} disabled={runAgainPending} data-testid="run-again">
+              <RotateCcw aria-hidden="true" />
+              {runAgainPending ? t("starting") : t("runAgain")}
+            </Action>
+          )}
+          {onCompare && (
+            <Action variant="ghost" onClick={onCompare}>
+              <GitCompare aria-hidden="true" />
+              {t("compare")}
+            </Action>
+          )}
           {answersHref && (
             <ActionLink variant="secondary" href={`${answersHref}${answersHref.includes("?") ? "&" : "?"}tab=results`}>
               {t("seeAllAnswers")}

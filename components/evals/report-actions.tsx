@@ -15,6 +15,7 @@ import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
+import { CompareRunsDialog } from "./run-comparison";
 
 export type ReportRevision = { id: string; run_id: string; review_status: string; created_at: string; snapshot: ReportSnapshot };
 /** What the report's next-step row (ReportView `cta`) can ask these actions to do. */
@@ -24,8 +25,6 @@ type Share = { id: string; report_revision_id: string; audience: string; recipie
 /** Link lifetimes offered when sharing (spec P-21). */
 export const SHARE_EXPIRY_PRESETS = [7, 30, 90] as const;
 type ExportJob = { id: string; status: string; download_path: string | null; reason_code: string | null };
-type RunRow = { id: string; status: string; created_at: string; suite_version_id: string };
-type Comparison = { status: string; improved?: number; regressed?: number; unchanged?: number; unassessed?: number; reasons?: string[] };
 type Narrative = { id: string; status: string; reason_code: string | null; rejected_count: number };
 
 const SHARE_FIELDS = ["system", "scope", "metrics", "takeaways", "findings", "improvements", "methodology", "results"] as const;
@@ -53,6 +52,7 @@ export function ReportActions({
   onDeleted,
   commands,
   onPreparingChange,
+  onOpenResult,
 }: {
   orgId: string;
   reportId: string;
@@ -75,6 +75,8 @@ export function ReportActions({
   commands?: RefObject<ReportCommands | null>;
   /** Called when a queued PDF starts or stops preparing. */
   onPreparingChange?: (preparing: boolean) => void;
+  /** Opens one answer of this report (the comparison's question links, launch L-18). */
+  onOpenResult?: (assessmentId: string) => void;
 }) {
   const [dialog, setDialog] = useState<"" | "share" | "compare" | "revisions" | "takeaways" | "release">("");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
@@ -225,7 +227,8 @@ export function ReportActions({
           renderPreview={renderPreview}
         />
       )}
-      <CompareDialog open={dialog === "compare"} onOpenChange={(value) => setDialog(value ? "compare" : "")} orgId={orgId} revision={revision} />
+      <CompareRunsDialog open={dialog === "compare"} onOpenChange={(value) => setDialog(value ? "compare" : "")} orgId={orgId} runId={revision.run_id}
+        openResult={(assessmentId) => (onOpenResult ? { onClick: () => { setDialog(""); onOpenResult(assessmentId); } } : null)} />
       <RevisionsPanel
         open={dialog === "revisions"}
         onOpenChange={(value) => setDialog(value ? "revisions" : "")}
@@ -483,85 +486,6 @@ function openedLabel(share: Share) {
   if (!count) return t("shareNotOpened");
   const date = share.last_opened_at ? formatDate(share.last_opened_at) : "—";
   return count === 1 ? tv("shareOpenedOnce", { date }) : tv("shareOpenedMany", { count, date });
-}
-
-/* -------------------------------------------------------------- compare --- */
-
-function CompareDialog({ open, onOpenChange, orgId, revision }: { open: boolean; onOpenChange: (open: boolean) => void; orgId: string; revision: ReportRevision }) {
-  const [runs, setRuns] = useState<RunRow[] | null>(null);
-  const [baseline, setBaseline] = useState("");
-  const [comparison, setComparison] = useState<Comparison | null>(null);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    if (!open) return;
-    setComparison(null);
-    void evalRequest<RunRow[]>(`/runs?orgId=${encodeURIComponent(orgId)}&relatedRunId=${revision.run_id}`)
-      .then((rows) => setRuns(rows.filter((row) => row.id !== revision.run_id && ["completed", "partial"].includes(row.status))))
-      .catch(() => setRuns([]));
-  }, [open, orgId, revision.run_id]);
-  async function compare(event: React.FormEvent) {
-    event.preventDefault();
-    setPending(true);
-    setError("");
-    try {
-      setComparison(await evalRequest<Comparison>("/comparisons", "POST", { orgId, baselineRunId: baseline, candidateRunId: revision.run_id }));
-    } catch (reason) {
-      setError(message(reason));
-    } finally {
-      setPending(false);
-    }
-  }
-  return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t("compareRuns")}
-      description={t("compareHelp")}
-      footer={
-        runs?.length ? (
-          <>
-            <Action variant="secondary" onClick={() => onOpenChange(false)}>{t("close")}</Action>
-            <Action type="submit" form="compare-form" disabled={!baseline || pending}>{pending ? t("working") : t("compare")}</Action>
-          </>
-        ) : (
-          <Action variant="secondary" onClick={() => onOpenChange(false)}>{t("close")}</Action>
-        )
-      }
-    >
-      {error && <Status error>{error}</Status>}
-      {runs === null ? (
-        <p className="p-cell-meta">{t("loading")}</p>
-      ) : runs.length ? (
-        <form id="compare-form" onSubmit={compare}>
-          <SelectField id="compare-baseline" label={t("compareWith")} value={baseline} onChange={(event) => setBaseline(event.target.value)} required>
-            <option value="">{t("selectRun")}</option>
-            {runs.map((run) => (
-              <option key={run.id} value={run.id}>
-                {new Date(run.created_at).toLocaleString()} · {run.status}
-              </option>
-            ))}
-          </SelectField>
-        </form>
-      ) : (
-        <Status>{t("noComparableRuns")}</Status>
-      )}
-      {comparison && (
-        <div className="p-compare" aria-live="polite">
-          <StatusBadge value={comparison.status} />
-          {comparison.status !== "incompatible" && (
-            <dl className="p-compare-grid">
-              <div><dt>{t("improved")}</dt><dd>{comparison.improved ?? 0}</dd></div>
-              <div><dt>{t("regressed")}</dt><dd>{comparison.regressed ?? 0}</dd></div>
-              <div><dt>{t("unchanged")}</dt><dd>{comparison.unchanged ?? 0}</dd></div>
-              <div><dt>{t("unassessedPairs")}</dt><dd>{comparison.unassessed ?? 0}</dd></div>
-            </dl>
-          )}
-          {comparison.reasons?.length ? <p className="p-cell-meta">{t("comparisonIncompatible")} {comparison.reasons.join(", ").replaceAll("_", " ")}</p> : null}
-        </div>
-      )}
-    </Modal>
-  );
 }
 
 /* ------------------------------------------------------------ revisions --- */

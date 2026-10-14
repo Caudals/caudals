@@ -5,7 +5,8 @@ import { EvalError } from "../domain/errors";
 import { compareRuns, scoreRun } from "../repositories/managed";
 import { withTenant } from "../repositories/db";
 import type { EvidenceScope } from "../repositories/evidence";
-import { queueWebhookEvent } from "./webhooks";
+import { deliverSummary } from "./destinations";
+import { buildMonitoringSummary, reportForRun, runOutcomeRows } from "./summary";
 
 type RunEvidence={status:string;coverage:number;criticalUnassessed:number};
 type PairedEvidence={status:string;regressed:number;improved:number;common:string[];unassessed:number;compatible:boolean;reasons:string[]};
@@ -39,20 +40,33 @@ async function runEvidence(db:PoolClient,orgId:string,runId:string){
   return {status:row.status as string,coverage:row.planned?row.assessed/row.planned:0,
     criticalUnassessed:row.critical_planned-row.critical_assessed};
 }
+/**
+ * Judges one scheduled run against the schedule's previous completed run and
+ * hands the summary (launch L-18, P-25: score against last time, up to five
+ * newly broken questions, "not comparable") to every destination
+ * (lib/evals/monitoring/destinations.ts): the in-app notice, the regression
+ * email and the signed webhook. One alert per dispatch (unique row), so a
+ * replayed tick never alerts twice. A completed run waits for its report
+ * (links in the summary open it), at most 30 minutes after it finished.
+ */
 export async function settleScheduledRun(tenant:EvidenceScope,dispatchId:string){
   const state=await withTenant(tenant,async db=>{
-    const d=(await db.query(`SELECT d.*,s.evaluation_id FROM evals.schedule_dispatch d
+    const d=(await db.query(`SELECT d.*,s.evaluation_id,e.title AS evaluation_title FROM evals.schedule_dispatch d
       JOIN evals.monitor_schedule s ON (s.org_id,s.id)=(d.org_id,d.schedule_id)
+      JOIN evals.evaluation e ON (e.org_id,e.id)=(s.org_id,s.evaluation_id)
       WHERE d.org_id=$1 AND d.id=$2`,[tenant.orgId,dispatchId])).rows[0];
     if(!d?.run_id||d.status!=="started")return null;
     const old=(await db.query("SELECT id FROM evals.regression_alert WHERE org_id=$1 AND schedule_dispatch_id=$2",[tenant.orgId,dispatchId])).rows[0];
     if(old)return null;
-    const run=(await db.query("SELECT status FROM evals.run WHERE org_id=$1 AND id=$2",[tenant.orgId,d.run_id])).rows[0];
+    const run=(await db.query("SELECT status,phase,updated_at<now()-interval '30 minutes' AS stale FROM evals.run WHERE org_id=$1 AND id=$2",[tenant.orgId,d.run_id])).rows[0];
     if(!run||!["completed","partial","failed","canceled"].includes(run.status))return null;
+    if(["completed","partial"].includes(run.status)&&run.phase!=="done"&&!run.stale)return null;
     const baseline=(await db.query(`SELECT d.run_id FROM evals.schedule_dispatch d JOIN evals.run r
       ON (r.org_id,r.id)=(d.org_id,d.run_id) WHERE d.org_id=$1 AND d.schedule_id=$2 AND d.scheduled_for<$3
       AND r.status='completed' ORDER BY d.scheduled_for DESC LIMIT 1`,[tenant.orgId,d.schedule_id,d.scheduled_for])).rows[0];
-    return {candidateId:d.run_id as string,baselineId:baseline?.run_id as string|undefined,runStatus:run.status as string};
+    return {candidateId:d.run_id as string,baselineId:baseline?.run_id as string|undefined,runStatus:run.status as string,
+      scheduleId:d.schedule_id as string,scheduledFor:new Date(d.scheduled_for).toISOString(),
+      evaluation:{id:d.evaluation_id as string,title:String(d.evaluation_title??"")}};
   });
   if(!state)return null;
   // Grading is idempotent for the same observations and grader revision. The
@@ -73,20 +87,21 @@ export async function settleScheduledRun(tenant:EvidenceScope,dispatchId:string)
       improved:"improved" in comparison?comparison.improved:0,
       common:comparison.common,unassessed:"unassessed" in comparison?comparison.unassessed:0,compatible:comparison.compatible,
       reasons:comparison.reasons}:null});
+    const summary=buildMonitoringSummary({status:verdict.status,reasons:verdict.reasons,compatible:comparison?comparison.compatible:null,
+      evaluation:state.evaluation,scheduleId:state.scheduleId,dispatchId,scheduledFor:state.scheduledFor,
+      candidate:{runId:state.candidateId,reportId:await reportForRun(db,tenant.orgId,state.candidateId),rows:await runOutcomeRows(db,tenant.orgId,state.candidateId)},
+      baseline:state.baselineId?{runId:state.baselineId,reportId:await reportForRun(db,tenant.orgId,state.baselineId),rows:await runOutcomeRows(db,tenant.orgId,state.baselineId)}:null});
     const row=(await db.query(`INSERT INTO evals.regression_alert(org_id,schedule_dispatch_id,baseline_run_id,
       candidate_run_id,comparison_id,status,reason_codes,evidence) VALUES($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT(org_id,schedule_dispatch_id) DO NOTHING RETURNING *`,[tenant.orgId,dispatchId,
       state.baselineId??null,state.candidateId,comparison?.id??null,verdict.status,verdict.reasons,
-      {baseline,candidate,comparison:comparison??null}])).rows[0];
+      {baseline,candidate,comparison:comparison??null,summary}])).rows[0];
     if(!row)return (await db.query("SELECT * FROM evals.regression_alert WHERE org_id=$1 AND schedule_dispatch_id=$2",[tenant.orgId,dispatchId])).rows[0];
-    const eventId=`monitor:${dispatchId}:${verdict.status}`;
-    await db.query(`INSERT INTO evals.notification(org_id,event_id,kind,audience,payload,status,delivered_at)
-      VALUES($1,$2,$3,'workspace',$4,'delivered',now()) ON CONFLICT(org_id,event_id,audience) DO NOTHING`,
-      [tenant.orgId,eventId,`monitor_${verdict.status}`,{alert_id:row.id,run_id:state.candidateId,
-        schedule_dispatch_id:dispatchId,status:verdict.status,reason_codes:verdict.reasons}]);
-    await queueWebhookEvent(db,tenant.orgId,eventId,verdict.status==="regression"?"regression":verdict.status==="inconclusive"&&candidate.status==="partial"?"run_partial":verdict.status==="inconclusive"?"inconclusive":
-      verdict.status==="unknown"?"run_unknown":"run_completed",{alert_id:row.id,dispatch_id:dispatchId,run_id:state.candidateId,
-      baseline_run_id:state.baselineId??null,status:verdict.status,reason_codes:verdict.reasons});
+    await deliverSummary(db,{orgId:tenant.orgId,alertId:row.id,eventId:`monitor:${dispatchId}:${verdict.status}`,summary,
+      webhookEvent:verdict.status==="regression"?"regression":verdict.status==="inconclusive"&&candidate.status==="partial"?"run_partial":verdict.status==="inconclusive"?"inconclusive":
+        verdict.status==="unknown"?"run_unknown":"run_completed",
+      webhookPayload:{alert_id:row.id,dispatch_id:dispatchId,run_id:state.candidateId,
+        baseline_run_id:state.baselineId??null,status:verdict.status,reason_codes:verdict.reasons}});
     return row;
   });
 }

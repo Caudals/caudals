@@ -15,6 +15,7 @@ const ORG = "00000000-0000-4000-8000-000000000001";
 const REPORT = "00000000-0000-4000-8000-000000000301";
 const REVISION = "00000000-0000-4000-8000-000000000311";
 const RUN = "00000000-0000-4000-8000-000000000321";
+const EVALUATION = "00000000-0000-4000-8000-000000000351";
 const TOKEN = "T".repeat(43);
 const CREATED = "2026-10-08T10:00:00.000Z";
 const workspaceRef = createHash("sha256").update(`caudals-workspace-ref-v1:${ORG}`).digest("hex").slice(0, 12);
@@ -75,6 +76,9 @@ async function routeReport(page: Page, shares: Array<Record<string, unknown>> = 
       return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000341", status: "queued" }, meta: {} } });
     }
     if (url.pathname.startsWith("/api/evals/v1/exports/")) return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000341", status: "running", download_path: null }, meta: {} } });
+    // Launch L-18: the run's comparison (a first run: nothing to compare) names its evaluation for "Re-run these questions".
+    if (url.pathname === `/api/evals/v1/runs/${RUN}/comparison`) return route.fulfill({ json: { data: { candidate: { runId: RUN, evaluationId: EVALUATION, status: "completed", createdAt: CREATED, reportId: REPORT, score: { pass: 3, scored: 7 } },
+      baseline: null, comparable: false, reasons: ["no_baseline"], status: null, counts: null, changes: [], focus: [] }, meta: {} } });
     if (url.pathname.startsWith("/api/evals/v1/reports/") || url.pathname === "/api/evals/v1/runs") return route.fulfill({ json: { data: [], meta: {} } });
     return route.fallback();
   });
@@ -105,7 +109,8 @@ for (const width of WIDTHS) {
     await expect(fixes.getByRole("heading", { name: "Fix these first" })).toBeVisible();
     await expect(fixes.locator(".p-fix-title")).toHaveText(["Update the outdated content behind “Fees and charges 2026”", "Give the assistant the content of “Investment FAQ”", "Answer instead of deflecting"]);
     await expect(fixes.getByText("Likely cause (hypothesis): outdated document")).toBeVisible();
-    await expect(fixes.getByRole("button", { name: "Re-run these questions" }).first()).toBeDisabled();
+    // Launch L-18: re-running a fix's questions runs the approved test set again (from the evaluation, after a confirmation).
+    await expect(fixes.getByRole("button", { name: "Re-run these questions" }).first()).toBeEnabled();
     expect(await noHorizontalScroll(page)).toBe(true);
     await page.screenshot({ path: `/tmp/caudals-l17-report-${width}.png`, fullPage: true });
   });

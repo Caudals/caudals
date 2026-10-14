@@ -9,7 +9,9 @@
  *    per-run cap (2 × p90 by default) pauses the same way. Grading and report
  *    passes already under way finish (results are never held back), and
  *    test-set preparation is not stopped. Overshoot is bounded by the calls in
- *    flight in that minute: each holds at most its token bound.
+ *    flight in that minute: each holds at most its token bound. A scheduled
+ *    run also pauses once its schedule's runs reach the schedule's monthly
+ *    credit cap (launch L-18, lib/evals/monitoring/schedule-credits.ts).
  *
  * 2. Alerts, only where the billing screens show (lib/billing/billing-ui.ts)
  *    and the account ever had credits: balance below the low-balance threshold
@@ -38,6 +40,7 @@ import { admissionRequirementUcr, engineBillingMode, workspaceEngineMode, type E
 import { monthCommittedUcr, readSpendCaps, runCapUcr, type SpendCaps } from "./limits";
 import { claimAlert, markAlertSent } from "./payments";
 import { UCR_PER_CREDIT } from "./units";
+import { scheduleCaps, scheduleMonthSpendUcr } from "../evals/monitoring/schedule-credits";
 
 type Env = Record<string, string | undefined>;
 type Scope = { orgId: string; actorId: string };
@@ -72,9 +75,11 @@ async function activeRuns(db: PoolClient, orgId: string): Promise<ActiveRun[]> {
     ORDER BY r.created_at LIMIT 50`, [orgId])).rows as ActiveRun[];
 }
 
+type CapStop = { runId: string; workflowId: string; scope: "monthly" | "run" | "schedule"; capUcr: bigint; scheduleId?: string };
+
 /** Pauses the runs a cap stops; returns which runs (and for which cap). */
-async function capWatch(scope: Scope, caps: SpendCaps, committedUcr: bigint, deps: WatchDeps): Promise<Array<{ runId: string; scope: "monthly" | "run"; capUcr: bigint }>> {
-  const stops: Array<{ runId: string; workflowId: string; scope: "monthly" | "run"; capUcr: bigint }> = [];
+async function capWatch(scope: Scope, caps: SpendCaps, committedUcr: bigint, deps: WatchDeps, now: Date): Promise<CapStop[]> {
+  const stops: CapStop[] = [];
   await withTenant(scope, async db => {
     const runs = await activeRuns(db, scope.orgId);
     if (!runs.length) return;
@@ -82,11 +87,22 @@ async function capWatch(scope: Scope, caps: SpendCaps, committedUcr: bigint, dep
       for (const run of runs) stops.push({ runId: run.id, workflowId: run.workflow_id, scope: "monthly", capUcr: caps.monthlyUcr });
       return;
     }
+    // Launch L-18: a scheduled run stops once its schedule's runs reach the schedule's monthly cap.
+    const scheduled = new Map((await db.query("SELECT run_id,schedule_id FROM evals.schedule_dispatch WHERE org_id=$1 AND run_id=ANY($2::uuid[])",
+      [scope.orgId, runs.map(run => run.id)])).rows.map(row => [String(row.run_id), String(row.schedule_id)]));
+    const scheduleCap = await scheduleCaps(db, scope.orgId, [...new Set(scheduled.values())]);
+    const scheduleSpent = new Map<string, bigint>();
     for (const run of runs) {
+      const scheduleId = scheduled.get(run.id);
+      const cap = scheduleId ? scheduleCap.get(scheduleId) : undefined;
+      if (scheduleId && cap !== undefined) {
+        if (!scheduleSpent.has(scheduleId)) scheduleSpent.set(scheduleId, await scheduleMonthSpendUcr(db, scope.orgId, scheduleId, now));
+        if (scheduleSpent.get(scheduleId)! >= cap) { stops.push({ runId: run.id, workflowId: run.workflow_id, scope: "schedule", capUcr: cap, scheduleId }); continue; }
+      }
       let p90: bigint;
       try { p90 = await p90For(db, scope.orgId, run); } catch { continue; }
-      const cap = runCapUcr(caps, p90);
-      if (cap > ZERO && await runSpendUcr(db, scope.orgId, run.id) >= cap) stops.push({ runId: run.id, workflowId: run.workflow_id, scope: "run", capUcr: cap });
+      const runCap = runCapUcr(caps, p90);
+      if (runCap > ZERO && await runSpendUcr(db, scope.orgId, run.id) >= runCap) stops.push({ runId: run.id, workflowId: run.workflow_id, scope: "run", capUcr: runCap });
     }
   }, deps.pool);
   for (const stop of stops) {
@@ -98,8 +114,8 @@ async function capWatch(scope: Scope, caps: SpendCaps, committedUcr: bigint, dep
 
 /* --------------------------------------------------------------- alerts --- */
 
-type AlertKind = "low_balance" | "cap_reached" | "credits_expiring" | "unusual_spend" | "auto_recharge_succeeded";
-interface AlertEmail<T extends TemplateName> { template: T; props: (workspace: string) => TemplateProps[T] }
+type AlertKind = "low_balance" | "cap_reached" | "credits_expiring" | "unusual_spend" | "auto_recharge_succeeded" | "schedule_skipped";
+export interface AlertEmail<T extends TemplateName> { template: T; props: (workspace: string) => TemplateProps[T] }
 
 /**
  * Claims one alert, writes its in-app notice and emails the owners who keep
@@ -107,7 +123,7 @@ interface AlertEmail<T extends TemplateName> { template: T; props: (workspace: s
  * (three attempts in all); the notice and Resend's idempotency key keep a
  * retry from duplicating anything.
  */
-async function deliver<T extends TemplateName>(scope: Scope, kind: AlertKind, periodKey: string, payload: Record<string, unknown>,
+export async function deliverBillingAlert<T extends TemplateName>(scope: Scope, kind: AlertKind, periodKey: string, payload: Record<string, unknown>,
   email: AlertEmail<T> | null, deps: WatchDeps): Promise<boolean> {
   const env = deps.env ?? process.env;
   const claimed = await withTenant(scope, async db => {
@@ -142,10 +158,13 @@ async function deliver<T extends TemplateName>(scope: Scope, kind: AlertKind, pe
   return true;
 }
 
-function links(orgId: string, env: Env) {
+/** Settings links for billing alerts: top-up, limits, overview and the notification settings. */
+export function billingLinks(orgId: string, env: Env = process.env) {
   const base = `${emailAppUrl(env)}/workspace/settings?orgId=${encodeURIComponent(orgId)}`;
   return { topUp: `${base}&tab=billing&view=top-up`, limits: `${base}&tab=billing&view=limits`, overview: `${base}&tab=billing`, notifications: `${base}&tab=notifications` };
 }
+
+const deliver = deliverBillingAlert;
 
 /** The most recent entry that added credits: low-balance alerts fire once per refill. */
 async function lastRefill(db: PoolClient, orgId: string): Promise<string | null> {
@@ -171,15 +190,22 @@ export async function runBillingWatch(scope: Scope, deps: WatchDeps = {}): Promi
     return { account, mode, caps, committed, eligible };
   }, deps.pool);
   if (!state) return tick;
-  const url = links(scope.orgId, env);
+  const url = billingLinks(scope.orgId, env);
 
   if (state.mode === "enforce") {
-    const stops = await capWatch(scope, state.caps, state.committed, deps);
+    const stops = await capWatch(scope, state.caps, state.committed, deps, now);
     tick.paused = stops.length;
     for (const stop of stops.filter(item => item.scope === "run")) {
       if (state.eligible && await deliver(scope, "cap_reached", `run:${stop.runId}`, { scope: "run", cap: credits(stop.capUcr), percent: 100, runId: stop.runId },
         { template: "cap_reached", props: workspace => ({ workspace, cap: credits(stop.capUcr), percent: 100, scope: "run", limitsUrl: url.limits, settingsUrl: url.notifications }) }, deps)) {
         tick.alerts.push("cap_reached:run");
+      }
+    }
+    // A schedule's cap: once per schedule and month, whatever the number of runs it stopped.
+    for (const stop of stops.filter(item => item.scope === "schedule")) {
+      if (await deliver(scope, "cap_reached", `schedule:${stop.scheduleId}:${monthWindow(now).period}`, { scope: "schedule", cap: credits(stop.capUcr), percent: 100, runId: stop.runId, scheduleId: stop.scheduleId },
+        { template: "cap_reached", props: workspace => ({ workspace, cap: credits(stop.capUcr), percent: 100, scope: "schedule", limitsUrl: url.limits, settingsUrl: url.notifications }) }, deps)) {
+        tick.alerts.push("cap_reached:schedule");
       }
     }
   }

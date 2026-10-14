@@ -42,6 +42,11 @@ const FIXTURES: { [K in TemplateName]: TemplateProps[K] } = {
   auto_recharge_failed: { workspace: "Acme", amountCents: 6050, currency: "EUR", billingUrl: billing, settingsUrl: notice.settingsUrl },
   credits_expiring: { workspace: "Acme", credits: 1200, expiresAt: "2026-11-11T23:00:00Z", workspaceUrl: `${APP}/workspace/evaluations?orgId=${ORG}`, settingsUrl: notice.settingsUrl },
   cap_reached: { workspace: "Acme", cap: 20000, percent: 100, scope: "monthly", limitsUrl: billing, settingsUrl: notice.settingsUrl },
+  schedule_skipped: { workspace: "Acme", evaluation: "Claims assistant", scheduledFor: "2026-11-02T08:00:00Z", reason: "credits", needed: 340, available: 120,
+    nextRunAt: "2026-12-07T08:00:00Z", actionUrl: `${billing}&view=top-up`, settingsUrl: notice.settingsUrl },
+  monitor_regression: { evaluation: "Claims assistant", scheduledFor: "2026-11-02T08:00:00Z", now: { pass: 36, scored: 50 }, before: { pass: 40, scored: 50 },
+    broken: [{ title: "Management fee under €10,000", url: `${APP}/workspace/reports/r1?orgId=${ORG}&result=a1` }, { title: "Custody fee", url: `${APP}/workspace/reports/r1?orgId=${ORG}&result=a2` }],
+    brokenTotal: 7, reportUrl: `${APP}/workspace/reports/r1?orgId=${ORG}`, settingsUrl: notice.settingsUrl },
   demo_report: { subject: "Your test of acme.example is ready", heading: "Your test of acme.example is ready", lines: ["5 of 8 answers match your website."], url: "https://caudals.com/en/demo#r=x", failed: false, footer: "You asked for this email on caudals.com." },
 };
 

@@ -5512,6 +5512,10 @@
 .p-notice-link { display: flex; flex: 1; align-items: flex-start; gap: 10px; min-width: 0; padding: 12px 10px; color: inherit; text-decoration: none; border-radius: inherit; }
 .p-notice-link > svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
 .p-notice .p-job-body { overflow-wrap: anywhere; }
+/* Launch L-18: a scheduled run's newly broken questions under its notice. */
+.p-notice-stack { display: grid; flex: 1; min-width: 0; }
+.p-notice-sublist { display: grid; gap: 4px; margin: -6px 0 0; padding: 0 10px 12px 36px; list-style: none; font-size: var(--p-text-label); overflow-wrap: anywhere; }
+.p-notice-sublist a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .p-notice > .p-btn { flex: none; margin: 8px 4px 0 0; }
 .p-notice[data-category="failure"] .p-notice-link > svg { color: var(--p-fail); }
 .p-notice[data-category="required_input"] .p-notice-link > svg { color: var(--p-warn); }
@@ -6168,6 +6172,13 @@ button.p-nav-item {
 
 /* The run estimate: facts as a definition list, then the cost in one sentence. */
 .p-estimate { display: grid; gap: 14px; }
+/* Launch L-18: the comparison with the previous run (results and report overview). */
+.p-comparison { display: grid; gap: 16px; }
+.p-comparison > .p-section-head { margin-bottom: 0; }
+.p-comparison-score { margin: 0; font-size: var(--p-text-subtitle); font-weight: 600; }
+/* Launch L-18: a schedule's estimate, per run and per month. */
+.p-schedule-estimate { display: grid; gap: 6px; margin-top: 4px; padding: 12px 14px; border: 1px solid var(--p-border-hairline); border-radius: var(--p-radius-md); background: var(--p-surface-2); overflow-wrap: anywhere; }
+.p-schedule-estimate p { margin: 0; }
 .p-estimate .p-defs dd { min-width: 0; overflow-wrap: anywhere; }
 .p-estimate .p-defs .p-plain-list { text-align: left; gap: 4px; font-weight: 400; }
 .p-estimate-cost { display: grid; gap: 4px; }
