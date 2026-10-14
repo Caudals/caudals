@@ -1,7 +1,7 @@
 ---
 title: Schedules and regression alerts
 summary: Re-run an approved test set weekly or monthly, see what it costs, and get an alert when answers get worse than in the previous run.
-keywords: [schedule, scheduled runs, monitoring, recurring, monthly, weekly, daily, regression, alert, compare, run again, skipped, webhook, notification]
+keywords: [schedule, scheduled runs, monitoring, recurring, monthly, weekly, daily, regression, alert, compare, run again, skipped, webhook, notification, slack, teams, email, ci, pipeline, github actions, release gate, threshold, api token]
 related: [prepare-and-run, reading-results, getting-help]
 owner: engineering
 reviewed: 2026-10-14
@@ -39,7 +39,28 @@ Runs on a different test set (or with a different rubric, grader or connection s
 
 ## Where alerts appear {#alerts}
 
-Outcomes are listed under **Monitoring outcomes**, with the score against last time, and appear in the notification centre with the questions that got worse. A regression is also emailed to everyone in the workspace who keeps **Regressions** on in **Settings → Notifications**: the score this time and last time, and up to five newly broken questions, each linking to its answer. To send outcomes to your own systems, add a signed webhook in **Settings → Developers**; see the API reference there.
+Outcomes are listed under **Monitoring outcomes**, with the score against last time, and appear in the notification centre with the questions that got worse. A regression is also emailed to everyone in the workspace who keeps **Regressions** on in **Settings → Notifications**: the score this time and last time, and up to five newly broken questions, each linking to its answer. To send outcomes to a team channel or your own systems, add a destination in **Settings → Developers** (below).
+
+## Slack, Teams and email {#destinations}
+
+In **Settings → Developers → Alert destinations**, owners choose **Add destination** and pick a type:
+
+- **Slack**: in Slack, add the Incoming Webhooks app to the channel and paste the webhook URL it gives you (`https://hooks.slack.com/services/…`).
+- **Microsoft Teams**: in Teams, create a workflow from the template "Post to a channel when a webhook request is received" and paste its URL.
+- **Email**: a team member's address, or an address on your team's company domain such as a shared alerts inbox.
+- **Signed webhook**: a JSON event signed with HMAC for your own systems; the API reference shows how to verify it.
+
+Choose whether to hear about **regressions and runs that could not finish** or **every scheduled run**, and the language of the messages. Slack, Teams and email receive a readable message: the score against last time, up to five questions that got worse with links to their answers, and a link to the report. **Send test** sends an example, clearly labelled, so you can check that it arrives; the result is shown on the destination. Webhook URLs and addresses are stored encrypted, only public internet addresses are accepted, and a deleted destination stops at once.
+
+## Gate releases from your pipeline {#ci}
+
+A deployment pipeline can run your approved test set before each release and stop the release when answers get worse:
+
+1. In **Settings → Developers**, create a token with **CI pipeline: start runs and read their results**. Choose a short expiry and keep it as a secret in your CI.
+2. Under **Release gate**, set the **pass threshold**: the share of scored answers that must pass for the test set. A schedule can set its own in its menu, which replaces the test set's for its runs.
+3. Your pipeline starts a run with the test set version and system version shown there and an `Idempotency-Key`, then asks the gate until it answers **pass**, **fail** or **unknown** (the run could not give a result). The API reference has a curl example and a GitHub Actions workflow.
+
+Runs started this way count like any other run: the estimate, your credit limits and your plan apply, and each key starts one run however many times it is retried.
 
 ## Run again and compare {#compare}
 

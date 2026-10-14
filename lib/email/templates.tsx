@@ -1,6 +1,7 @@
 import { emailCopy, fill, type EmailCopy, type EmailLocale } from "./copy";
 import { EmailLayout, renderEmailText, type EmailBlock, type EmailCategory, type EmailContent } from "./layout";
 import { renderEmailDocument } from "./render";
+import { buildDestinationMessage, testMessage, type DestinationContent } from "@/lib/evals/monitoring/destination-format";
 
 /**
  * Every Caudals email (launch L-07, spec v2 P-37/P-38) as one typed catalogue:
@@ -63,6 +64,14 @@ export type TemplateProps = {
     evaluation: string; scheduledFor: string; now: { pass: number; scored: number }; before: { pass: number; scored: number };
     broken: Array<{ title: string; url: string }>; brokenTotal: number; reportUrl: string; settingsUrl: string;
   };
+  /**
+   * The summary after a scheduled run sent to an email destination (launch
+   * L-19, P-28): the same lines as the Slack and Teams messages
+   * (lib/evals/monitoring/destination-format.ts), or the test send's example,
+   * labelled as one. Sent to a shared address, not a member: its footer says
+   * why it arrives and who can remove it.
+   */
+  monitor_summary: DestinationContent;
   /** The public demo's report email (L-03), with its own localized lines. */
   demo_report: { subject: string; heading: string; lines: string[]; url: string; failed: boolean; footer: string };
 };
@@ -75,7 +84,7 @@ export const TEMPLATE_CATEGORY: Record<TemplateName, EmailCategory> = {
   test_set_ready: "notification", report_published: "notification", run_failed: "notification", input_required: "notification",
   export_failed: "notification", generation_failed: "notification", website_failed: "notification", document_failed: "notification",
   low_balance: "billing", auto_recharge_succeeded: "billing", auto_recharge_failed: "billing", credits_expiring: "billing", cap_reached: "billing",
-  schedule_skipped: "billing", monitor_regression: "notification",
+  schedule_skipped: "billing", monitor_regression: "notification", monitor_summary: "essential",
   welcome: "lifecycle", d1_test_set: "lifecycle", d3_run: "lifecycle", d7_report: "lifecycle", first_report: "lifecycle",
   d21_rerun: "lifecycle", d30_winback: "lifecycle",
 };
@@ -407,6 +416,23 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
           { kind: "action", label: k.action, url: props.reportUrl },
         ],
         footer: [c.footer.notification], footerLink: { label: c.footer.notificationLink, url: props.settingsUrl },
+      };
+    }
+    case "monitor_summary": {
+      const props = p as TemplateProps["monitor_summary"];
+      const options = { locale, appUrl: props.appUrl, orgId: props.orgId, workspace: props.workspace };
+      const message = "summary" in props ? buildDestinationMessage(props.summary, options) : testMessage(options, props.now ? new Date(props.now) : undefined);
+      const blocks: EmailBlock[] = [];
+      if (message.test) blocks.push({ kind: "text", tone: "lead", text: message.test.lead }, { kind: "text", tone: "muted", text: message.test.note });
+      blocks.push({ kind: "text", tone: message.test ? "body" : "lead", text: message.lead });
+      if (message.facts.length) blocks.push({ kind: "facts", rows: message.facts.map((fact): [string, string] => [fact.label, fact.value]) });
+      if (message.broken.length) blocks.push({ kind: "text", text: message.brokenIntro }, ...message.broken.map((item): EmailBlock => ({ kind: "link", label: item.title, url: item.url })));
+      if (message.more) blocks.push({ kind: "text", tone: "muted", text: message.more });
+      if (message.fixed) blocks.push({ kind: "text", text: message.fixed });
+      blocks.push({ kind: "action", label: message.action.label, url: message.action.url });
+      return {
+        subject: message.test ? message.test.subject : message.title, preview: message.preview, heading: message.test ? message.test.heading : message.title,
+        blocks, footer: [message.footer],
       };
     }
     case "demo_report": {

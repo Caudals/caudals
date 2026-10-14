@@ -6550,3 +6550,16 @@ ol.p-ctx-list {
   overflow-wrap: anywhere;
   min-width: 0;
 }
+
+/* --- Integrations v2 (launch L-19) --------------------------------------------
+   The release gate's IDs under each evaluation: one line each, code wraps
+   anywhere so the table never scrolls the page at 390 px. */
+.p-gate-ids {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.p-gate-ids .p-code {
+  white-space: normal;
+}

@@ -55,17 +55,20 @@ export async function processDeletionRequests(scope:LifecycleScope){
    +Number((await db.query("SELECT evals.byok_revoke_for_deletion($1) AS revoked",[scope.orgId])).rows[0].revoked);
   const runs=(await db.query("UPDATE evals.run SET status='cancel_requested',updated_at=now() WHERE org_id=$1 AND status IN ('queued','running','pause_requested','paused')",[scope.orgId])).rowCount??0;
   const reports=(await db.query("UPDATE evals.report SET publication_status='withdrawn',updated_at=now() WHERE org_id=$1 AND publication_status<>'withdrawn'",[scope.orgId])).rowCount??0;
+  // Launch L-19: API tokens (which may start runs) stop working and destinations stop sending.
+  const tokens=(await db.query("UPDATE evals.customer_api_token SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1 AND revoked_at IS NULL",[scope.orgId])).rowCount??0;
+  const destinations=(await db.query("UPDATE evals.webhook_endpoint SET enabled=false,updated_at=now() WHERE org_id=$1 AND enabled",[scope.orgId])).rowCount??0;
   await db.query(`INSERT INTO evals.retention_job(org_id,object_type,object_id,action,not_before)
    SELECT org_id,'artifact',id,'delete',now() FROM evals.artifact WHERE org_id=$1 AND state<>'deleted'
    ON CONFLICT(org_id,object_type,object_id,action) DO UPDATE SET not_before=LEAST(evals.retention_job.not_before,excluded.not_before)`,[scope.orgId]);
-  return {id:row.id as string,shares,secrets,runs,reports};
+  return {id:row.id as string,shares,secrets,runs,reports,tokens,destinations};
  });
  if(!request)return null;
  let deleted=0,failed=0;
  for(let pass=0;pass<50;pass++){const result=await processRetention(scope,100);deleted+=result.completed;failed+=result.failed;if(result.selected<100)break;}
  return withTenant(scope,async db=>{
   const remaining=Number((await db.query("SELECT count(*) FROM evals.artifact WHERE org_id=$1 AND state<>'deleted'",[scope.orgId])).rows[0].count);
-  const summary={shares_revoked:request.shares,credentials_revoked:request.secrets,runs_stopped:request.runs,reports_withdrawn:request.reports,objects_deleted:deleted,objects_failed:failed,objects_remaining:remaining,backup_expiry:"Encrypted backups expire on their documented schedule; restores replay this deletion before serving data."};
+  const summary={shares_revoked:request.shares,credentials_revoked:request.secrets,runs_stopped:request.runs,reports_withdrawn:request.reports,api_tokens_revoked:request.tokens,destinations_disabled:request.destinations,objects_deleted:deleted,objects_failed:failed,objects_remaining:remaining,backup_expiry:"Encrypted backups expire on their documented schedule; restores replay this deletion before serving data."};
   if(remaining>0){await db.query("UPDATE evals.deletion_request SET summary=$3 WHERE org_id=$1 AND id=$2",[scope.orgId,request.id,JSON.stringify(summary)]);return {id:request.id,status:"processing",summary};}
   await db.query("INSERT INTO evals.recovery_control_event(org_id,action,subject_type,subject_id,actor_id,payload_hash) VALUES($1,'workspace_deleted','workspace',$1,$2,$3) ON CONFLICT DO NOTHING",[scope.orgId,scope.actorId,sha256(canonicalJson({action:"workspace_deleted",id:scope.orgId,request:request.id}))]);
   await db.query("SELECT evals.tombstone_workspace($1,$2)",[scope.orgId,request.id]);

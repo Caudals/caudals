@@ -6,6 +6,8 @@ import { compareRuns, scoreRun } from "../repositories/managed";
 import { withTenant } from "../repositories/db";
 import type { EvidenceScope } from "../repositories/evidence";
 import { deliverSummary } from "./destinations";
+// Slack, Teams and email destinations (launch L-19) register themselves on import.
+import "./integration-destinations";
 import { buildMonitoringSummary, reportForRun, runOutcomeRows } from "./summary";
 
 type RunEvidence={status:string;coverage:number;criticalUnassessed:number};
@@ -45,7 +47,7 @@ async function runEvidence(db:PoolClient,orgId:string,runId:string){
  * hands the summary (launch L-18, P-25: score against last time, up to five
  * newly broken questions, "not comparable") to every destination
  * (lib/evals/monitoring/destinations.ts): the in-app notice, the regression
- * email and the signed webhook. One alert per dispatch (unique row), so a
+ * email, the signed webhook and (launch L-19) Slack, Teams and email destinations. One alert per dispatch (unique row), so a
  * replayed tick never alerts twice. A completed run waits for its report
  * (links in the summary open it), at most 30 minutes after it finished.
  */

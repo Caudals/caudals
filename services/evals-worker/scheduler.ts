@@ -95,7 +95,8 @@ async function main() {
             // Launch L-18: due slots are checked for credits; a skip for credits or a cap alerts owners.
             ["schedules", () => tickSchedules(scope, undefined, { send })],
             ["alerts", () => tickScheduledAlerts(scope)],
-            ["webhooks", () => tickWebhookDeliveries(scope, keys)],
+            // Launch L-19: Slack, Teams and email destinations are formatted and sent here too.
+            ["webhooks", () => tickWebhookDeliveries(scope, keys, { send })],
             ["restarts", () => advanceEvaluationRestarts(scope)],
             ["generations", () => advancePendingGenerations(scope)],
             ["judgments", () => advanceJudgments(scope)],

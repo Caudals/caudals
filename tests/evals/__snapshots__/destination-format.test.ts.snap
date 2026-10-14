@@ -1,0 +1,1743 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: first run (en) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: the scheduled run finished",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "The scheduled run of 1 October 2026 finished. It is the first on this schedule, so there is nothing to compare with yet.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Score this run*
+70% (7 of 10 correct)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Open the report",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: the scheduled run finished",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: first run (en) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Open the report",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: the scheduled run finished",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "The scheduled run of 1 October 2026 finished. It is the first on this schedule, so there is nothing to compare with yet.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Score this run",
+                "value": "70% (7 of 10 correct)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: first run (es) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: la ejecución programada ha terminado",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "La ejecución programada del 1 de octubre de 2026 ha terminado. Es la primera de esta programación, así que aún no hay nada con qué compararla.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Puntuación de esta ejecución*
+70 % (7 de 10 correctas)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Abrir el informe",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: la ejecución programada ha terminado",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: first run (es) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Abrir el informe",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: la ejecución programada ha terminado",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "La ejecución programada del 1 de octubre de 2026 ha terminado. Es la primera de esta programación, así que aún no hay nada con qué compararla.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Puntuación de esta ejecución",
+                "value": "70 % (7 de 10 correctas)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: not comparable (en) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: the scheduled run finished",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "The scheduled run of 1 October 2026 finished, but it cannot be compared with the last run: the test set, the grading or the run conditions changed.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Score this run*
+70% (7 of 10 correct)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Open the report",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: the scheduled run finished",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: not comparable (en) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Open the report",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: the scheduled run finished",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "The scheduled run of 1 October 2026 finished, but it cannot be compared with the last run: the test set, the grading or the run conditions changed.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Score this run",
+                "value": "70% (7 of 10 correct)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: not comparable (es) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: la ejecución programada ha terminado",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "La ejecución programada del 1 de octubre de 2026 ha terminado, pero no se puede comparar con la anterior: han cambiado el conjunto de pruebas, la calificación o las condiciones de ejecución.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Puntuación de esta ejecución*
+70 % (7 de 10 correctas)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Abrir el informe",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: la ejecución programada ha terminado",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: not comparable (es) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Abrir el informe",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: la ejecución programada ha terminado",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "La ejecución programada del 1 de octubre de 2026 ha terminado, pero no se puede comparar con la anterior: han cambiado el conjunto de pruebas, la calificación o las condiciones de ejecución.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Puntuación de esta ejecución",
+                "value": "70 % (7 de 10 correctas)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: pass (en) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: the scheduled run passed, no question got worse",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "The scheduled run of 1 October 2026 kept every answer that passed last time.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Score this run*
+90% (9 of 10 correct)",
+          "type": "mrkdwn",
+        },
+        {
+          "text": "*Score last time*
+90% (9 of 10 correct)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Open the report",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: the scheduled run passed, no question got worse",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: pass (en) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Open the report",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: the scheduled run passed, no question got worse",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "The scheduled run of 1 October 2026 kept every answer that passed last time.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Score this run",
+                "value": "90% (9 of 10 correct)",
+              },
+              {
+                "title": "Score last time",
+                "value": "90% (9 of 10 correct)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: pass (es) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: la ejecución programada ha pasado, ninguna pregunta ha empeorado",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "La ejecución programada del 1 de octubre de 2026 ha mantenido todas las respuestas que pasaron la última vez.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Puntuación de esta ejecución*
+90 % (9 de 10 correctas)",
+          "type": "mrkdwn",
+        },
+        {
+          "text": "*Puntuación de la última vez*
+90 % (9 de 10 correctas)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Abrir el informe",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: la ejecución programada ha pasado, ninguna pregunta ha empeorado",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: pass (es) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Abrir el informe",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: la ejecución programada ha pasado, ninguna pregunta ha empeorado",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "La ejecución programada del 1 de octubre de 2026 ha mantenido todas las respuestas que pasaron la última vez.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Puntuación de esta ejecución",
+                "value": "90 % (9 de 10 correctas)",
+              },
+              {
+                "title": "Puntuación de la última vez",
+                "value": "90 % (9 de 10 correctas)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: regression (en) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: 7 questions got worse since the last run",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "The scheduled run of 1 October 2026 scored lower than the run before it, on the same test set.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Score this run*
+70% (7 of 10 correct)",
+          "type": "mrkdwn",
+        },
+        {
+          "text": "*Score last time*
+90% (9 of 10 correct)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "*Questions that worked last time and now fail:*
+• <https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a1|Refund window for &lt;sale&gt; items &amp; returns>
+• <https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a2|Delivery [express] ¦ same day>
+_And 5 more in the report._",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "1 question that failed last time now passes.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Open the report",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: 7 questions got worse since the last run",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: regression (en) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Open the report",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: 7 questions got worse since the last run",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "The scheduled run of 1 October 2026 scored lower than the run before it, on the same test set.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Score this run",
+                "value": "70% (7 of 10 correct)",
+              },
+              {
+                "title": "Score last time",
+                "value": "90% (9 of 10 correct)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "spacing": "Medium",
+            "text": "Questions that worked last time and now fail:",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "spacing": "Small",
+            "text": "- [Refund window for <sale> items & returns](https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a1)
+- [Delivery (express) | same day](https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a2)",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "spacing": "Small",
+            "text": "And 5 more in the report.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "text": "1 question that failed last time now passes.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: regression (es) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: 7 preguntas han empeorado desde la última ejecución",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "La ejecución programada del 1 de octubre de 2026 ha puntuado por debajo de la anterior, con el mismo conjunto de pruebas.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Puntuación de esta ejecución*
+70 % (7 de 10 correctas)",
+          "type": "mrkdwn",
+        },
+        {
+          "text": "*Puntuación de la última vez*
+90 % (9 de 10 correctas)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "*Preguntas que funcionaban la última vez y ahora fallan:*
+• <https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a1|Refund window for &lt;sale&gt; items &amp; returns>
+• <https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a2|Delivery [express] ¦ same day>
+_Y 5 más en el informe._",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "1 pregunta que fallaba la última vez ahora pasa.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Abrir el informe",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: 7 preguntas han empeorado desde la última ejecución",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: regression (es) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Abrir el informe",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: 7 preguntas han empeorado desde la última ejecución",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "La ejecución programada del 1 de octubre de 2026 ha puntuado por debajo de la anterior, con el mismo conjunto de pruebas.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Puntuación de esta ejecución",
+                "value": "70 % (7 de 10 correctas)",
+              },
+              {
+                "title": "Puntuación de la última vez",
+                "value": "90 % (9 de 10 correctas)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "spacing": "Medium",
+            "text": "Preguntas que funcionaban la última vez y ahora fallan:",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "spacing": "Small",
+            "text": "- [Refund window for <sale> items & returns](https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a1)
+- [Delivery (express) | same day](https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a2)",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "spacing": "Small",
+            "text": "Y 5 más en el informe.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "text": "1 pregunta que fallaba la última vez ahora pasa.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: unknown (en) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: the scheduled run could not finish",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "The scheduled run of 1 October 2026 stopped before it could give a result. Completed work is kept; open the evaluation for next steps.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Open the evaluation",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/evaluations/eval-1?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: the scheduled run could not finish",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: unknown (en) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Open the evaluation",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/evaluations/eval-1?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: the scheduled run could not finish",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "The scheduled run of 1 October 2026 stopped before it could give a result. Completed work is kept; open the evaluation for next steps.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: unknown (es) > slack 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Support assistant: la ejecución programada no ha podido terminar",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "La ejecución programada del 1 de octubre de 2026 se ha detenido antes de dar un resultado. El trabajo hecho se conserva; abre la evaluación para ver los siguientes pasos.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Abrir la evaluación",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/evaluations/eval-1?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Support assistant: la ejecución programada no ha podido terminar",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > Slack and Teams payloads: unknown (es) > teams 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Abrir la evaluación",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/evaluations/eval-1?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Support assistant: la ejecución programada no ha podido terminar",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "La ejecución programada del 1 de octubre de 2026 se ha detenido antes de dar un resultado. El trabajo hecho se conserva; abre la evaluación para ver los siguientes pasos.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > renders the email destination in both languages with its own footer > email text en 1`] = `
+"Support assistant: 7 questions got worse since the last run
+
+The scheduled run of 1 October 2026 scored lower than the run before it, on the same test set.
+
+Score this run: 70% (7 of 10 correct)
+Score last time: 90% (9 of 10 correct)
+
+Questions that worked last time and now fail:
+
+Refund window for <sale> items & returns:
+https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a1
+
+Delivery [express] | same day:
+https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a2
+
+And 5 more in the report.
+
+1 question that failed last time now passes.
+
+Open the report:
+https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001
+
+The Caudals team
+
+--
+You receive this because this address is an alert destination of the Caudals workspace Acme Support. A workspace owner can remove it in Settings → Developers.
+Caudals · caudals.com
+"
+`;
+
+exports[`destination messages (launch L-19) > renders the email destination in both languages with its own footer > email text es 1`] = `
+"Support assistant: 7 preguntas han empeorado desde la última ejecución
+
+La ejecución programada del 1 de octubre de 2026 ha puntuado por debajo de la anterior, con el mismo conjunto de pruebas.
+
+Puntuación de esta ejecución: 70 % (7 de 10 correctas)
+Puntuación de la última vez: 90 % (9 de 10 correctas)
+
+Preguntas que funcionaban la última vez y ahora fallan:
+
+Refund window for <sale> items & returns:
+https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a1
+
+Delivery [express] | same day:
+https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001&result=a2
+
+Y 5 más en el informe.
+
+1 pregunta que fallaba la última vez ahora pasa.
+
+Abrir el informe:
+https://app.caudals.com/workspace/reports/report-2?orgId=00000000-0000-4000-8000-000000000001
+
+El equipo de Caudals
+
+--
+Recibes este aviso porque esta dirección es un destino de alertas del espacio de trabajo Acme Support en Caudals. Un propietario puede quitarla en Ajustes → Desarrolladores.
+Caudals · caudals.com
+"
+`;
+
+exports[`destination messages (launch L-19) > the test message is labelled as an example (en) > email test text 1`] = `
+"Test message from Caudals
+
+This destination works. Alerts after scheduled runs in Acme Support will arrive here and look like the example below.
+
+Example only: the evaluation and the numbers below are not real.
+
+The scheduled run of 1 October 2026 scored lower than the run before it, on the same test set.
+
+Score this run: 80% (16 of 20 correct)
+Score last time: 90% (18 of 20 correct)
+
+Questions that worked last time and now fail:
+
+How long do refunds take?:
+https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001
+
+Can I change my delivery address after ordering?:
+https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001
+
+Open the evaluation:
+https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001
+
+The Caudals team
+
+--
+You receive this because this address is an alert destination of the Caudals workspace Acme Support. A workspace owner can remove it in Settings → Developers.
+Caudals · caudals.com
+"
+`;
+
+exports[`destination messages (launch L-19) > the test message is labelled as an example (en) > slack test 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Test message from Caudals",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "This destination works. Alerts after scheduled runs in Acme Support will arrive here and look like the example below.
+_Example only: the evaluation and the numbers below are not real._",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "type": "divider",
+    },
+    {
+      "text": {
+        "text": "*Example evaluation: 2 questions got worse since the last run*",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "The scheduled run of 1 October 2026 scored lower than the run before it, on the same test set.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Score this run*
+80% (16 of 20 correct)",
+          "type": "mrkdwn",
+        },
+        {
+          "text": "*Score last time*
+90% (18 of 20 correct)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "*Questions that worked last time and now fail:*
+• <https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001|How long do refunds take?>
+• <https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001|Can I change my delivery address after ordering?>",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Open the evaluation",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Test message from Caudals: Example evaluation: 2 questions got worse since the last run",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > the test message is labelled as an example (en) > teams test 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Open the evaluation",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Test message from Caudals",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "This destination works. Alerts after scheduled runs in Acme Support will arrive here and look like the example below.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "spacing": "None",
+            "text": "Example only: the evaluation and the numbers below are not real.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "separator": true,
+            "size": "Medium",
+            "spacing": "Medium",
+            "text": "Example evaluation: 2 questions got worse since the last run",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "The scheduled run of 1 October 2026 scored lower than the run before it, on the same test set.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Score this run",
+                "value": "80% (16 of 20 correct)",
+              },
+              {
+                "title": "Score last time",
+                "value": "90% (18 of 20 correct)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "spacing": "Medium",
+            "text": "Questions that worked last time and now fail:",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "spacing": "Small",
+            "text": "- [How long do refunds take?](https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001)
+- [Can I change my delivery address after ordering?](https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001)",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · scheduled run of 1 October 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;
+
+exports[`destination messages (launch L-19) > the test message is labelled as an example (es) > email test text 1`] = `
+"Mensaje de prueba de Caudals
+
+Este destino funciona. Las alertas tras las ejecuciones programadas de Acme Support llegarán aquí con el aspecto del ejemplo de abajo.
+
+Solo es un ejemplo: la evaluación y las cifras de abajo no son reales.
+
+La ejecución programada del 1 de octubre de 2026 ha puntuado por debajo de la anterior, con el mismo conjunto de pruebas.
+
+Puntuación de esta ejecución: 80 % (16 de 20 correctas)
+Puntuación de la última vez: 90 % (18 de 20 correctas)
+
+Preguntas que funcionaban la última vez y ahora fallan:
+
+¿Cuánto tardan los reembolsos?:
+https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001
+
+¿Puedo cambiar la dirección de entrega después de pedir?:
+https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001
+
+Abrir la evaluación:
+https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001
+
+El equipo de Caudals
+
+--
+Recibes este aviso porque esta dirección es un destino de alertas del espacio de trabajo Acme Support en Caudals. Un propietario puede quitarla en Ajustes → Desarrolladores.
+Caudals · caudals.com
+"
+`;
+
+exports[`destination messages (launch L-19) > the test message is labelled as an example (es) > slack test 1`] = `
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": false,
+        "text": "Mensaje de prueba de Caudals",
+        "type": "plain_text",
+      },
+      "type": "header",
+    },
+    {
+      "text": {
+        "text": "Este destino funciona. Las alertas tras las ejecuciones programadas de Acme Support llegarán aquí con el aspecto del ejemplo de abajo.
+_Solo es un ejemplo: la evaluación y las cifras de abajo no son reales._",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "type": "divider",
+    },
+    {
+      "text": {
+        "text": "*Evaluación de ejemplo: 2 preguntas han empeorado desde la última ejecución*",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "La ejecución programada del 1 de octubre de 2026 ha puntuado por debajo de la anterior, con el mismo conjunto de pruebas.",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "fields": [
+        {
+          "text": "*Puntuación de esta ejecución*
+80 % (16 de 20 correctas)",
+          "type": "mrkdwn",
+        },
+        {
+          "text": "*Puntuación de la última vez*
+90 % (18 de 20 correctas)",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "section",
+    },
+    {
+      "text": {
+        "text": "*Preguntas que funcionaban la última vez y ahora fallan:*
+• <https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001|¿Cuánto tardan los reembolsos?>
+• <https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001|¿Puedo cambiar la dirección de entrega después de pedir?>",
+        "type": "mrkdwn",
+      },
+      "type": "section",
+    },
+    {
+      "elements": [
+        {
+          "text": {
+            "emoji": false,
+            "text": "Abrir la evaluación",
+            "type": "plain_text",
+          },
+          "type": "button",
+          "url": "https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      "type": "actions",
+    },
+    {
+      "elements": [
+        {
+          "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+          "type": "mrkdwn",
+        },
+      ],
+      "type": "context",
+    },
+  ],
+  "text": "Mensaje de prueba de Caudals: Evaluación de ejemplo: 2 preguntas han empeorado desde la última ejecución",
+  "unfurl_links": false,
+  "unfurl_media": false,
+}
+`;
+
+exports[`destination messages (launch L-19) > the test message is labelled as an example (es) > teams test 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "actions": [
+          {
+            "title": "Abrir la evaluación",
+            "type": "Action.OpenUrl",
+            "url": "https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001",
+          },
+        ],
+        "body": [
+          {
+            "size": "Large",
+            "text": "Mensaje de prueba de Caudals",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "Este destino funciona. Las alertas tras las ejecuciones programadas de Acme Support llegarán aquí con el aspecto del ejemplo de abajo.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "spacing": "None",
+            "text": "Solo es un ejemplo: la evaluación y las cifras de abajo no son reales.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "separator": true,
+            "size": "Medium",
+            "spacing": "Medium",
+            "text": "Evaluación de ejemplo: 2 preguntas han empeorado desde la última ejecución",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "text": "La ejecución programada del 1 de octubre de 2026 ha puntuado por debajo de la anterior, con el mismo conjunto de pruebas.",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "facts": [
+              {
+                "title": "Puntuación de esta ejecución",
+                "value": "80 % (16 de 20 correctas)",
+              },
+              {
+                "title": "Puntuación de la última vez",
+                "value": "90 % (18 de 20 correctas)",
+              },
+            ],
+            "type": "FactSet",
+          },
+          {
+            "spacing": "Medium",
+            "text": "Preguntas que funcionaban la última vez y ahora fallan:",
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "wrap": true,
+          },
+          {
+            "spacing": "Small",
+            "text": "- [¿Cuánto tardan los reembolsos?](https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001)
+- [¿Puedo cambiar la dirección de entrega después de pedir?](https://app.caudals.com/workspace/evaluations?orgId=00000000-0000-4000-8000-000000000001)",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+          {
+            "isSubtle": true,
+            "size": "Small",
+            "spacing": "Medium",
+            "text": "Caudals · Acme Support · ejecución programada del 1 de octubre de 2026",
+            "type": "TextBlock",
+            "wrap": true,
+          },
+        ],
+        "msteams": {
+          "width": "Full",
+        },
+        "type": "AdaptiveCard",
+        "version": "1.4",
+      },
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+    },
+  ],
+  "type": "message",
+}
+`;

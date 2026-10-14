@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { canonicalJson } from "../../lib/evals/contracts/hashing";
 import { createWebhookSignature } from "../../lib/evals/monitoring/webhook-protocol";
-import { apiCurl, ciGateScript, NODE_VERIFIER, PYTHON_VERIFIER, webhookExample } from "../../lib/evals/api-reference";
-import { CUSTOMER_API_LIMITS, CUSTOMER_API_RESOURCES, CUSTOMER_TOKEN_SCOPES, WEBHOOK_EVENT_KINDS, WEBHOOK_PAYLOAD_FIELDS } from "../../lib/evals/monitoring/customer-api";
+import { apiCurl, ciGateScript, githubActionExample, NODE_VERIFIER, PYTHON_VERIFIER, startRunCurl, webhookExample } from "../../lib/evals/api-reference";
+import { CUSTOMER_API_LIMITS, CUSTOMER_API_RESOURCES, CUSTOMER_TOKEN_SCOPES, READ_TOKEN_SCOPES, WEBHOOK_EVENT_KINDS, WEBHOOK_PAYLOAD_FIELDS } from "../../lib/evals/monitoring/customer-api";
 import { customerTokenScope } from "../../lib/evals/monitoring/tokens";
 import { createWebhookSchema } from "../../lib/evals/monitoring/webhooks";
 
@@ -66,7 +66,9 @@ print(json.dumps(out))
 
   it("documents the scopes, resources and events the routes accept", () => {
     expect(customerTokenScope.options).toEqual([...CUSTOMER_TOKEN_SCOPES]);
-    expect(Object.values(CUSTOMER_API_RESOURCES).sort()).toEqual([...CUSTOMER_TOKEN_SCOPES].sort());
+    // Every read scope has a list; runs:write (launch L-19) starts runs instead.
+    expect(Object.values(CUSTOMER_API_RESOURCES).sort()).toEqual([...READ_TOKEN_SCOPES].sort());
+    expect(CUSTOMER_TOKEN_SCOPES.filter(scope => !READ_TOKEN_SCOPES.includes(scope as never))).toEqual(["runs:write"]);
     expect(createWebhookSchema.shape.events.element.options).toEqual([...WEBHOOK_EVENT_KINDS]);
     // Retries wait 2^attempt minutes (lib/evals/monitoring/webhooks.ts) until the last attempt.
     expect(CUSTOMER_API_LIMITS.webhookRetryMinutes).toEqual(Array.from({ length: CUSTOMER_API_LIMITS.webhookAttempts - 1 }, (_, attempt) => 2 ** attempt));
@@ -80,5 +82,30 @@ print(json.dumps(out))
     expect(curl).toContain("https://app.caudals.com/api/evals/v1/integrations/runs?orgId=org-1");
     expect(curl).toContain("$CAUDALS_TOKEN");
     expect(ciGateScript("https://app.caudals.com", "org-1")).toContain("/integrations/ci/$SCHEDULE_ID?orgId=org-1");
+  });
+
+  it("gives a CI trigger example and a GitHub Actions workflow that parse and reuse one Idempotency-Key per attempt (launch L-19)", () => {
+    const curl = startRunCurl("https://app.caudals.com", "org-1", { suiteVersionId: "sv-1", targetRevisionId: "tr-1" });
+    expect(curl).toContain('-X POST "https://app.caudals.com/api/evals/v1/integrations/runs?orgId=org-1"');
+    expect(curl).toContain('-H "Idempotency-Key: release-$(git rev-parse HEAD)"');
+    expect(curl).toContain('{"suiteVersionId":"sv-1","targetRevisionId":"tr-1"}');
+    expect(curl).toContain("/integrations/runs/$run_id/gate?orgId=org-1");
+    const workflow = githubActionExample("https://app.caudals.com", "org-1");
+    // YAML: two-space indentation, no tabs; the shell script is one literal block under `run: |`.
+    expect(workflow).not.toMatch(/\t/);
+    expect(workflow.split("\n").every(line => (line.length - line.trimStart().length) % 2 === 0)).toBe(true);
+    expect(workflow).toContain("          CAUDALS_TOKEN: ${{ secrets.CAUDALS_TOKEN }}");
+    expect(workflow).toContain("          CAUDALS_API: https://app.caudals.com/api/evals/v1");
+    expect(workflow).toContain("          ORG_ID: org-1");
+    const script = workflow.slice(workflow.indexOf("run: |") + 7).split("\n").map(line => line.slice(10)).join("\n");
+    expect(script).toContain('Idempotency-Key: gh-${{ github.sha }}-${{ github.run_attempt }}');
+    expect(script).toContain('"$CAUDALS_API/integrations/runs/$run_id/gate?orgId=$ORG_ID"');
+    expect(script.trim().endsWith('test "$status" = "pass"')).toBe(true);
+    // The script is valid shell (bash -n), with GitHub's expressions as they arrive after substitution.
+    const file = join(directory, "gate.sh");
+    writeFileSync(file, script.replaceAll("${{ github.sha }}", "abc").replaceAll("${{ github.run_attempt }}", "1"));
+    execFileSync("bash", ["-n", file]);
+    // The token is read from a secret, never written into the workflow.
+    expect(githubActionExample("https://app.caudals.com", "org-1")).not.toMatch(/evct_/);
   });
 });

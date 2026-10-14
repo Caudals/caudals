@@ -16,7 +16,9 @@
  *
  * Launch L-19 adds Slack and Microsoft Teams (and email destinations) by
  * registering a destination: `registerSummaryDestination({ kind, deliver })`.
- * Its `deliver` receives the same summary and enqueues its own delivery rows.
+ * Its `deliver` receives the same summary and enqueues its own delivery rows
+ * (./integration-destinations.ts: one webhook_delivery per Slack, Teams or
+ * email destination, formatted and sent by the scheduler's webhook tick).
  */
 import type { PoolClient } from "pg";
 import type { WebhookEventKind } from "./customer-api";

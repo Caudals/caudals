@@ -48,6 +48,12 @@ const FIXTURES: { [K in TemplateName]: TemplateProps[K] } = {
   monitor_regression: { evaluation: "Claims assistant", scheduledFor: "2026-11-02T08:00:00Z", now: { pass: 36, scored: 50 }, before: { pass: 40, scored: 50 },
     broken: [{ title: "Management fee under €10,000", url: `${APP}/workspace/reports/r1?orgId=${ORG}&result=a1` }, { title: "Custody fee", url: `${APP}/workspace/reports/r1?orgId=${ORG}&result=a2` }],
     brokenTotal: 7, reportUrl: `${APP}/workspace/reports/r1?orgId=${ORG}`, settingsUrl: notice.settingsUrl },
+  monitor_summary: { appUrl: APP, orgId: ORG, workspace: "Acme", summary: {
+    version: 1, status: "regression", comparable: true, reasons: ["paired_case_regressed"], evaluation: { id: "e1", title: "Claims assistant" },
+    scheduleId: "s1", dispatchId: "d1", scheduledFor: "2026-11-02T08:00:00Z",
+    candidate: { runId: "r2", reportId: "r1", score: { pass: 36, scored: 50 } }, baseline: { runId: "r0", reportId: "r0", score: { pass: 40, scored: 50 } },
+    newlyBroken: [{ caseRevisionId: "c1", title: "Management fee under €10,000", severity: "high", before: "pass", after: "fail", assessmentId: "a1", baselineAssessmentId: "b1" }],
+    newlyBrokenTotal: 4, fixedTotal: 0 } },
   demo_report: { subject: "Your test of acme.example is ready", heading: "Your test of acme.example is ready", lines: ["5 of 8 answers match your website."], url: "https://caudals.com/en/demo#r=x", failed: false, footer: "You asked for this email on caudals.com." },
 };
 

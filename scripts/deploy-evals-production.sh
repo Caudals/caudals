@@ -76,6 +76,12 @@ SECTOR_PACKS_ENABLED=$(credential SECTOR_PACKS_ENABLED)
 SECTOR_PACKS_ENABLED=${SECTOR_PACKS_ENABLED:-false}
 [[ $SECTOR_PACKS_ENABLED == true || $SECTOR_PACKS_ENABLED == false ]] || { echo 'SECTOR_PACKS_ENABLED must be true or false' >&2; exit 1; }
 export SECTOR_PACKS_ENABLED
+# Integrations v2 (launch L-19): the scheduler queues scheduled-run summaries
+# for Slack, Teams and email destinations only while the app credentials say true.
+INTEGRATIONS_V2_ENABLED=$(credential INTEGRATIONS_V2_ENABLED)
+INTEGRATIONS_V2_ENABLED=${INTEGRATIONS_V2_ENABLED:-false}
+[[ $INTEGRATIONS_V2_ENABLED == true || $INTEGRATIONS_V2_ENABLED == false ]] || { echo 'INTEGRATIONS_V2_ENABLED must be true or false' >&2; exit 1; }
+export INTEGRATIONS_V2_ENABLED
 # Weekly ops digest (launch L-21): off unless the app credentials say true.
 OPS_DIGEST_ENABLED=$(credential OPS_DIGEST_ENABLED)
 OPS_DIGEST_ENABLED=${OPS_DIGEST_ENABLED:-false}

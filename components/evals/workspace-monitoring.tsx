@@ -10,6 +10,10 @@
  * per run and per month, and may carry a monthly credit limit (owners); a run
  * the balance or a limit cannot cover is skipped and owners are alerted. Each
  * outcome shows the score against last time and the newly broken questions.
+ *
+ * Launch L-19 (P-25, P-27, P-28), with INTEGRATIONS_V2_ENABLED: a schedule may
+ * carry its own release-gate pass threshold; Developers adds CI tokens,
+ * Slack/Teams/email destinations with "Send test", and test-set thresholds.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarClock, KeyRound, Plus, Webhook } from "lucide-react";
@@ -24,6 +28,7 @@ import { formatCount, formatCredits, useBilling } from "./billing-state";
 import type { RunEstimate } from "./run-estimate-dialog";
 import { comparisonReasons, scorePercent } from "./run-comparison";
 import { monthlyProjection } from "@/lib/evals/monitoring/projection";
+import { DESTINATION_TYPES, type DestinationType } from "@/lib/evals/monitoring/customer-api";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Schedule = {
@@ -45,6 +50,8 @@ type Schedule = {
   latest_alert_status: string | null;
   /** The schedule's monthly credit limit (µcr), launch L-18. */
   credit_cap_ucr?: string | null;
+  /** The release gate's pass threshold for this schedule's runs (%), launch L-19. */
+  gate_threshold?: number | null;
 };
 type Summary = { comparable: boolean; reasons: string[]; candidate: { reportId: string | null; score: { pass: number; scored: number } }; baseline: { score: { pass: number; scored: number } } | null; newlyBrokenTotal: number } | null;
 type Alert = { id: string; schedule_id: string; candidate_run_id: string; status: string; reason_codes: string[]; created_at: string; summary?: Summary };
@@ -61,12 +68,19 @@ function euroRange(euros: { p50: string; p90: string }) {
   const format = new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB", { style: "currency", currency: "EUR" });
   return `${format.format(Number(euros.p50))}–${format.format(Number(euros.p90))}`;
 }
-type Endpoint = { id: string; label: string; url: string; events: string[]; enabled: boolean; failed_deliveries: number };
+type Endpoint = {
+  id: string; label: string; url: string | null; events: string[]; enabled: boolean; failed_deliveries: number;
+  /** Launch L-19: the destination type, its masked target and the last test send. */
+  destination_type?: DestinationType; target_hint?: string | null; locale?: string;
+  last_test_at?: string | null; last_test_status?: "delivered" | "failed" | null; last_test_reason?: string | null; last_test_http_status?: number | null;
+};
+/** An approved test set and its release-gate threshold (launch L-19). */
+type Gate = { evaluation_id: string; evaluation_title: string; suite_version_id: string; target_revision_id: string | null; suite_id: string; suite_title: string; gate_threshold: number | null };
 type Token = { id: string; name: string; scopes: string[]; expires_at: string; revoked_at: string | null };
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: string; canManage: boolean; summary: WorkspaceSummary }) {
+export function MonitoringSchedules({ orgId, canManage, summary, integrationsV2 = false }: { orgId: string; canManage: boolean; summary: WorkspaceSummary; integrationsV2?: boolean }) {
   const { withOrg } = useWorkspace();
   // Launch L-18: on credits (billing shows and the workspace is not on a contract), schedules use credits.
   const { summary: billing } = useBilling();
@@ -76,6 +90,10 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
   const [estimate, setEstimate] = useState<{ key: string; value: RunEstimate | null; failed: boolean } | null>(null);
   const [capFor, setCapFor] = useState<Schedule | null>(null);
   const [capValue, setCapValue] = useState("");
+  // Launch L-19: the schedule's own release-gate threshold.
+  const [gateThreshold, setGateThreshold] = useState("");
+  const [gateFor, setGateFor] = useState<Schedule | null>(null);
+  const [gateValue, setGateValue] = useState("");
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [error, setError] = useState("");
@@ -149,6 +167,11 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
   async function createSchedule(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!evaluation || !selectedTarget) return;
+    const gate = integrationsV2 ? parseThreshold(gateThreshold) : null;
+    if (gate === undefined) {
+      setError(t("gateThresholdHint"));
+      return;
+    }
     const ok = await mutate(
       () =>
         evalRequest(
@@ -168,6 +191,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
             currency: evaluation.currency,
             sourceMaxAgeDays: sourceMaxAgeDays ? Number(sourceMaxAgeDays) : null,
             ...(credits && owner && creditCap ? { creditCapCredits: Number(creditCap) } : {}),
+            ...(gate !== null ? { gateThreshold: gate } : {}),
           },
           crypto.randomUUID(),
         ),
@@ -176,6 +200,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
     if (ok) {
       setOpen(false);
       setCreditCap("");
+      setGateThreshold("");
     }
   }
 
@@ -184,6 +209,18 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
     if (!capFor) return;
     const ok = await mutate(() => evalRequest(`/schedules/${capFor.id}`, "PATCH", { orgId, expectedVersion: capFor.version, creditCapCredits: capValue ? Number(capValue) : null }), t("scheduleCapSaved"));
     if (ok) setCapFor(null);
+  }
+
+  async function saveGate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!gateFor) return;
+    const threshold = parseThreshold(gateValue);
+    if (threshold === undefined) {
+      setError(t("gateThresholdHint"));
+      return;
+    }
+    const ok = await mutate(() => evalRequest(`/schedules/${gateFor.id}`, "PATCH", { orgId, expectedVersion: gateFor.version, gateThreshold: threshold }), t("gateThresholdSaved"));
+    if (ok) setGateFor(null);
   }
 
   const canCreate = summary.entitlement.can_schedule && !!evaluation && !!selectedTarget;
@@ -223,6 +260,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
                   {t(item.cadence === "daily" ? "daily" : item.cadence === "weekly" ? "weekly" : "monthly")} · {String(item.local_time).slice(0, 5)}
                   <span className="p-cell-meta p-cell-note">{item.timezone}</span>
                   {item.credit_cap_ucr && <span className="p-cell-meta p-cell-note" data-testid="schedule-cap">{tv("scheduleCapLabel", { cap: formatCredits(item.credit_cap_ucr) })}</span>}
+                  {integrationsV2 && item.gate_threshold != null && <span className="p-cell-meta p-cell-note" data-testid="schedule-gate">{tv("scheduleGateLabel", { n: percentLabel(item.gate_threshold) })}</span>}
                 </td>
                 <td className="p-cell-meta">
                   <Time value={item.next_due_at} />
@@ -245,6 +283,9 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
                           : []),
                         ...(credits && owner
                           ? [{ label: t("scheduleEditCap"), onSelect: () => { setCapFor(item); setCapValue(item.credit_cap_ucr ? String(Number(BigInt(item.credit_cap_ucr) / BigInt(1_000_000))) : ""); } }]
+                          : []),
+                        ...(integrationsV2
+                          ? [{ label: t("scheduleGateEdit"), onSelect: () => { setError(""); setGateFor(item); setGateValue(item.gate_threshold == null ? "" : String(item.gate_threshold)); } }]
                           : []),
                       ]}
                     />
@@ -297,6 +338,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
         onOpenChange={setOpen}
         title={t("newSchedule")}
         description={credits ? t("newScheduleHelpCredits") : t("newScheduleHelp")}
+        alert={error && open ? <Status error>{error}</Status> : undefined}
         size="lg"
         footer={
           <>
@@ -356,6 +398,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
               <p className="p-field-hint">{t("scheduleCreditsCadenceHelp")} {t("scheduleEstimateHelp")}</p>
             </div>
           )}
+          {integrationsV2 && <Field id="monitor-gate" label={t("gateThresholdField")} inputMode="decimal" value={gateThreshold} onChange={(event) => setGateThreshold(event.target.value)} hint={t("scheduleGateDialogHelp")} />}
           <p className="p-field-hint">{t("scheduleSlotHelp")}</p>
         </form>
       </Modal>
@@ -375,27 +418,93 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
           <Field id="schedule-cap" label={t("scheduleCreditCap")} type="number" min={1} step={1} inputMode="numeric" value={capValue} onChange={(event) => setCapValue(event.target.value)} hint={t("scheduleCreditCapHint")} />
         </form>
       </Modal>
+      <Modal
+        open={!!gateFor}
+        onOpenChange={(value) => !value && setGateFor(null)}
+        title={t("scheduleGateEdit")}
+        description={t("scheduleGateDialogHelp")}
+        alert={error && gateFor ? <Status error>{error}</Status> : undefined}
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setGateFor(null)}>{t("cancel")}</Action>
+            <Action type="submit" form="schedule-gate-form" disabled={busy}>{t("save")}</Action>
+          </>
+        }
+      >
+        <form id="schedule-gate-form" onSubmit={saveGate}>
+          <Field id="schedule-gate" label={t("gateThresholdField")} inputMode="decimal" value={gateValue} onChange={(event) => setGateValue(event.target.value)} hint={t("gateThresholdHint")} />
+        </form>
+      </Modal>
     </section>
   );
 }
 
-export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage: boolean }) {
+/** "Gate at 80%" / "80,5 %" in the interface language. */
+const percentLabel = (value: number) => new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB", { maximumFractionDigits: 2 }).format(value);
+/** A threshold typed in a field: empty removes it; otherwise 0–100 with at most two decimals. */
+function parseThreshold(value: string): number | null | undefined {
+  const text = value.trim().replace(",", ".");
+  if (!text) return null;
+  const number = Number(text);
+  return Number.isFinite(number) && number >= 0 && number <= 100 && Math.round(number * 100) === number * 100 ? number : undefined;
+}
+
+/** Why the last test send failed, in words. */
+function testReason(item: Pick<Endpoint, "last_test_reason" | "last_test_http_status">) {
+  switch (item.last_test_reason) {
+    case "destination_denied": return t("testReasonDenied");
+    case "http_error": return tv("testReasonHttp", { status: item.last_test_http_status ?? "?" });
+    case "redirect_rejected": return t("testReasonRedirect");
+    case "email_unavailable": return t("testReasonEmail");
+    default: return t("testReasonDelivery");
+  }
+}
+const DESTINATION_LABEL: Record<DestinationType, MessageKey> = {
+  slack: "destinationSlack", teams: "destinationTeams", email: "destinationEmail", webhook: "destinationWebhook",
+};
+const DESTINATION_HELP: Record<DestinationType, MessageKey> = {
+  slack: "destinationSlackHelp", teams: "destinationTeamsHelp", email: "destinationEmailHelp", webhook: "destinationWebhookHelp",
+};
+/** Regressions and runs that could not finish, or every outcome. */
+const ALERT_EVENTS = ["regression", "run_unknown", "run_partial"];
+const ALL_EVENTS = ["run_completed", "run_partial", "run_unknown", "regression", "inconclusive"];
+
+/**
+ * Settings → Developers: API tokens, signed webhooks and, with integrations v2
+ * (launch L-19, P-27, P-28; `integrationsV2` is INTEGRATIONS_V2_ENABLED read
+ * on the server), CI tokens that start runs, Slack/Teams/email destinations
+ * with "Send test", and the release gate's thresholds per test set.
+ */
+export function DeveloperAccess({ orgId, canManage, integrationsV2 = false }: { orgId: string; canManage: boolean; integrationsV2?: boolean }) {
   const [endpoints, setEndpoints] = useState<Endpoint[] | null>(null);
   const [tokens, setTokens] = useState<Token[] | null>(null);
+  const [gates, setGates] = useState<Gate[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<"" | "token" | "webhook">("");
   const [secret, setSecret] = useState<{ label: string; value: string } | null>(null);
+  const [tokenScope, setTokenScope] = useState("runs:read");
+  const [destinationType, setDestinationType] = useState<DestinationType>("slack");
+  const [deleteFor, setDeleteFor] = useState<Endpoint | null>(null);
+  const [gateFor, setGateFor] = useState<Gate | null>(null);
+  const [gateValue, setGateValue] = useState("");
+  const ci = integrationsV2 && tokenScope === "ci";
 
   const refresh = useCallback(async () => {
-    const [e, k] = await Promise.all([evalRequest<Endpoint[]>(`/webhooks?orgId=${encodeURIComponent(orgId)}`), evalRequest<Token[]>(`/tokens?orgId=${encodeURIComponent(orgId)}`)]);
+    const [e, k, g] = await Promise.all([
+      evalRequest<Endpoint[]>(`/webhooks?orgId=${encodeURIComponent(orgId)}`),
+      evalRequest<Token[]>(`/tokens?orgId=${encodeURIComponent(orgId)}`),
+      integrationsV2 ? evalRequest<Gate[]>(`/gates?orgId=${encodeURIComponent(orgId)}`) : Promise.resolve(null),
+    ]);
     setEndpoints(e);
     setTokens(k);
-  }, [orgId]);
+    setGates(g);
+  }, [orgId, integrationsV2]);
   useEffect(() => {
     void refresh().catch((value) => {
       setEndpoints([]);
       setTokens([]);
+      setGates([]);
       setError(value instanceof Error ? value.message : t("error"));
     });
   }, [refresh]);
@@ -407,8 +516,10 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
       await action();
       await refresh();
       notify(success);
+      return true;
     } catch (value) {
       setError(value instanceof Error ? value.message : t("error"));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -419,10 +530,11 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
     setBusy(true);
     setError("");
     try {
+      const scope = String(data.get("scope"));
       const result = await evalRequest<{ token: string }>("/tokens", "POST", {
         orgId,
         name: String(data.get("name")),
-        scopes: [String(data.get("scope"))],
+        scopes: scope === "ci" ? ["runs:write", "runs:read"] : [scope],
         expiresAt: new Date(Date.now() + Number(data.get("days")) * 86_400_000).toISOString(),
       });
       setSecret({ label: t("apiToken"), value: result.token });
@@ -437,20 +549,27 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
   async function createEndpoint(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const type: DestinationType = integrationsV2 ? destinationType : "webhook";
     setBusy(true);
     setError("");
     try {
-      const result = await evalRequest<{ secret: string }>("/webhooks", "POST", {
-        orgId,
-        label: String(data.get("label")),
-        url: String(data.get("url")),
-        events: ["run_completed", "run_partial", "run_unknown", "regression", "inconclusive"],
-      });
-      setSecret({ label: t("signingSecret"), value: result.secret });
+      const events = type === "webhook" && !integrationsV2 ? ALL_EVENTS : String(data.get("events")) === "all" ? ALL_EVENTS : ALERT_EVENTS;
+      const body = !integrationsV2
+        ? { orgId, label: String(data.get("label")), url: String(data.get("url")), events }
+        : type === "email"
+          ? { orgId, type, label: String(data.get("label")), email: String(data.get("email")), events, locale: String(data.get("locale")) }
+          : type === "webhook"
+            ? { orgId, type, label: String(data.get("label")), url: String(data.get("url")), events }
+            : { orgId, type, label: String(data.get("label")), url: String(data.get("url")), events, locale: String(data.get("locale")) };
+      const result = await evalRequest<{ secret?: string }>("/webhooks", "POST", body);
       await refresh();
+      if (result.secret) setSecret({ label: t("signingSecret"), value: result.secret });
+      else {
+        setDialog("");
+        notify(t("destinationAdded"));
+      }
     } catch (value) {
       setError(value instanceof Error ? value.message : t("error"));
-      setDialog("");
     } finally {
       setBusy(false);
     }
@@ -469,22 +588,53 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
       setBusy(false);
     }
   }
+  async function sendTest(item: Endpoint) {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await evalRequest<Pick<Endpoint, "last_test_status" | "last_test_reason" | "last_test_http_status">>(`/webhooks/${item.id}/test`, "POST", { orgId });
+      await refresh();
+      if (result.last_test_status === "delivered") notify(t("testSent"));
+      else setError(tv("testFailed", { reason: testReason(result) }));
+    } catch (value) {
+      setError(value instanceof Error ? value.message : t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveGate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!gateFor) return;
+    const threshold = parseThreshold(gateValue);
+    if (threshold === undefined) {
+      setError(t("gateThresholdHint"));
+      return;
+    }
+    if (await mutate(() => evalRequest(`/gates/${gateFor.suite_id}`, "PUT", { orgId, threshold }), t("gateThresholdSaved"))) setGateFor(null);
+  }
   function close() {
     setDialog("");
     setSecret(null);
   }
+  function openEndpointDialog() {
+    setError("");
+    setDestinationType("slack");
+    setDialog("webhook");
+  }
 
+  const days = ci ? [1, 7, 30, 90] : [30, 90, 365];
+  const endpointType = (item: Endpoint): DestinationType => item.destination_type ?? "webhook";
   return (
     <>
-      {error && <Status error>{error}</Status>}
+      {error && !dialog && <Status error>{error}</Status>}
       <section>
         <div className="p-section-head">
           <div className="p-head-text">
             <h2>{t("apiTokens")}</h2>
-            <p>{t("apiTokensHelp")}</p>
+            <p>{integrationsV2 ? t("apiTokensHelpCi") : t("apiTokensHelp")}</p>
           </div>
           {canManage && (
-            <Action variant="secondary" onClick={() => setDialog("token")}>
+            <Action variant="secondary" onClick={() => { setTokenScope(integrationsV2 ? "ci" : "runs:read"); setDialog("token"); }}>
               <Plus aria-hidden="true" />
               {t("createToken")}
             </Action>
@@ -498,9 +648,11 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
               <tr key={item.id}>
                 <RowTitle>{item.name}</RowTitle>
                 <td>
-                  {item.scopes.map((scope) => (
-                    <code key={scope} className="p-code">{scope}</code>
-                  ))}
+                  <span className="p-api-codes">
+                    {item.scopes.map((scope) => (
+                      <code key={scope} className="p-code">{scope}</code>
+                    ))}
+                  </span>
                 </td>
                 <td className="p-cell-meta">{item.revoked_at ? <Badge>{t("stateRevoked")}</Badge> : <Time value={item.expires_at} withTime={false} />}</td>
                 <td className="p-table-action">
@@ -520,56 +672,107 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
         )}
       </section>
 
-      <section className="p-section">
+      <section className="p-section" data-testid="destinations">
         <div className="p-section-head">
           <div className="p-head-text">
-            <h2>{t("webhooks")}</h2>
-            <p>{t("webhooksHelp")}</p>
+            <h2>{integrationsV2 ? t("destinations") : t("webhooks")}</h2>
+            <p>{integrationsV2 ? t("destinationsHelp") : t("webhooksHelp")}</p>
           </div>
           {canManage && (
-            <Action variant="secondary" onClick={() => setDialog("webhook")}>
+            <Action variant="secondary" onClick={openEndpointDialog}>
               <Plus aria-hidden="true" />
-              {t("addWebhook")}
+              {integrationsV2 ? t("addDestination") : t("addWebhook")}
             </Action>
           )}
         </div>
         {endpoints === null ? (
           <p className="p-cell-meta">{t("loading")}</p>
         ) : endpoints.length ? (
-          <DataTable caption={t("webhooks")} headers={[t("name"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
-            {endpoints.map((item) => (
-              <tr key={item.id}>
-                <RowTitle meta={item.url}>{item.label}</RowTitle>
-                <td>
-                  <StatusBadge value={item.enabled ? "enabled" : "disabled"} />
-                  {item.failed_deliveries > 0 && <span className="p-cell-meta p-cell-note">{item.failed_deliveries} {t("failedDeliveries")}</span>}
-                </td>
-                <td className="p-table-action">
-                  {canManage && (
-                    <ActionMenu
-                      label={t("actions")}
-                      items={[
-                        { label: item.enabled ? t("disable") : t("enable"), onSelect: () => void mutate(() => evalRequest(`/webhooks/${item.id}`, "PATCH", { orgId, enabled: !item.enabled }), t("webhookUpdated")) },
-                        { label: t("rotateSecret"), onSelect: () => void rotate(item) },
-                      ]}
-                    />
-                  )}
-                </td>
-              </tr>
-            ))}
+          <DataTable caption={integrationsV2 ? t("destinations") : t("webhooks")} headers={[t("name"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
+            {endpoints.map((item) => {
+              const type = endpointType(item);
+              return (
+                <tr key={item.id}>
+                  <RowTitle meta={<span className="p-break">{integrationsV2 && <><Badge>{t(DESTINATION_LABEL[type])}</Badge>{" "}</>}{item.url ?? item.target_hint}</span>}>{item.label}</RowTitle>
+                  <td>
+                    <StatusBadge value={item.enabled ? "enabled" : "disabled"} />
+                    {item.failed_deliveries > 0 && <span className="p-cell-meta p-cell-note">{item.failed_deliveries} {t("failedDeliveries")}</span>}
+                    {item.last_test_at && (
+                      <span className="p-cell-meta p-cell-note" data-testid="destination-test">
+                        {item.last_test_status === "delivered" ? <>{t("lastTestDelivered")} · <Time value={item.last_test_at} /></> : tv("lastTestFailed", { reason: testReason(item) })}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-table-action">
+                    {canManage && (
+                      <ActionMenu
+                        label={t("actions")}
+                        items={[
+                          ...(integrationsV2 && type !== "webhook" && item.enabled ? [{ label: t("sendTest"), onSelect: () => void sendTest(item) }] : []),
+                          { label: item.enabled ? t("disable") : t("enable"), onSelect: () => void mutate(() => evalRequest(`/webhooks/${item.id}`, "PATCH", { orgId, enabled: !item.enabled }), t("webhookUpdated")) },
+                          ...(type === "webhook" ? [{ label: t("rotateSecret"), onSelect: () => void rotate(item) }] : []),
+                          ...(integrationsV2 ? [{ label: t("destinationDelete"), onSelect: () => setDeleteFor(item) }] : []),
+                        ]}
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </DataTable>
         ) : (
-          <EmptyState title={t("noWebhooks")} icon={<Webhook />}>
-            <p>{t("noWebhooksHelp")}</p>
+          <EmptyState title={integrationsV2 ? t("noDestinations") : t("noWebhooks")} icon={<Webhook />}>
+            <p>{integrationsV2 ? t("noDestinationsHelp") : t("noWebhooksHelp")}</p>
           </EmptyState>
         )}
       </section>
+
+      {integrationsV2 && (
+        <section className="p-section" data-testid="release-gate">
+          <div className="p-section-head">
+            <div className="p-head-text">
+              <h2>{t("releaseGate")}</h2>
+              <p>{t("releaseGateHelp")}</p>
+            </div>
+          </div>
+          {gates === null ? (
+            <p className="p-cell-meta">{t("loading")}</p>
+          ) : gates.length ? (
+            <DataTable caption={t("releaseGate")} headers={[t("evaluation"), t("gateThreshold"), { label: t("actions"), align: "end", hidden: true }]}>
+              {gates.map((item) => (
+                <tr key={item.evaluation_id}>
+                  <RowTitle meta={
+                    <span className="p-gate-ids">
+                      <span>{item.suite_title}</span>
+                      <span>{t("gateTestSetVersion")}: <code className="p-code">{item.suite_version_id}</code></span>
+                      {item.target_revision_id && <span>{t("gateSystemVersion")}: <code className="p-code">{item.target_revision_id}</code></span>}
+                    </span>
+                  }>{item.evaluation_title}</RowTitle>
+                  <td data-testid="gate-threshold">{item.gate_threshold === null ? <span className="p-cell-meta">{t("gateThresholdNone")}</span> : tv("gateThresholdValue", { n: percentLabel(item.gate_threshold) })}</td>
+                  <td className="p-table-action">
+                    {canManage && (
+                      <Action variant="ghost" size="sm" disabled={busy} onClick={() => { setError(""); setGateFor(item); setGateValue(item.gate_threshold === null ? "" : String(item.gate_threshold)); }}>
+                        {t("gateThresholdSet")}
+                      </Action>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          ) : (
+            <EmptyState title={t("noGates")} icon={<CalendarClock />}>
+              <p>{t("noGatesHelp")}</p>
+            </EmptyState>
+          )}
+        </section>
+      )}
 
       <Modal
         open={dialog === "token"}
         onOpenChange={(value) => !value && close()}
         title={secret ? t("tokenCreated") : t("createToken")}
         description={secret ? t("secretShownOnce") : t("createTokenHelp")}
+        alert={error && dialog === "token" ? <Status error>{error}</Status> : undefined}
         footer={
           secret ? (
             <Action onClick={close}>{t("done")}</Action>
@@ -586,16 +789,18 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
         ) : (
           <form id="token-form" className="p-stack" onSubmit={createToken}>
             <Field id="token-name" name="name" label={t("name")} required maxLength={120} placeholder="CI pipeline" />
-            <SelectField id="token-scope" name="scope" label={t("scope")}>
+            <SelectField id="token-scope" name="scope" label={t("scope")} value={tokenScope} onChange={(event) => setTokenScope(event.target.value)}>
+              {integrationsV2 && <option value="ci">{t("tokenScopeCi")}</option>}
               <option value="runs:read">{t("scopeRuns")}</option>
               <option value="reports:read">{t("scopeReports")}</option>
               <option value="schedules:read">{t("scopeSchedules")}</option>
             </SelectField>
-            <SelectField id="token-days" name="days" label={t("expiresIn")}>
-              <option value="30">30 days</option>
-              <option value="90">90 days</option>
-              <option value="365">365 days</option>
+            <SelectField key={ci ? "ci" : "read"} id="token-days" name="days" label={t("expiresIn")} defaultValue={ci ? "30" : "30"}>
+              {days.map((n) => (
+                <option key={n} value={n}>{n === 1 ? t("expiresOneDay") : tv("expiresDays", { n })}</option>
+              ))}
             </SelectField>
+            {ci && <Status tone="warn">{t("tokenWriteHint")}</Status>}
           </form>
         )}
       </Modal>
@@ -603,27 +808,91 @@ export function DeveloperAccess({ orgId, canManage }: { orgId: string; canManage
       <Modal
         open={dialog === "webhook"}
         onOpenChange={(value) => !value && close()}
-        title={secret ? t("webhookSecretTitle") : t("addWebhook")}
-        description={secret ? t("secretShownOnce") : t("addWebhookHelp")}
+        title={secret ? t("webhookSecretTitle") : integrationsV2 ? t("addDestination") : t("addWebhook")}
+        description={secret ? t("secretShownOnce") : integrationsV2 ? t("addDestinationHelp") : t("addWebhookHelp")}
+        alert={error && dialog === "webhook" && !secret ? <Status error>{error}</Status> : undefined}
         footer={
           secret ? (
             <Action onClick={close}>{t("done")}</Action>
           ) : (
             <>
               <Action variant="secondary" onClick={close}>{t("cancel")}</Action>
-              <Action type="submit" form="webhook-form" disabled={busy}>{t("addWebhook")}</Action>
+              <Action type="submit" form="webhook-form" disabled={busy}>{integrationsV2 ? t("addDestination") : t("addWebhook")}</Action>
             </>
           )
         }
       >
         {secret ? (
           <CopyField label={secret.label} value={secret.value} />
-        ) : (
+        ) : !integrationsV2 ? (
           <form id="webhook-form" className="p-stack" onSubmit={createEndpoint}>
             <Field id="webhook-name" name="label" label={t("name")} required maxLength={120} placeholder="Slack relay" />
             <Field id="webhook-url" name="url" type="url" label={t("httpsUrl")} required placeholder="https://hooks.example.com/caudals" />
           </form>
+        ) : (
+          <form id="webhook-form" className="p-stack" onSubmit={createEndpoint}>
+            <SelectField id="destination-type" label={t("destinationType")} value={destinationType} onChange={(event) => setDestinationType(event.target.value as DestinationType)} hint={t(DESTINATION_HELP[destinationType])}>
+              {DESTINATION_TYPES.map((type) => (
+                <option key={type} value={type}>{t(DESTINATION_LABEL[type])}</option>
+              ))}
+            </SelectField>
+            <Field id="webhook-name" name="label" label={t("name")} required maxLength={120} placeholder={destinationType === "email" ? "QA team" : destinationType === "webhook" ? "Release pipeline" : "#ai-quality"} />
+            {destinationType === "email" ? (
+              <Field key="email" id="destination-email" name="email" type="email" label={t("destinationEmailAddress")} required maxLength={254} placeholder="ai-alerts@example.com" autoComplete="off" />
+            ) : (
+              <Field key={destinationType} id="webhook-url" name="url" type="url" label={destinationType === "webhook" ? t("httpsUrl") : t("destinationUrl")} required maxLength={2048} autoComplete="off"
+                placeholder={destinationType === "slack" ? "https://hooks.slack.com/services/…" : destinationType === "teams" ? "https://…/workflows/…" : "https://hooks.example.com/caudals"} />
+            )}
+            <div className="p-grid-2 p-form-grid">
+              <SelectField id="destination-events" name="events" label={t("destinationEvents")} defaultValue={destinationType === "webhook" ? "all" : "alerts"} key={`events-${destinationType}`}>
+                <option value="alerts">{t("destinationEventsAlerts")}</option>
+                <option value="all">{t("destinationEventsAll")}</option>
+              </SelectField>
+              {destinationType !== "webhook" && (
+                <SelectField id="destination-locale" name="locale" label={t("destinationLanguage")} defaultValue={getLocale()}>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                </SelectField>
+              )}
+            </div>
+          </form>
         )}
+      </Modal>
+
+      <Modal
+        open={!!deleteFor}
+        onOpenChange={(value) => !value && setDeleteFor(null)}
+        title={t("destinationDeleteTitle")}
+        description={t("destinationDeleteBody")}
+        alert={error && deleteFor ? <Status error>{error}</Status> : undefined}
+        size="sm"
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setDeleteFor(null)}>{t("cancel")}</Action>
+            <Action variant="danger" disabled={busy} onClick={() => {
+              const item = deleteFor;
+              if (item) void mutate(() => evalRequest(`/webhooks/${item.id}`, "DELETE", { orgId }), t("destinationDeleted")).then((ok) => ok && setDeleteFor(null));
+            }}>{t("destinationDelete")}</Action>
+          </>
+        }
+      />
+
+      <Modal
+        open={!!gateFor}
+        onOpenChange={(value) => !value && setGateFor(null)}
+        title={t("gateThreshold")}
+        description={gateFor ? `${gateFor.evaluation_title} · ${gateFor.suite_title}` : undefined}
+        alert={error && gateFor ? <Status error>{error}</Status> : undefined}
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setGateFor(null)}>{t("cancel")}</Action>
+            <Action type="submit" form="gate-form" disabled={busy}>{t("save")}</Action>
+          </>
+        }
+      >
+        <form id="gate-form" onSubmit={saveGate}>
+          <Field id="gate-threshold" label={t("gateThresholdField")} inputMode="decimal" value={gateValue} onChange={(event) => setGateValue(event.target.value)} hint={t("gateThresholdHint")} />
+        </form>
       </Modal>
     </>
   );

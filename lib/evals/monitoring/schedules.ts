@@ -13,6 +13,8 @@ import type { SendEmail } from "../operations/notifications";
 import { latestDueSlot, nextScheduleSlot, scheduleConfigSchema, type ScheduleConfig } from "./calendar";
 import { scheduleAdmission, type ScheduleAdmission } from "./schedule-credits";
 import { tickSkipAlerts } from "./skip-alerts";
+import { gateThresholdSchema } from "./gate-threshold";
+import { integrationsV2Enabled } from "./integrations-flag";
 
 /**
  * Scheduled re-runs of an approved (frozen) test set (WP-13), on credits since
@@ -35,11 +37,22 @@ export const createScheduleSchema=scheduleConfigSchema.extend({
   maxRunSpend:money,currency:z.string().regex(/^[A-Z]{3}$/),
   sourceMaxAgeDays:z.int().min(1).max(3650).nullable(),
   creditCapCredits:creditCap.optional(),
+  /** The release gate's pass threshold for this schedule's runs (launch L-19); needs INTEGRATIONS_V2_ENABLED. */
+  gateThreshold:gateThresholdSchema.optional(),
 });
 export const updateScheduleSchema=z.strictObject({expectedVersion:z.int().positive(),
   status:z.enum(["active","paused"]).optional(),targetRevisionId:z.uuid().optional(),
   suiteVersionId:z.uuid().optional(),maxRunSpend:money.optional(),sourceMaxAgeDays:z.int().min(1).max(3650).nullable().optional(),
-  creditCapCredits:creditCap.optional()});
+  creditCapCredits:creditCap.optional(),gateThreshold:gateThresholdSchema.optional()});
+function assertGateThresholds(value:number|null|undefined){
+  if(value!==undefined&&!integrationsV2Enabled())throw new EvalError("INPUT_INVALID",422,"Pass thresholds are not available yet.");
+}
+/** Saves a schedule's gate threshold (it does not change the schedule's version). Audited (`gate.threshold_saved`). */
+async function saveScheduleGate(db:PoolClient,scope:EvidenceScope,scheduleId:string,before:number|null,after:number|null){
+  await db.query("UPDATE evals.monitor_schedule SET gate_threshold=$3 WHERE org_id=$1 AND id=$2",[scope.orgId,scheduleId,after]);
+  await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id,details) VALUES($1,$2,'gate.threshold_saved',$3,$4)",
+    [scope.orgId,scope.actorId,scheduleId,{scope:"schedule",before,after}]);
+}
 function config(row:Record<string,unknown>):ScheduleConfig{return scheduleConfigSchema.parse({timezone:row.timezone,cadence:row.cadence,
   localTime:String(row.local_time),weekday:row.weekday===null?null:Number(row.weekday),
   dayOfMonth:row.day_of_month===null?null:Number(row.day_of_month)});}
@@ -72,8 +85,10 @@ function assertCreditCadence(mode:string,cadence:string,creditCapCredits:number|
   if(cadence==="daily")throw new EvalError("INPUT_INVALID",422,"Choose a weekly or monthly schedule.");
 }
 
-export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
-  const input=createScheduleSchema.parse(raw),first=nextScheduleSlot({timezone:input.timezone,
+export async function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
+  const input=createScheduleSchema.parse(raw);
+  assertGateThresholds(input.gateThreshold);
+  const first=nextScheduleSlot({timezone:input.timezone,
     cadence:input.cadence,localTime:input.localTime,weekday:input.weekday,
     dayOfMonth:input.dayOfMonth},new Date());
   return withTenant(scope,db=>idempotent(db,scope,"monitor-schedules",key,input,async()=>{
@@ -99,22 +114,24 @@ export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
         input.timezone,input.cadence,input.localTime,input.weekday,input.dayOfMonth,input.maxRunSpend,
         input.currency,input.sourceMaxAgeDays,first.scheduledFor])).rows[0];
     if(input.creditCapCredits!==undefined&&input.creditCapCredits!==null)await saveScheduleCap(db,scope.orgId,row.id,input.creditCapCredits,key||null);
-    return {...row,localSlotKey:first.localSlotKey,creditCapCredits:input.creditCapCredits??null};
+    if(input.gateThreshold!==undefined&&input.gateThreshold!==null)await saveScheduleGate(db,scope,row.id,null,input.gateThreshold);
+    return {...row,localSlotKey:first.localSlotKey,creditCapCredits:input.creditCapCredits??null,gateThreshold:input.gateThreshold??null};
   }));
 }
 export function listSchedules(scope:EvidenceScope){return withTenant(scope,async db=>(await db.query(`SELECT s.id,s.project_id,s.evaluation_id,s.target_revision_id,s.suite_version_id,
   s.timezone,s.cadence,s.local_time,s.weekday,s.day_of_month,s.max_run_spend,s.currency,
   s.source_max_age_days,s.status,s.reason_code,s.next_due_at,s.version,s.updated_at,
   d.status AS latest_dispatch_status,d.reason_code AS latest_dispatch_reason,d.scheduled_for AS latest_scheduled_for,
-  a.status AS latest_alert_status,c.cap_ucr::text AS credit_cap_ucr
+  a.status AS latest_alert_status,c.cap_ucr::text AS credit_cap_ucr,s.gate_threshold::float8 AS gate_threshold
   FROM evals.monitor_schedule s
   LEFT JOIN LATERAL (SELECT * FROM evals.schedule_dispatch x WHERE x.org_id=s.org_id AND x.schedule_id=s.id
     ORDER BY x.scheduled_for DESC,x.id DESC LIMIT 1) d ON true
   LEFT JOIN evals.regression_alert a ON (a.org_id,a.schedule_dispatch_id)=(d.org_id,d.id)
   LEFT JOIN billing.spend_cap c ON c.org_id=s.org_id AND c.scope='schedule' AND c.subject_id=s.id
   WHERE s.org_id=$1 ORDER BY s.updated_at DESC,s.id LIMIT 100`,[scope.orgId])).rows);}
-export function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
+export async function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
   const input=updateScheduleSchema.parse(raw);
+  assertGateThresholds(input.gateThreshold);
   return withTenant(scope,async db=>{
     const previous=(await db.query("SELECT * FROM evals.monitor_schedule WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,id])).rows[0];
     if(!previous)notFound();
@@ -124,10 +141,13 @@ export function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
       assertCreditCadence(await billingModeOf(db,scope.orgId),"weekly",input.creditCapCredits);
       await saveScheduleCap(db,scope.orgId,id,input.creditCapCredits,null);
     }
+    // So does its release-gate threshold (launch L-19).
+    if(input.gateThreshold!==undefined)await saveScheduleGate(db,scope,id,previous.gate_threshold===null?null:Number(previous.gate_threshold),input.gateThreshold);
     const rest=input.status!==undefined||input.targetRevisionId!==undefined||input.suiteVersionId!==undefined||
       input.maxRunSpend!==undefined||input.sourceMaxAgeDays!==undefined;
     if(!rest){
-      return (await db.query(`SELECT s.id,s.status,s.reason_code,s.version,s.next_due_at,s.updated_at,c.cap_ucr::text AS credit_cap_ucr
+      return (await db.query(`SELECT s.id,s.status,s.reason_code,s.version,s.next_due_at,s.updated_at,c.cap_ucr::text AS credit_cap_ucr,
+        s.gate_threshold::float8 AS gate_threshold
         FROM evals.monitor_schedule s LEFT JOIN billing.spend_cap c ON c.org_id=s.org_id AND c.scope='schedule' AND c.subject_id=s.id
         WHERE s.org_id=$1 AND s.id=$2`,[scope.orgId,id])).rows[0];
     }

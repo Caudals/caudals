@@ -28,6 +28,72 @@ export function estimateCurl(origin: string, orgId: string) {
   -d '{"orgId":"${orgId}","evaluationId":"<evaluation id>"}'`;
 }
 
+export type RunExampleIds = { suiteVersionId?: string; targetRevisionId?: string };
+const ids = (example: RunExampleIds = {}) => ({
+  suite: example.suiteVersionId ?? "<test set version id>",
+  target: example.targetRevisionId ?? "<system version id>",
+});
+
+/** Starts a run from a pipeline and reads its gate (launch L-19, P-27). */
+export function startRunCurl(origin: string, orgId: string, example?: RunExampleIds) {
+  const { suite, target } = ids(example);
+  return `run_id=$(curl -s -X POST "${origin}/api/evals/v1/integrations/runs?orgId=${orgId}" \\
+  -H "Authorization: Bearer $CAUDALS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: release-$(git rev-parse HEAD)" \\
+  -d '{"suiteVersionId":"${suite}","targetRevisionId":"${target}"}' | jq -r '.data.run_id')
+
+curl -s "${origin}/api/evals/v1/integrations/runs/$run_id/gate?orgId=${orgId}" \\
+  -H "Authorization: Bearer $CAUDALS_TOKEN"`;
+}
+
+/**
+ * A GitHub Actions workflow: start the run (curl retries reuse the same
+ * Idempotency-Key, so a retry never starts a second run), poll the gate every
+ * 30 seconds, and fail the job unless it passes. Needs jq (on GitHub's runners).
+ */
+export function githubActionExample(origin: string, orgId: string, example?: RunExampleIds) {
+  const { suite, target } = ids(example);
+  return `# .github/workflows/caudals-gate.yml
+name: Caudals release gate
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  caudals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Run the Caudals test set and check the gate
+        env:
+          CAUDALS_TOKEN: \${{ secrets.CAUDALS_TOKEN }}
+          CAUDALS_API: ${origin}/api/evals/v1
+          ORG_ID: ${orgId}
+          SUITE_VERSION_ID: ${suite}
+          TARGET_REVISION_ID: ${target}
+        run: |
+          set -euo pipefail
+          run=$(curl -sS --fail-with-body --retry 3 --retry-all-errors -X POST \\
+            "$CAUDALS_API/integrations/runs?orgId=$ORG_ID" \\
+            -H "Authorization: Bearer $CAUDALS_TOKEN" \\
+            -H "Content-Type: application/json" \\
+            -H "Idempotency-Key: gh-\${{ github.sha }}-\${{ github.run_attempt }}" \\
+            -d "{\\"suiteVersionId\\":\\"$SUITE_VERSION_ID\\",\\"targetRevisionId\\":\\"$TARGET_REVISION_ID\\"}")
+          run_id=$(echo "$run" | jq -r '.data.run_id')
+          echo "Caudals run $run_id"
+          while true; do
+            gate=$(curl -sS --fail-with-body --retry 3 --retry-all-errors \\
+              "$CAUDALS_API/integrations/runs/$run_id/gate?orgId=$ORG_ID" \\
+              -H "Authorization: Bearer $CAUDALS_TOKEN")
+            status=$(echo "$gate" | jq -r '.data.status')
+            [ "$status" != "pending" ] && break
+            sleep 30
+          done
+          echo "$gate" | jq '.data'
+          test "$status" = "pass"`;
+}
+
 /** A webhook body as sent: canonical JSON, keys sorted. */
 export function webhookExample() {
   const body = {

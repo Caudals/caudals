@@ -1,7 +1,7 @@
 ---
 title: Programaciones y alertas de regresión
 summary: Repite un conjunto de pruebas aprobado cada semana o cada mes, consulta lo que cuesta y recibe una alerta cuando las respuestas empeoran respecto a la ejecución anterior.
-keywords: [programación, ejecuciones programadas, monitorización, periódica, mensual, semanal, diaria, regresión, alerta, comparar, volver a ejecutar, omitida, webhook, notificación]
+keywords: [programación, ejecuciones programadas, monitorización, periódica, mensual, semanal, diaria, regresión, alerta, comparar, volver a ejecutar, omitida, webhook, notificación, slack, teams, correo, ci, pipeline, github actions, control de publicación, umbral, token de api]
 related: [prepare-and-run, reading-results, getting-help]
 owner: engineering
 reviewed: 2026-10-14
@@ -39,7 +39,28 @@ Las ejecuciones con otro conjunto de pruebas (o con otra rúbrica, otro correcto
 
 ## Dónde aparecen las alertas {#alerts}
 
-Los resultados aparecen en **Resultados de la monitorización**, con la puntuación frente a la vez anterior, y en el centro de notificaciones con las preguntas que han empeorado. Una regresión también se envía por correo a quienes tienen activado **Regresiones** en **Ajustes → Notificaciones**: la puntuación de esta vez y de la anterior, y hasta cinco preguntas que han empeorado, cada una con un enlace a su respuesta. Para enviar los resultados a tus propios sistemas, añade un webhook firmado en **Ajustes → Desarrolladores**; allí tienes la referencia de la API.
+Los resultados aparecen en **Resultados de la monitorización**, con la puntuación frente a la vez anterior, y en el centro de notificaciones con las preguntas que han empeorado. Una regresión también se envía por correo a quienes tienen activado **Regresiones** en **Ajustes → Notificaciones**: la puntuación de esta vez y de la anterior, y hasta cinco preguntas que han empeorado, cada una con un enlace a su respuesta. Para enviar los resultados a un canal del equipo o a tus propios sistemas, añade un destino en **Ajustes → Desarrolladores** (abajo).
+
+## Slack, Teams y correo {#destinations}
+
+En **Ajustes → Desarrolladores → Destinos de alertas**, los propietarios eligen **Añadir destino** y un tipo:
+
+- **Slack**: en Slack, añade la aplicación Incoming Webhooks al canal y pega la URL del webhook que te da (`https://hooks.slack.com/services/…`).
+- **Microsoft Teams**: en Teams, crea un flujo de trabajo con la plantilla «Publicar en un canal cuando se reciba una solicitud de webhook» y pega su URL.
+- **Correo electrónico**: la dirección de una persona del equipo o una dirección del dominio de tu empresa, como un buzón compartido de alertas.
+- **Webhook firmado**: un evento JSON firmado con HMAC para tus propios sistemas; la referencia de la API explica cómo verificarlo.
+
+Elige si quieres enterarte de las **regresiones y ejecuciones que no han podido terminar** o de **todas las ejecuciones programadas**, y el idioma de los mensajes. Slack, Teams y el correo reciben un mensaje legible: la puntuación frente a la última vez, hasta cinco preguntas que han empeorado con enlaces a sus respuestas y un enlace al informe. **Enviar prueba** manda un ejemplo, marcado como tal, para que compruebes que llega; el resultado aparece en el destino. Las URL de los webhooks y las direcciones se guardan cifradas, solo se aceptan direcciones públicas de internet y un destino eliminado deja de recibir mensajes en el acto.
+
+## Controlar publicaciones desde tu pipeline {#ci}
+
+Un pipeline de despliegue puede ejecutar tu conjunto de pruebas aprobado antes de cada publicación y detenerla cuando las respuestas empeoran:
+
+1. En **Ajustes → Desarrolladores**, crea un token con **Pipeline de CI: iniciar ejecuciones y leer sus resultados**. Elige una caducidad corta y guárdalo como secreto en tu CI.
+2. En **Control de publicación**, fija el **umbral de aprobado**: el porcentaje de respuestas puntuadas que deben pasar en ese conjunto de pruebas. Una programación puede fijar el suyo desde su menú, que sustituye al del conjunto para sus ejecuciones.
+3. Tu pipeline inicia una ejecución con la versión del conjunto de pruebas y la del sistema que aparecen ahí y una `Idempotency-Key`, y pregunta al control hasta que responde **pass**, **fail** o **unknown** (la ejecución no ha podido dar un resultado). La referencia de la API tiene un ejemplo con curl y un flujo de GitHub Actions.
+
+Las ejecuciones iniciadas así cuentan como cualquier otra: se aplican la estimación, tus límites de créditos y tu plan, y cada clave inicia una sola ejecución por muchas veces que se reintente.
 
 ## Volver a ejecutar y comparar {#compare}
 

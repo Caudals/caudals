@@ -269,7 +269,7 @@ const content =
   ) : location.pathname === "/workspace/evaluations/new" ? (
     <NewEvaluationFlow />
   ) : location.pathname === "/workspace/settings" ? (
-    <WorkspaceSettings estimatesApi={params.has("estimates")} />
+    <WorkspaceSettings estimatesApi={params.has("estimates")} integrationsV2={params.has("integrations")} />
   ) : location.pathname === "/workspace/settings/models" ? (
     <EngineSettings orgId="00000000-0000-4000-8000-000000000001" workspaceName="Acme" />
   ) : location.pathname === "/workspace/reports" ? (

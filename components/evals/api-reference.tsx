@@ -9,9 +9,12 @@
 import { useSyncExternalStore } from "react";
 import { DataTable, SectionHeading } from "./primitives";
 import { CodeBlock, CopyField } from "./overlays";
-import { apiCurl, ciGateScript, estimateCurl, NODE_VERIFIER, PYTHON_VERIFIER, webhookExample } from "@/lib/evals/api-reference";
+import { apiCurl, ciGateScript, estimateCurl, githubActionExample, NODE_VERIFIER, PYTHON_VERIFIER, startRunCurl, webhookExample } from "@/lib/evals/api-reference";
 import {
+  CI_RUN_FIELDS,
+  CI_RUN_INPUT_FIELDS,
   CI_STATUS_FIELDS,
+  GATE_FIELDS,
   CUSTOMER_API_FIELDS,
   CUSTOMER_API_LIMITS,
   CUSTOMER_API_RESOURCES,
@@ -31,6 +34,7 @@ const SCOPE_HELP: Record<CustomerScope, MessageKey> = {
   "runs:read": "apiRefScopeRuns",
   "reports:read": "apiRefScopeReports",
   "schedules:read": "apiRefScopeSchedules",
+  "runs:write": "apiRefScopeRunsWrite",
 };
 const LIST_HELP: Record<CustomerResource, MessageKey> = {
   runs: "apiRefEndpointRuns",
@@ -57,7 +61,7 @@ function Codes({ values }: { values: readonly string[] }) {
   );
 }
 
-function Endpoint({ method, path, scope, children, fields }: { method: "GET" | "POST"; path: string; scope: CustomerScope; children: React.ReactNode; fields?: readonly string[] }) {
+function Endpoint({ method, path, scope, children, fields, body }: { method: "GET" | "POST"; path: string; scope: CustomerScope | CustomerScope[]; children: React.ReactNode; fields?: readonly string[]; body?: readonly string[] }) {
   return (
     <article className="p-api-endpoint">
       <h4>
@@ -68,9 +72,17 @@ function Endpoint({ method, path, scope, children, fields }: { method: "GET" | "
         <div>
           <dt>{t("apiRefScopeLabel")}</dt>
           <dd>
-            <Codes values={[scope]} />
+            <Codes values={typeof scope === "string" ? [scope] : scope} />
           </dd>
         </div>
+        {body && (
+          <div>
+            <dt>{t("apiRefBody")}</dt>
+            <dd>
+              <Codes values={body} />
+            </dd>
+          </div>
+        )}
         {fields && (
           <div>
             <dt>{t("apiRefFields")}</dt>
@@ -84,16 +96,19 @@ function Endpoint({ method, path, scope, children, fields }: { method: "GET" | "
   );
 }
 
-export function ApiReference({ orgId, estimates = false }: { orgId: string; estimates?: boolean }) {
+/** `integrations`: the CI trigger, release gate and Slack/Teams/email destinations (INTEGRATIONS_V2_ENABLED, launch L-19). */
+export function ApiReference({ orgId, estimates = false, integrations = false }: { orgId: string; estimates?: boolean; integrations?: boolean }) {
   // The page's own origin in the browser; the server renders the production one.
   const origin = useSyncExternalStore(noSubscription, () => window.location.origin, () => DEFAULT_ORIGIN);
   const limits = CUSTOMER_API_LIMITS;
   const resources = Object.keys(CUSTOMER_API_RESOURCES) as CustomerResource[];
+  const scopes = CUSTOMER_TOKEN_SCOPES.filter((scope) => integrations || scope !== "runs:write");
+  const statuses = integrations ? (["400", "401", "402", "403", "404", "409", "422", "429"] as const) : (["400", "401", "403", "404", "429"] as const);
 
   return (
     <section className="p-section p-api-ref" aria-labelledby="api-reference">
       <SectionHeading id="api-reference" title={t("apiRefTitle")}>
-        {t("apiRefIntro")}
+        {integrations ? `${t("apiRefIntro")} ${t("apiRefIntroCi")}` : t("apiRefIntro")}
       </SectionHeading>
 
       <section aria-labelledby="api-auth">
@@ -108,7 +123,7 @@ export function ApiReference({ orgId, estimates = false }: { orgId: string; esti
       <section aria-labelledby="api-scopes">
         <h3 id="api-scopes">{t("apiRefScopesTitle")}</h3>
         <DataTable caption={t("apiRefScopesTitle")} headers={[t("scope"), t("apiRefAllows")]}>
-          {CUSTOMER_TOKEN_SCOPES.map((scope) => (
+          {scopes.map((scope) => (
             <tr key={scope}>
               <td>
                 <code className="p-code">{scope}</code>
@@ -131,6 +146,18 @@ export function ApiReference({ orgId, estimates = false }: { orgId: string; esti
           {t("apiRefEndpointCi")}
         </Endpoint>
         <CodeBlock label={t("apiRefGateExample")} code={ciGateScript(origin, orgId)} />
+        {integrations && (
+          <>
+            <Endpoint method="POST" path="/api/evals/v1/integrations/runs?orgId=…" scope="runs:write" body={CI_RUN_INPUT_FIELDS} fields={CI_RUN_FIELDS}>
+              {t("apiRefEndpointStartRun")}
+            </Endpoint>
+            <Endpoint method="GET" path="/api/evals/v1/integrations/runs/{runId}/gate?orgId=…" scope={["runs:read", "runs:write"]} fields={GATE_FIELDS}>
+              {t("apiRefEndpointGate")}
+            </Endpoint>
+            <CodeBlock label={t("apiRefStartRunExample")} code={startRunCurl(origin, orgId)} />
+            <CodeBlock label={t("apiRefGithubAction")} code={githubActionExample(origin, orgId)} />
+          </>
+        )}
         {estimates && (
           <>
             <Endpoint method="POST" path="/api/evals/v1/billing/estimates" scope="runs:read">
@@ -145,7 +172,7 @@ export function ApiReference({ orgId, estimates = false }: { orgId: string; esti
         <h3 id="api-errors">{t("apiRefErrorsTitle")}</h3>
         <p>{t("apiRefErrorsBody")}</p>
         <ul className="p-bullets">
-          {(["400", "401", "403", "404", "429"] as const).map((status) => (
+          {statuses.map((status) => (
             <li key={status}>
               <code className="p-code">{status}</code> {t(`apiRefError${status}` as MessageKey)}
             </li>
@@ -159,6 +186,8 @@ export function ApiReference({ orgId, estimates = false }: { orgId: string; esti
           <li>{tv("apiRefLimitRate", { n: limits.requestsPerWindow })}</li>
           <li>{tv("apiRefLimitList", { n: limits.listItems })}</li>
           <li>{t("apiRefLimitToken")}</li>
+          {integrations && <li>{tv("apiRefLimitRuns", { n: limits.runStartsPerHour })}</li>}
+          {integrations && <li>{tv("apiRefLimitWriteToken", { n: limits.writeTokenMaxDays })}</li>}
         </ul>
       </section>
 
@@ -184,6 +213,7 @@ export function ApiReference({ orgId, estimates = false }: { orgId: string; esti
         <CodeBlock label="Python" code={PYTHON_VERIFIER} />
         <h4>{t("apiRefDeliveryTitle")}</h4>
         <p>{tv("apiRefDeliveryBody", { timeout: limits.webhookTimeoutSeconds, attempts: limits.webhookAttempts })}</p>
+        {integrations && <p>{t("apiRefDestinationsBody")}</p>}
       </section>
     </section>
   );

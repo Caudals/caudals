@@ -30,11 +30,16 @@ export function isPublicAddress(address: string): boolean {
   return public6.check(address, "ipv6") && !blocked6.check(address, "ipv6");
 }
 
-/** Validate all answers and return one address that the socket must be pinned to. */
-export async function validatePublicDestination(raw: string, lookup: Lookup = dnsLookup): Promise<PinnedDestination> {
+/**
+ * Validate all answers and return one address that the socket must be pinned to.
+ * `allowQuery`: a query string is part of the address (Microsoft Teams
+ * incoming-webhook URLs carry their signature in it; launch L-19). Every other
+ * caller refuses one, as before.
+ */
+export async function validatePublicDestination(raw: string, lookup: Lookup = dnsLookup, options: { allowQuery?: boolean } = {}): Promise<PinnedDestination> {
   let url: URL;
   try { url = new URL(raw); } catch { throw new Error("destination_invalid"); }
-  if (url.protocol !== "https:" || url.username || url.password || url.hash || url.search) throw new Error("destination_invalid");
+  if (url.protocol !== "https:" || url.username || url.password || url.hash || (url.search && !options.allowQuery)) throw new Error("destination_invalid");
   const hostname = url.hostname.replace(/^\[|\]$/g, "");
   const answers = await lookup(hostname, { all: true, verbatim: true });
   if (!answers.length || answers.some((answer) => !isPublicAddress(answer.address))) throw new Error("destination_denied");

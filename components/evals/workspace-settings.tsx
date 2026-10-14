@@ -25,8 +25,11 @@ import { getLocale, t } from "@/lib/evals/messages/en";
 
 type Tab = SettingsTab;
 
-/** `estimatesApi`: the estimate endpoint accepts API tokens (BILLING_ESTIMATES_ENABLED=true, read on the server). */
-export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { marketingOrigin?: string; estimatesApi?: boolean } = {}) {
+/**
+ * `estimatesApi`: the estimate endpoint accepts API tokens (BILLING_ESTIMATES_ENABLED=true, read on the server).
+ * `integrationsV2`: CI tokens, Slack/Teams/email destinations and release-gate thresholds (INTEGRATIONS_V2_ENABLED, launch L-19).
+ */
+export function WorkspaceSettings({ marketingOrigin, estimatesApi = false, integrationsV2 = false }: { marketingOrigin?: string; estimatesApi?: boolean; integrationsV2?: boolean } = {}) {
   const { orgId, workspace, role, canManage, platformAdmin } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const params = useSearchParams();
@@ -90,11 +93,11 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
       ) : tab === "notifications" ? (
         <Notifications orgId={orgId} summary={summary} onSaved={reload} />
       ) : tab === "monitoring" ? (
-        <MonitoringSchedules orgId={orgId} canManage={canManage} summary={summary} />
+        <MonitoringSchedules orgId={orgId} canManage={canManage} summary={summary} integrationsV2={integrationsV2} />
       ) : tab === "developers" ? (
         <>
-          <DeveloperAccess orgId={orgId} canManage={canManage} />
-          <ApiReference orgId={orgId} estimates={estimatesApi} />
+          <DeveloperAccess orgId={orgId} canManage={canManage} integrationsV2={integrationsV2} />
+          <ApiReference orgId={orgId} estimates={estimatesApi} integrations={integrationsV2} />
         </>
       ) : (
         <div className="p-settings">

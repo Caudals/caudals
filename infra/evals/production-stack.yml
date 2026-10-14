@@ -85,6 +85,9 @@ services:
       # Monthly new questions (L-25): re-reads opted-in workspaces' website
       # sources and drafts proposals, from the app credentials; default off.
       SECTOR_PACKS_ENABLED: "${SECTOR_PACKS_ENABLED:-false}"
+      # Integrations v2 (launch L-19): summaries for Slack, Teams and email
+      # destinations, from the app credentials; default off.
+      INTEGRATIONS_V2_ENABLED: "${INTEGRATIONS_V2_ENABLED:-false}"
       # Invoicing (L-13): the adapter the invoicing job hands requests to
       # (off, manual), from the app credentials like the web app.
       BILLING_INVOICING_PROVIDER: "${BILLING_INVOICING_PROVIDER:-off}"
