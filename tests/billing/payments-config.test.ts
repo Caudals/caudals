@@ -1,4 +1,7 @@
 /** Who may pay, in which mode, with which key (spec §6.18; decisions I-3, I-9). */
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { appBaseUrl, keyMatchesMode, paymentsAccess, stripeMode, stripeSecretKey, stripeWebhookSecret, testWorkspaceIds } from "../../lib/billing/payments-config";
 import { billingEmailAllowed } from "../../lib/billing/emails";
@@ -72,6 +75,14 @@ describe("billing emails in test mode", () => {
     expect(billingEmailAllowed("ops@caudals.com", env)).toBe(true);
     expect(billingEmailAllowed("customer@acme.es", env)).toBe(false);
     expect(billingEmailAllowed("customer@acme.es", { BILLING_STRIPE_MODE: "live" })).toBe(true);
+  });
+  it("read the internal address from its _FILE secret, as the evals workers mount it (launch L-18)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "billing-email-"));
+    const file = join(dir, "internal");
+    writeFileSync(file, "Team@Internal.example\n");
+    expect(billingEmailAllowed("team@internal.example", { COLLABORATION_NOTIFICATION_EMAIL_FILE: file })).toBe(true);
+    expect(billingEmailAllowed("team+check@internal.example", { COLLABORATION_NOTIFICATION_EMAIL_FILE: file })).toBe(false);
+    expect(billingEmailAllowed("team@internal.example", { COLLABORATION_NOTIFICATION_EMAIL_FILE: join(dir, "missing") })).toBe(false);
   });
 });
 

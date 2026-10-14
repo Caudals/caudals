@@ -29,11 +29,16 @@ type Env = Record<string, string | undefined>;
 type Locale = "en" | "es";
 const SENDER = "system:billing-email";
 
+/** The internal address: the variable, or its _FILE secret (the evals workers mount it as a file). */
+function internalAddress(env: Env) {
+  try { return getSecretEnvValue("COLLABORATION_NOTIFICATION_EMAIL", { env })?.trim().toLowerCase(); } catch { return undefined; }
+}
+
 /** Test mode: only Caudals' own addresses. Live mode: anyone. */
 export function billingEmailAllowed(to: string, env: Env = process.env) {
   if (stripeMode(env) === "live") return true;
   const address = to.trim().toLowerCase();
-  const internal = env.COLLABORATION_NOTIFICATION_EMAIL?.trim().toLowerCase();
+  const internal = internalAddress(env);
   return (Boolean(internal) && address === internal) || /@caudals\.com$/.test(address);
 }
 
