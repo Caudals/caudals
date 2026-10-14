@@ -46,3 +46,6 @@ prompt="Use ToolSearch with query 'select:SendMessage' to load SendMessage. Then
 date +%s >"$state/last-nudge"
 out=$(cd "$HOME" && timeout 180 "$cli" -p --model haiku --max-turns 6 "$prompt" 2>&1 | tail -3 | tr '\n' ' ') || true
 say "quiet ${age}m, ${remaining} left -> ${out}"
+# Only a delivered nudge starts the cooldown; a failed one (usage limit, auth)
+# retries on the next cron run so the session wakes soon after a reset.
+[[ $out == *SENT* ]] || rm -f "$state/last-nudge"
