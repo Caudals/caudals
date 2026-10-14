@@ -102,7 +102,9 @@ const sha256 = (value: string) => createHash("sha256").update(value).digest("hex
       db.query("UPDATE evals.terms_acceptance SET version='2026-10-12' WHERE id=$1", [id]))).rejects.toThrow(/permission denied/);
     await expect(owner.query("UPDATE evals.terms_acceptance SET version='2026-10-12' WHERE id=$1", [id])).rejects.toThrow(/immutable terms acceptance/);
     await expect(owner.query("DELETE FROM evals.terms_acceptance WHERE id=$1", [id])).rejects.toThrow(/immutable terms acceptance/);
-    await expect(owner.query("TRUNCATE evals.terms_acceptance")).rejects.toThrow(/immutable terms acceptance/);
+    // Since migration 108 (launch L-32) countersigned DPA copies reference acceptances,
+    // so PostgreSQL refuses the truncate on the foreign key before the trigger runs.
+    await expect(owner.query("TRUNCATE evals.terms_acceptance")).rejects.toThrow(/immutable terms acceptance|cannot truncate a table referenced in a foreign key constraint/);
   });
 
   it("shows a workspace's acceptances to its members and nobody else", async () => {

@@ -1,7 +1,7 @@
 ---
 title: How we handle your data
 summary: Where your data is stored, which models read it, how credentials are protected, how long things are kept and how to delete a workspace.
-keywords: [data, privacy, gdpr, security, hosting, germany, encryption, credentials, retention, delete, deletion, dpa, sub-processors, model, adversarial]
+keywords: [data, privacy, gdpr, security, hosting, germany, encryption, credentials, retention, export, zip, delete, deletion, dpa, sub-processors, model, adversarial]
 related: [team-and-roles, reports-and-sharing, connect-api]
 owner: founder
 reviewed: 2026-10-12
@@ -26,10 +26,14 @@ Caudals asks only the ordinary questions in your test set. It never runs adversa
 
 ## How long data is kept {#retention}
 
-- Workspace content (sources, test sets, runs and reports) is kept while the workspace exists.
+- Workspace content (sources, test sets, runs and reports) is kept while the workspace exists. An owner can choose to keep the answers from test runs for 30, 90 or 365 days instead, in **Settings → Data**; answers behind a report you keep stay with that report.
 - Screenshots from failed website checks are deleted after seven days.
 - Free test results on caudals.com are deleted after seven days.
 - Backups expire after about a week.
+
+## Export your data {#export}
+
+Owners can download everything in **Settings → Data** with **Export all workspace data**: one ZIP file with every report you keep (to read in a browser, plus JSON and CSV), the evidence behind each one, every test set, and every test run's questions, answers and grades. It is prepared in the background; the download works for seven days, then the file is deleted.
 
 ## Shared reports {#sharing}
 
@@ -37,7 +41,7 @@ You decide what leaves the workspace. Shared links expire, and an owner can revo
 
 ## Delete a workspace {#delete}
 
-Owners can delete the workspace in **Settings → Danger zone** with **Delete workspace data**. You give a reason and type the workspace name to confirm. Deletion revokes every share and credential at once, stops running evaluations, withdraws reports and deletes stored files. It cannot be undone, and access stops immediately for every member. A minimal deletion record remains, and encrypted backups expire on their normal schedule.
+Owners can delete the workspace in **Settings → Danger zone** with **Delete workspace data**. You give a reason and type the workspace name to confirm. Deletion revokes every share and credential at once, stops running evaluations, withdraws reports and deletes stored files. It cannot be undone, and access stops immediately for every member. The workspace is closed for good and a record of the deletion is kept; to have every remaining record erased, write to privacy@caudals.com. Encrypted backups expire on their normal schedule, about a week.
 
 ## Legal documents {#legal}
 

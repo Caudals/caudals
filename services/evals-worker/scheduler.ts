@@ -12,7 +12,9 @@ import { finalizeRuns, refreshJudgedReports } from "../../lib/evals/repositories
 import { advanceEvaluationRestarts } from "../../lib/evals/repositories/evaluation-controls";
 import { advancePendingGenerations } from "../../lib/evals/repositories/automatic-generation";
 import { advanceOnboardingAutostarts, onboardingDueWorkspaces } from "../../lib/evals/repositories/onboarding";
-import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
+import { tickLifecycle, tickObservationRetention } from "../../lib/evals/operations/lifecycle";
+import { tickWorkspaceExports } from "../../lib/evals/operations/workspace-export";
+import { dataControlsEnabled } from "../../lib/evals/data-controls/flags";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 import { tickLifecycleEmails } from "../../lib/evals/operations/lifecycle-email";
 import { billingCreditsEnabled } from "../../lib/billing/config";
@@ -59,12 +61,28 @@ async function main() {
   let lastReconciliation = 0;
   let lastDigest = 0;
   let lastRefresh = 0;
+  let lastRetentionSchedule = 0;
+  let lastExportTick = 0;
+  let exporting: Promise<void> | null = null;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
   console.info(JSON.stringify({ event: "scheduler_ready", workspaces: orgs.current().length }));
   try {
     while (!stopping) {
+      // "Export all workspace data" (launch L-32, DATA_CONTROLS_ENABLED): built off
+      // the main loop, one pass at a time, so a large export never holds up
+      // grading, reports or the heartbeat.
+      if (dataControlsEnabled() && !exporting && Date.now() - lastExportTick >= 10_000) {
+        lastExportTick = Date.now();
+        exporting = tickWorkspaceExports(actorId)
+          .then((result) => { if (result.processed) console.info(JSON.stringify({ event: "workspace_exports", ...result })); })
+          .catch((error: unknown) => {
+            console.error(JSON.stringify({ event: "workspace_exports_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "workspace_exports_failed" });
+          })
+          .finally(() => { exporting = null; });
+      }
       // First-run automatic starts (launch L-06, ONBOARDING_AUTOSTART) on a short
       // tick, so a new demo sign-up gets its test set started within a minute
       // even with no page open. Only workspaces with a pending start are read.
@@ -122,6 +140,19 @@ async function main() {
               console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId, task, reason: error instanceof Error && /^[a-z0-9_]{1,80}$/i.test(error.message) ? error.message : error instanceof Error ? error.name : "unknown" }));
               captureServerError(error, { service: "evals-scheduler", event: "scheduler_tick_failed", task, workspace: orgId });
             }
+          }
+        }
+        // Answer retention (launch L-32, DATA_CONTROLS_ENABLED): hourly, the runs whose
+        // answers are older than their workspace's setting become retention jobs,
+        // which the lifecycle pass below runs (pins respected, every purge audited).
+        if (dataControlsEnabled() && Date.now() - lastRetentionSchedule >= 60 * 60_000) {
+          lastRetentionSchedule = Date.now();
+          try {
+            const retention = await tickObservationRetention(actorId);
+            if (retention.scheduled) console.info(JSON.stringify({ event: "observation_retention_scheduled", ...retention }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "observation_retention_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "observation_retention_failed" });
           }
         }
         // Retention and deletion cover every workspace, not only the dispatch allowlist.
@@ -325,6 +356,8 @@ async function main() {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   } finally {
+    // An export being built finishes before the pool closes (a stopped one is retried after 15 minutes).
+    if (exporting) await Promise.race([exporting, new Promise((resolve) => setTimeout(resolve, 20_000))]);
     await getEvalsPool().end();
   }
 }

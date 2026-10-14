@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { evalRequest, EvalRequestError } from "./api";
-import { Action, Badge, Check, SettingsRow, Status } from "./primitives";
+import { Action, Badge, Check, Field, SettingsRow, Status } from "./primitives";
 import { Modal, notify } from "./overlays";
 import { localizePathname } from "@/lib/i18n/routing";
 import { LEGAL_DOCUMENT_PATHS, dpaTemplateFileName } from "@/lib/legal/versions";
@@ -22,6 +22,10 @@ export type DpaStatus = {
     current: boolean;
     signer: { name: string; email: string } | null;
   } | null;
+  /** Launch L-32 (DATA_CONTROLS_ENABLED): the countersigned PDF operations attached; owners and operations only. */
+  countersigned?: { id: string; acceptanceId: string; version: string; fileName: string; byteSize: number; uploadedAt: string } | null;
+  /** Caudals operations may attach or remove the countersigned copy. */
+  canAttach?: boolean;
 };
 
 function isDpaStatus(value: unknown): value is DpaStatus {
@@ -118,7 +122,17 @@ export function DpaSetting({
           {t("dpaDownload")}
         </a>
       </span>
-      <span>{t("dpaCountersign")}</span>
+      {status?.countersigned ? (
+        <span>
+          {tv("dpaCountersignedCopy", { version: status.countersigned.version, date: acceptedDate(status.countersigned.uploadedAt) })}{" "}
+          <a className="p-link" href={`/api/evals/v1/workspaces/${orgId}/dpa/countersigned/${status.countersigned.id}`} download>
+            {t("dpaCountersignedDownload")}
+          </a>
+        </span>
+      ) : (
+        <span>{t("dpaCountersign")}</span>
+      )}
+      {status?.canAttach && !status.countersigned && <span>{status.acceptance ? t("dpaAttachHelp") : t("dpaAttachNeedsAcceptance")}</span>}
     </span>
   );
 
@@ -153,6 +167,9 @@ export function DpaSetting({
             <Action variant="secondary" size="sm" onClick={() => setReviewing(true)}>
               {t("dpaReview")}
             </Action>
+          )}
+          {status.canAttach && acceptance && (
+            <CountersignedControls orgId={orgId} acceptanceId={acceptance.id} copy={status.countersigned ?? null} onChange={load} />
           )}
         </>
       )}
@@ -255,5 +272,125 @@ function DpaAcceptDialog({
         />
       </form>
     </Modal>
+  );
+}
+
+/**
+ * Caudals operations attach the countersigned PDF to the displayed acceptance,
+ * or remove it with a reason (launch L-32; `POST/DELETE
+ * /workspaces/:id/dpa/countersigned`). The database function audits both.
+ */
+function CountersignedControls({
+  orgId,
+  acceptanceId,
+  copy,
+  onChange,
+}: {
+  orgId: string;
+  acceptanceId: string;
+  copy: NonNullable<DpaStatus["countersigned"]> | null;
+  onChange: () => Promise<void>;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [removing, setRemoving] = useState(false);
+  const [reason, setReason] = useState("");
+  const picker = useRef<HTMLInputElement>(null);
+
+  async function attach(file: File) {
+    if (file.size < 1 || file.size > 10 * 1024 * 1024) {
+      setError(t("dpaAttachInvalid"));
+      return;
+    }
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/evals/v1/workspaces/${orgId}/dpa/countersigned?acceptanceId=${acceptanceId}&fileName=${encodeURIComponent(file.name)}`,
+        { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/pdf" }, body: file },
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        const code = body?.error?.code;
+        setError(code === "VERSION_CONFLICT" ? t("dpaAttachExists") : code === "INPUT_INVALID" ? t("dpaAttachInvalid") : t("error"));
+        return;
+      }
+      notify(t("dpaAttached"));
+      await onChange();
+    } catch {
+      setError(t("error"));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function remove(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!copy || reason.trim().length < 3) return;
+    setPending(true);
+    setError("");
+    try {
+      await evalRequest(`/workspaces/${orgId}/dpa/countersigned/${copy.id}`, "DELETE", { reason: reason.trim() });
+      setRemoving(false);
+      setReason("");
+      notify(t("dpaRemoved"));
+      await onChange();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("error"));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <>
+      {error && !removing && <Status error>{error}</Status>}
+      {copy ? (
+        <Action variant="secondary" size="sm" disabled={pending} onClick={() => setRemoving(true)}>
+          {t("dpaRemoveCountersigned")}
+        </Action>
+      ) : (
+        <>
+          <Action variant="secondary" size="sm" disabled={pending} onClick={() => picker.current?.click()}>
+            {pending ? t("dpaAttaching") : t("dpaAttachCountersigned")}
+          </Action>
+          <input
+            ref={picker}
+            type="file"
+            accept="application/pdf,.pdf"
+            hidden
+            aria-hidden="true"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void attach(file);
+            }}
+          />
+        </>
+      )}
+      {removing && copy && (
+        <Modal
+          open
+          onOpenChange={(open) => !open && !pending && setRemoving(false)}
+          title={t("dpaRemoveTitle")}
+          description={t("dpaRemoveHelp")}
+          alert={error ? <Status error>{error}</Status> : null}
+          footer={
+            <>
+              <Action variant="secondary" disabled={pending} onClick={() => setRemoving(false)}>
+                {t("cancel")}
+              </Action>
+              <Action variant="danger" type="submit" form="dpa-remove-form" disabled={pending || reason.trim().length < 3}>
+                {pending ? t("working") : t("dpaRemoveCountersigned")}
+              </Action>
+            </>
+          }
+        >
+          <form id="dpa-remove-form" className="p-stack" onSubmit={remove}>
+            <Field id="dpa-remove-reason" label={t("dpaRemoveReason")} value={reason} onChange={(event) => setReason(event.target.value)} required minLength={3} maxLength={500} />
+          </form>
+        </Modal>
+      )}
+    </>
   );
 }

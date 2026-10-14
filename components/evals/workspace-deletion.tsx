@@ -4,12 +4,26 @@ import { useEffect, useState } from "react";
 import { evalRequest } from "./api";
 import { Action, Field, SettingsRow, Status, StatusBadge, Time } from "./primitives";
 import { Modal } from "./overlays";
-import { t } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/en";
+
+/** What deleting a workspace does, in the order it happens (launch L-32 spells it out; the workflow is unchanged). */
+const CONSEQUENCES: MessageKey[] = [
+  "deleteConsequenceAccess",
+  "deleteConsequenceCredentials",
+  "deleteConsequenceRuns",
+  "deleteConsequenceFiles",
+  "deleteConsequenceRecords",
+  "deleteConsequenceBackups",
+  "deleteConsequenceCopies",
+];
 
 type Deletion = { id: string; status: string; requested_at: string; completed_at: string | null; summary: Record<string, unknown> } | null;
 
-/** Owner-initiated workspace data deletion (spec §16.4). Access stops at once; objects follow. */
-export function WorkspaceDeletion({ orgId, workspaceName }: { orgId: string; workspaceName: string }) {
+/**
+ * Owner-initiated workspace data deletion (spec §16.4). Access stops at once; objects follow.
+ * `exportFirst`: "Export all workspace data" is available (DATA_CONTROLS_ENABLED, launch L-32).
+ */
+export function WorkspaceDeletion({ orgId, workspaceName, exportFirst = false }: { orgId: string; workspaceName: string; exportFirst?: boolean }) {
   const [deletion, setDeletion] = useState<Deletion>(null);
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -34,7 +48,22 @@ export function WorkspaceDeletion({ orgId, workspaceName }: { orgId: string; wor
   }
   return (
     <>
-      <SettingsRow title={t("deleteWorkspaceData")} description={t("deleteWorkspaceHelp")}>
+      <SettingsRow
+        id="delete-workspace"
+        title={t("deleteWorkspaceData")}
+        description={
+          <div className="p-stack p-stack-tight">
+            <p>{t("deleteWorkspaceHelp")}</p>
+            <p>{t("deleteWorkspaceWhat")}</p>
+            <ul className="p-bullets">
+              {CONSEQUENCES.map((key) => (
+                <li key={key}>{t(key)}</li>
+              ))}
+            </ul>
+            {exportFirst && <p>{t("deleteWorkspaceExportFirst")}</p>}
+          </div>
+        }
+      >
         {deletion ? (
           <span className="p-row">
             <StatusBadge value={deletion.status} />

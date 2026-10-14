@@ -93,6 +93,9 @@ services:
       BILLING_INVOICING_PROVIDER: "${BILLING_INVOICING_PROVIDER:-off}"
       # Billing alerts (L-15) only where the billing screens show; from the app credentials.
       BILLING_UI_ENABLED: "${BILLING_UI_ENABLED:-false}"
+      # Data controls (L-32): answer retention through the retention jobs and
+      # "Export all workspace data" builds, from the app credentials; default off.
+      DATA_CONTROLS_ENABLED: "${DATA_CONTROLS_ENABLED:-false}"
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1
@@ -137,7 +140,8 @@ services:
       restart_policy: {condition: on-failure, delay: 10s}
       update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
       resources:
-        limits: {cpus: "0.25", memory: 384M}
+        # 512M: headroom for one workspace export (ZIP held in memory, at most 64 MiB; launch L-32).
+        limits: {cpus: "0.25", memory: 512M}
         reservations: {memory: 64M}
     logging:
       driver: json-file

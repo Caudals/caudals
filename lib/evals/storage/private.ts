@@ -46,3 +46,48 @@ export async function writeUpload(key:string, bytes:Buffer, mediaType:string) {
   await readVerified(key,bytes.length,createHash('sha256').update(bytes).digest('hex'));
  }
 }
+/** Largest sealed workspace export (launch L-32); the database allows 128 MiB, the builder stops earlier. */
+export const MAX_PRIVATE_EXPORT_BYTES = 128 * 1024 * 1024;
+/**
+ * Streams a sealed object of known size and SHA-256 without buffering it (workspace
+ * exports, launch L-32). The stream errors instead of finishing when the bytes
+ * differ from the record, so a client never receives a silently altered file.
+ */
+export async function openVerifiedStream(key: string, expectedBytes: number, hash: string): Promise<ReadableStream<Uint8Array>> {
+  if (expectedBytes < 1 || expectedBytes > MAX_PRIVATE_EXPORT_BYTES) throw new Error('Invalid size');
+  const { client, bucket } = storage();
+  let iterator: AsyncIterator<Uint8Array>;
+  try {
+    const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }), { abortSignal: AbortSignal.timeout(10 * 60_000) });
+    if (response.ContentLength !== expectedBytes || !response.Body) throw new Error('Object size mismatch');
+    iterator = (response.Body as AsyncIterable<Uint8Array>)[Symbol.asyncIterator]();
+  } catch (error) {
+    client.destroy();
+    throw error;
+  }
+  const digest = createHash('sha256');
+  let size = 0;
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await iterator.next();
+        if (done) {
+          client.destroy();
+          if (size !== expectedBytes || digest.digest('hex') !== hash) controller.error(new Error('Object checksum mismatch'));
+          else controller.close();
+          return;
+        }
+        size += value.length;
+        if (size > expectedBytes) throw new Error('Object exceeds declared size');
+        digest.update(value);
+        controller.enqueue(value);
+      } catch (error) {
+        client.destroy();
+        controller.error(error);
+      }
+    },
+    cancel() {
+      client.destroy();
+    },
+  });
+}

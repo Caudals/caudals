@@ -256,6 +256,21 @@ const SERVER_ES: Record<string, string> = {
   "Use a month as YYYY-MM.": "Indica el mes como AAAA-MM.",
   "That file is part of the export only when Stripe is reconciled.": "Ese archivo solo forma parte de la exportación cuando se concilia con Stripe.",
   "Only a positive adjustment has an expiry.": "Solo un ajuste positivo tiene caducidad.",
+  // Data controls (launch L-32).
+  "Only a workspace owner can change how long answers are kept.": "Solo un propietario del espacio puede cambiar cuánto tiempo se conservan las respuestas.",
+  "Choose 30, 90 or 365 days, or keep answers until you delete them.": "Elige 30, 90 o 365 días, o conserva las respuestas hasta que las elimines.",
+  "This run's answers were removed under the workspace's retention setting, so it can't be graded or reported again.": "Las respuestas de esta prueba se eliminaron por el ajuste de conservación del espacio, así que no se puede volver a calificar ni a informar.",
+  "Only a workspace owner can export workspace data.": "Solo un propietario del espacio puede exportar sus datos.",
+  "This workspace is being deleted, so its data can no longer be exported.": "Este espacio se está eliminando, así que ya no se pueden exportar sus datos.",
+  "The export is being prepared. Delete it once it is ready.": "La exportación se está preparando. Elimínala cuando esté lista.",
+  "This export is no longer available. Prepare a new one.": "Esta exportación ya no está disponible. Prepara una nueva.",
+  "Only Caudals operations can attach a countersigned copy.": "Solo el equipo de operaciones de Caudals puede adjuntar una copia firmada.",
+  "Only Caudals operations can remove a countersigned copy.": "Solo el equipo de operaciones de Caudals puede quitar una copia firmada.",
+  "Attach a PDF of up to 10 MB.": "Adjunta un PDF de hasta 10 MB.",
+  "Attach a PDF.": "Adjunta un PDF.",
+  "The file is not a PDF.": "El archivo no es un PDF.",
+  "That DPA acceptance does not belong to this workspace.": "Esa aceptación del contrato no pertenece a este espacio.",
+  "A countersigned copy is already attached. Remove it first.": "Ya hay una copia firmada adjunta. Quítala primero.",
 };
 
 /** Translate a curated server sentence; evaluation- or model-specific details keep their wording. */

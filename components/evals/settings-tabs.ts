@@ -8,13 +8,14 @@
  */
 import { t } from "@/lib/evals/messages/en";
 
-export type SettingsTab = "general" | "billing" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
+export type SettingsTab = "general" | "billing" | "members" | "notifications" | "monitoring" | "developers" | "models" | "data" | "danger";
 
 /**
  * `billing`: Billing and usage shows for this person and workspace (launch L-15; owners and editors where billing is on).
  * `models`: AI models shows to an owner whose workspace may use its own provider keys (launch L-27); platform admins always see it.
+ * `data`: answer retention and "Export all workspace data" (launch L-32, DATA_CONTROLS_ENABLED); every member sees it, owners act.
  */
-export function settingsTabs({ canManage, platformAdmin, owner, billing = false, models = false }: { canManage: boolean; platformAdmin: boolean; owner: boolean; billing?: boolean; models?: boolean }): Array<{ value: SettingsTab; label: string }> {
+export function settingsTabs({ canManage, platformAdmin, owner, billing = false, models = false, data = false }: { canManage: boolean; platformAdmin: boolean; owner: boolean; billing?: boolean; models?: boolean; data?: boolean }): Array<{ value: SettingsTab; label: string }> {
   return [
     { value: "general", label: t("general") },
     ...(billing ? [{ value: "billing" as const, label: t("billingAndUsage") }] : []),
@@ -23,6 +24,7 @@ export function settingsTabs({ canManage, platformAdmin, owner, billing = false,
     { value: "monitoring", label: t("monitoring") },
     { value: "developers", label: t("developers") },
     ...(platformAdmin || models ? [{ value: "models" as const, label: t("aiModels") }] : []),
+    ...(data ? [{ value: "data" as const, label: t("dataTab") }] : []),
     ...(owner || platformAdmin ? [{ value: "danger" as const, label: t("dangerZone") }] : []),
   ];
 }

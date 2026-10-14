@@ -5,7 +5,9 @@ import { EvalError } from "@/lib/evals/domain/errors";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 import { withTenant } from "@/lib/evals/repositories/db";
 import type { Locale } from "@/lib/i18n/config";
+import { dataControlsEnabled } from "@/lib/evals/data-controls/flags";
 import { recordTermsAcceptance } from "./acceptance";
+import { canAttachCountersigned, readCountersigned, type DpaCountersigned } from "./dpa-countersigned";
 import { legalDocumentVersion } from "./versions";
 
 /**
@@ -41,6 +43,13 @@ export type DpaStatus = {
     /** Name and email at signing; shown to owners, operators and the signer. */
     signer: { name: string; email: string } | null;
   } | null;
+  /**
+   * The countersigned copy operations attached (launch L-32, DATA_CONTROLS_ENABLED):
+   * owners and operations see it; for everyone else row-level security answers null.
+   */
+  countersigned?: DpaCountersigned | null;
+  /** Caudals operations may attach or remove a countersigned copy. */
+  canAttach?: boolean;
 };
 
 type AcceptanceRow = { id: string; user_id: string; version: string; locale: Locale | null; accepted_at: Date | string };
@@ -72,9 +81,11 @@ async function readStatus(db: PoolClient, identity: EvalIdentity, orgId: string)
       signer = { name: identity.user.name, email: identity.user.email };
     }
   }
+  const controls = dataControlsEnabled();
   return {
     document: "dpa",
     currentVersion,
+    ...(controls ? { countersigned: await readCountersigned(db, orgId), canAttach: canAttachCountersigned(identity) } : {}),
     canAccept: membership.rows[0]?.role === "owner",
     you: { name: identity.user.name, email: identity.user.email },
     acceptance: row

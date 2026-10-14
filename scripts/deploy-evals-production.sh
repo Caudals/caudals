@@ -82,6 +82,12 @@ INTEGRATIONS_V2_ENABLED=$(credential INTEGRATIONS_V2_ENABLED)
 INTEGRATIONS_V2_ENABLED=${INTEGRATIONS_V2_ENABLED:-false}
 [[ $INTEGRATIONS_V2_ENABLED == true || $INTEGRATIONS_V2_ENABLED == false ]] || { echo 'INTEGRATIONS_V2_ENABLED must be true or false' >&2; exit 1; }
 export INTEGRATIONS_V2_ENABLED
+# Data controls (launch L-32): the scheduler's answer-retention pass and
+# workspace export builds, from the app credentials like the web app.
+DATA_CONTROLS_ENABLED=$(credential DATA_CONTROLS_ENABLED)
+DATA_CONTROLS_ENABLED=${DATA_CONTROLS_ENABLED:-false}
+[[ $DATA_CONTROLS_ENABLED == true || $DATA_CONTROLS_ENABLED == false ]] || { echo 'DATA_CONTROLS_ENABLED must be true or false' >&2; exit 1; }
+export DATA_CONTROLS_ENABLED
 # Weekly ops digest (launch L-21): off unless the app credentials say true.
 OPS_DIGEST_ENABLED=$(credential OPS_DIGEST_ENABLED)
 OPS_DIGEST_ENABLED=${OPS_DIGEST_ENABLED:-false}

@@ -13,6 +13,7 @@ import { InvitationManager } from "./invitation-manager";
 import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
 import { ApiReference } from "./api-reference";
 import { WorkspaceDeletion } from "./workspace-deletion";
+import { WorkspaceDataControls } from "./workspace-data-controls";
 import { EngineSettings } from "./engine-settings";
 import { ByokSettings, useByokSettings } from "./byok-settings";
 import { LocaleSwitch } from "./locale";
@@ -28,8 +29,9 @@ type Tab = SettingsTab;
 /**
  * `estimatesApi`: the estimate endpoint accepts API tokens (BILLING_ESTIMATES_ENABLED=true, read on the server).
  * `integrationsV2`: CI tokens, Slack/Teams/email destinations and release-gate thresholds (INTEGRATIONS_V2_ENABLED, launch L-19).
+ * `dataControls`: answer retention and workspace export (DATA_CONTROLS_ENABLED=true, read on the server; launch L-32).
  */
-export function WorkspaceSettings({ marketingOrigin, estimatesApi = false, integrationsV2 = false }: { marketingOrigin?: string; estimatesApi?: boolean; integrationsV2?: boolean } = {}) {
+export function WorkspaceSettings({ marketingOrigin, estimatesApi = false, integrationsV2 = false, dataControls = false }: { marketingOrigin?: string; estimatesApi?: boolean; integrationsV2?: boolean; dataControls?: boolean } = {}) {
   const { orgId, workspace, role, canManage, platformAdmin } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const params = useSearchParams();
@@ -40,7 +42,7 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false, integ
   const { summary: billing } = useBilling();
   // Your own model keys (launch L-27): the server answers only where BYOK is open or a key still exists.
   const byok = useByokSettings(orgId, owner || platformAdmin);
-  const tabs = settingsTabs({ canManage, platformAdmin, owner, billing: !!billing, models: !!byok.data });
+  const tabs = settingsTabs({ canManage, platformAdmin, owner, billing: !!billing, models: !!byok.data, data: dataControls });
   const requested = params.get("tab") as Tab | null;
   const tab: Tab = tabs.some((item) => item.value === requested) ? requested! : "general";
   function select(value: Tab) {
@@ -99,9 +101,11 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false, integ
           <DeveloperAccess orgId={orgId} canManage={canManage} integrationsV2={integrationsV2} />
           <ApiReference orgId={orgId} estimates={estimatesApi} integrations={integrationsV2} />
         </>
+      ) : tab === "data" ? (
+        <WorkspaceDataControls key={orgId} orgId={orgId} owner={owner} />
       ) : (
         <div className="p-settings">
-          <WorkspaceDeletion key={orgId} orgId={orgId} workspaceName={workspace.name} />
+          <WorkspaceDeletion key={orgId} orgId={orgId} workspaceName={workspace.name} exportFirst={dataControls && owner} />
         </div>
       )}
     </>
