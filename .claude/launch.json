@@ -128,6 +128,28 @@
         "DEMO_BROWSER_ENABLED": "true"
       },
       "port": 3100
+    },
+    {
+      "name": "Connect",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "services/connect",
+        "run",
+        "dev"
+      ],
+      "port": 4190
+    },
+    {
+      "name": "Connect build preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "services/connect",
+        "run",
+        "preview"
+      ],
+      "port": 4191
     }
   ]
 }

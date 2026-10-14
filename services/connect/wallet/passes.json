@@ -1,0 +1,26 @@
+{
+  "mario": {
+    "es": {
+      "serial": "047fa042-de1a-40ff-b1aa-ccca31695aa7",
+      "shareUrl": "https://pass.walletwallet.dev/p/047fa042-de1a-40ff-b1aa-ccca31695aa7",
+      "googleUrl": "https://api.walletwallet.dev/api/passes/047fa042-de1a-40ff-b1aa-ccca31695aa7/google"
+    },
+    "en": {
+      "serial": "5913bd33-e319-48de-b192-bf21571aefae",
+      "shareUrl": "https://pass.walletwallet.dev/p/5913bd33-e319-48de-b192-bf21571aefae",
+      "googleUrl": "https://api.walletwallet.dev/api/passes/5913bd33-e319-48de-b192-bf21571aefae/google"
+    }
+  },
+  "alonso": {
+    "es": {
+      "serial": "a286c3ef-4ebd-440a-b6d4-a8a773f8cdff",
+      "shareUrl": "https://pass.walletwallet.dev/p/a286c3ef-4ebd-440a-b6d4-a8a773f8cdff",
+      "googleUrl": "https://api.walletwallet.dev/api/passes/a286c3ef-4ebd-440a-b6d4-a8a773f8cdff/google"
+    },
+    "en": {
+      "serial": "75f606c7-791e-42b5-8745-6ada7de3f211",
+      "shareUrl": "https://pass.walletwallet.dev/p/75f606c7-791e-42b5-8745-6ada7de3f211",
+      "googleUrl": "https://api.walletwallet.dev/api/passes/75f606c7-791e-42b5-8745-6ada7de3f211/google"
+    }
+  }
+}

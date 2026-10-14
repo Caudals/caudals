@@ -1,23 +1,41 @@
-version: '3.8'
+# Swarm stack caudals-connect on atlantic: one static nginx task on
+# dokploy-network, reached by Traefik through the caudals-connect alias.
+# No published ports, secrets, volumes or outbound calls.
 services:
   web:
-    image: ${CAUDALS_CONNECT_IMAGE:?CAUDALS_CONNECT_IMAGE is required}
+    image: ${CONNECT_IMAGE:?set CONNECT_IMAGE}
+    read_only: true
+    volumes:
+      - type: tmpfs
+        target: /tmp
     networks:
       dokploy-network:
-        aliases: [caudals-connect]
+        aliases:
+          - caudals-connect
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     deploy:
       replicas: 1
       update_config:
         order: start-first
         failure_action: rollback
-        monitor: 30s
+        monitor: 20s
+      rollback_config:
+        order: start-first
+      restart_policy:
+        condition: any
+        delay: 5s
       resources:
         limits:
+          cpus: "0.25"
           memory: 64M
-      restart_policy:
-        condition: on-failure
-      labels:
-        - traefik.enable=false
+        reservations:
+          memory: 16M
+
 networks:
   dokploy-network:
     external: true
