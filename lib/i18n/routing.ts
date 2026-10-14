@@ -147,6 +147,38 @@ const TRANSLATED_PATHS: ReadonlyMap<string, Record<Locale, string>> = new Map([
   ),
 ]);
 
+/**
+ * Dynamic pages whose first segment is translated (launch L-31): a public
+ * results page `/results/<slug>` is `/es/resultados/<slug>`, and an anonymous
+ * index edition `/sector-index/<quarter>` is `/es/indice-sectorial/<quarter>`.
+ * Only the prefix changes; the rest of the path is kept as it is.
+ */
+const PREFIX_PATHS: readonly (readonly [string, Record<Locale, string>])[] = [
+  ["/results", { en: "/results", es: "/resultados" }],
+  ["/sector-index", { en: "/sector-index", es: "/indice-sectorial" }],
+];
+
+/** Swaps a translated prefix (`from` → `to`) when `pathname` is below it. */
+function swapPrefix(pathname: string, from: string, to: string): string | null {
+  return pathname.startsWith(`${from}/`) && pathname.length > from.length + 1 ? `${to}${pathname.slice(from.length)}` : null;
+}
+
+function prefixToPublic(pathname: string, locale: Locale): string | null {
+  for (const [internal, byLocale] of PREFIX_PATHS) {
+    const swapped = swapPrefix(pathname, internal, byLocale[locale]);
+    if (swapped) return swapped;
+  }
+  return null;
+}
+
+function prefixToInternal(pathname: string, locale: Locale): string | null {
+  for (const [internal, byLocale] of PREFIX_PATHS) {
+    const swapped = swapPrefix(pathname, byLocale[locale], internal);
+    if (swapped) return swapped;
+  }
+  return null;
+}
+
 /** Public path → internal path, per locale. */
 function buildInternalPaths(locale: Locale): ReadonlyMap<string, string> {
   return new Map(
@@ -165,7 +197,7 @@ const INTERNAL_PATHS: Record<Locale, ReadonlyMap<string, string>> = {
  */
 export function toPublicPathname(pathname: string, locale: Locale): string {
   const normalized = normalizePathname(pathname);
-  return TRANSLATED_PATHS.get(normalized)?.[locale] ?? normalized;
+  return TRANSLATED_PATHS.get(normalized)?.[locale] ?? prefixToPublic(normalized, locale) ?? normalized;
 }
 
 /**
@@ -175,7 +207,7 @@ export function toPublicPathname(pathname: string, locale: Locale): string {
  */
 export function toInternalPathname(pathname: string, locale: Locale): string {
   const normalized = normalizePathname(pathname);
-  return INTERNAL_PATHS[locale].get(normalized) ?? normalized;
+  return INTERNAL_PATHS[locale].get(normalized) ?? prefixToInternal(normalized, locale) ?? normalized;
 }
 
 /**
@@ -185,7 +217,7 @@ export function toInternalPathname(pathname: string, locale: Locale): string {
 export function findInternalPathnameInAnyLocale(pathname: string): string | null {
   const normalized = normalizePathname(pathname);
   for (const locale of locales) {
-    const internal = INTERNAL_PATHS[locale].get(normalized);
+    const internal = INTERNAL_PATHS[locale].get(normalized) ?? prefixToInternal(normalized, locale);
     if (internal) return internal;
   }
   return null;

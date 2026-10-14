@@ -318,3 +318,17 @@
 .eval-shortcuts .p-kbd + .p-kbd {
   margin-left: 2px;
 }
+
+/* Public results consent (launch L-31): the consent wording the owner signs,
+   set apart from the form as a quiet bordered block. */
+.eval-consent-text {
+  padding: 14px 16px;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.eval-consent-text p {
+  margin: 0;
+}

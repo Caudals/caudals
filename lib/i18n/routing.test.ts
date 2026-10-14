@@ -177,3 +177,22 @@ describe("translated funnel and legal paths", () => {
     expect(switchLocalePathname("/en/legal/security", "es")).toBe("/es/legal/seguridad");
   });
 });
+
+describe("translated prefixes (launch L-31)", () => {
+  it("translates the first segment of a results page and an index edition", () => {
+    expect(localizePathname("/results/acme-assistant", "es")).toBe("/es/resultados/acme-assistant");
+    expect(localizePathname("/results/acme-assistant", "en")).toBe("/en/results/acme-assistant");
+    expect(localizePathname("/sector-index/2026-q4", "es")).toBe("/es/indice-sectorial/2026-q4");
+    expect(toInternalPathname("/resultados/acme-assistant", "es")).toBe("/results/acme-assistant");
+    expect(toInternalPathname("/indice-sectorial/2026-q4", "es")).toBe("/sector-index/2026-q4");
+    expect(switchLocalePathname("/es/resultados/acme-assistant", "en")).toBe("/en/results/acme-assistant");
+    expect(findInternalPathnameInAnyLocale("/resultados/acme-assistant")).toBe("/results/acme-assistant");
+  });
+
+  it("leaves the bare prefixes and look-alike paths alone", () => {
+    expect(localizePathname("/results", "es")).toBe("/es/results");
+    expect(toInternalPathname("/resultados", "es")).toBe("/resultados");
+    expect(localizePathname("/resultsx/a", "es")).toBe("/es/resultsx/a");
+    expect(toInternalPathname("/resultados/x", "en")).toBe("/resultados/x");
+  });
+});

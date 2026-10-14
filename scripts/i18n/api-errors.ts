@@ -35,7 +35,7 @@ export type Inventory = {
 };
 
 /** Where the API's error text lives. Tests and fixtures are skipped. */
-export const API_ERROR_ROOTS = ["lib/evals", "lib/billing", "lib/legal", "lib/analytics", "lib/workspace", "lib/public", "app/api"];
+export const API_ERROR_ROOTS = ["lib/evals", "lib/billing", "lib/legal", "lib/analytics", "lib/workspace", "lib/public", "lib/publication", "app/api"];
 
 /**
  * Error classes whose message reaches the API through a mapper

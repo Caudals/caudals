@@ -43,6 +43,9 @@ import { FrontDoorProvider } from "../../components/public/front-door";
 import { ExampleEvaluation } from "../../components/evals/example-evaluation";
 import { SampleReportPage } from "../../components/sample-report/sample-report-page";
 import { MethodologyPage } from "../../components/methodology/methodology-page";
+import { PublicResultsPage } from "../../components/public/results-page";
+import { SectorIndexPage } from "../../components/public/sector-index-page";
+import type { PublicResultPage, PublicSectorIndex } from "../../lib/publication/contracts";
 import { exampleView } from "../../lib/evals/example";
 import { samplePdfHref } from "../../lib/evals/example/public";
 import { getLocale } from "../../lib/evals/messages/en";
@@ -169,6 +172,30 @@ const sharePage = location.pathname === "/share";
 const sampleReportPage = location.pathname === "/sample-report";
 /** The public methodology page (launch L-20), in the Paper frame. */
 const methodologyPage = location.pathname === "/methodology";
+/** Launch L-31: an opt-in public results page and an anonymous index edition, as the server renders them from their frozen records. */
+const resultsPage = location.pathname === "/results";
+const sectorIndexPage = location.pathname === "/sector-index";
+const publicResultFixture: PublicResultPage = {
+  slug: "gestoria-ejemplo-asistente",
+  publishedAt: "2026-10-14T09:00:00.000Z",
+  projection: {
+    schema: 1, public_name: params.has("long-name") ? "Gestoría y Asesoría Fiscal Ejemplo del Norte, Sociedad Limitada Profesional" : "Gestoría Ejemplo",
+    scope_summary: "Questions about invoices, VAT returns and payroll from the help centre, in Spanish.",
+    tested_from: "2026-10-01T08:00:00.000Z", tested_to: "2026-10-02T09:30:00.000Z", languages: ["es"],
+    questions: 48, scored: 46, correct: 33, partial: 5, incorrect: 8, not_scored: 2, pass_rate: 0.7174, interval_low: 0.5774, interval_high: 0.8268,
+    review_status: "reviewed", expert_reviewers: 2, expert_reviewed_on: "2026-10-05", scorer_version: "grading-v2",
+    report_published_at: "2026-10-06T10:00:00.000Z", consented_on: "2026-10-10",
+  },
+};
+const sectorIndexFixture: PublicSectorIndex = {
+  quarter: "2026-Q3",
+  rows: [
+    { sector: "fiscal_accounting_payroll", cohortSize: 14, methodologyVersion: "sector-index-v1", legalSignedOn: "2026-10-05", publishedAt: "2026-10-06T09:00:00.000Z",
+      aggregates: { systems: 14, answers_scored: 512, median_pass: 64, p25_pass: 51, p75_pass: 74, correct_share: 62, partial_share: 11, incorrect_share: 27 } },
+    { sector: "insurance", cohortSize: 11, methodologyVersion: "sector-index-v1", legalSignedOn: "2026-10-05", publishedAt: "2026-10-06T09:00:00.000Z",
+      aggregates: { systems: 11, answers_scored: 398, median_pass: 58, p25_pass: 47, p75_pass: 69, correct_share: 57, partial_share: 13, incorrect_share: 30 } },
+  ],
+};
 const sampleLocale = params.get("locale") === "es" ? "es" as const : "en" as const;
 const growthWeeks = Array.from({length:8},(_,i)=>({week:`2026-09-${String(i+1).padStart(2,"0")}`,events:{page_view:40+i,demo_started:12,account_created:4,report_viewed:2}}));
 /** Launch L-21 fixtures: growth KPIs and demo health on the Overview. */
@@ -203,6 +230,13 @@ const content =
     const related = article.related.map((slug) => articles.find((item) => item.slug === slug)!).map(({ slug, title, summary }) => ({ slug, title, summary }));
     return <HelpArticlePage article={article} related={related} />;
   })() :
+  resultsPage || sectorIndexPage ? (
+    <LocaleProvider locale={sampleLocale}>
+      <FrontDoorProvider value={{ demoPublic: true, signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
+        {resultsPage ? <PublicResultsPage locale={sampleLocale} page={publicResultFixture} /> : <SectorIndexPage locale={sampleLocale} index={sectorIndexFixture} />}
+      </FrontDoorProvider>
+    </LocaleProvider>
+  ) :
   methodologyPage ? (
     <LocaleProvider locale={sampleLocale}>
       <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
@@ -307,7 +341,7 @@ const content =
   ) : location.pathname === "/ops/review" ? (
     <ReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (
-    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} expertReview={params.has("expert-review")} reportQuestions={params.has("questions")} />
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" readoutUrl="https://cal.com/caudals/call" marketingOrigin="https://caudals.com" readoutMode={readoutMode} expertReview={params.has("expert-review")} reportQuestions={params.has("questions")} publicResults={params.has("public-results")} />
   ) : location.pathname === "/workspace/reports/fixture-v2" ? (
     <ReportView initialTab={params.get("tab")} initialResult={params.get("result")} report={params.has("disclosure") ? { ...gradingV2Fixture(), ai_disclosure: disclosureFixture() } : gradingV2Fixture()} />
   ) : location.pathname === "/workspace/reports/fixture" ? (
@@ -323,7 +357,7 @@ const content =
     <WorkspaceEvaluations />
   );
 createRoot(document.getElementById("root")!).render(
-  authPage || demoPage || landingPage || sampleReportPage || sharePage || methodologyPage ? (
+  authPage || demoPage || landingPage || sampleReportPage || sharePage || methodologyPage || resultsPage || sectorIndexPage ? (
     content
   ) : anonymous ? (
     <div className="p-root">

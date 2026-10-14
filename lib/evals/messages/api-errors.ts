@@ -379,6 +379,12 @@ export const API_MESSAGES_ES: Record<string, string> = {
   "Only a workspace owner can accept the DPA.": "Solo un propietario del espacio de trabajo puede aceptar el contrato de encargo del tratamiento.",
   "The DPA has been updated. Review the current version and accept it again.": "El contrato de encargo del tratamiento se ha actualizado. Revisa la versión actual y vuelve a aceptarlo.",
   "The acceptance could not be recorded.": "No se ha podido registrar la aceptación.",
+
+  // Public results consent (launch L-31).
+  "Only a workspace owner can give or withdraw this consent.": "Solo un propietario del espacio de trabajo puede dar o retirar este consentimiento.",
+  "This report cannot be published.": "Este informe no se puede publicar.",
+  "Publish this report before giving consent.": "Publica este informe antes de dar el consentimiento.",
+  "This revision already has a consent. Withdraw it before giving a new one.": "Esta revisión ya tiene un consentimiento. Retíralo antes de dar uno nuevo.",
   "The copy could not be recorded.": "No se ha podido registrar la copia.",
 
   // Uploads and imports.
@@ -585,6 +591,9 @@ export const API_CODES: Record<string, { en: string; es: string }> = {
   OWNER_REQUIRED: { en: "Only a workspace owner can do this.", es: "Solo un propietario del espacio de trabajo puede hacer esto." },
   REASON_REQUIRED: { en: "Give a reason of 3 to 2,000 characters.", es: "Indica un motivo de 3 a 2.000 caracteres." },
   OPERATOR_REQUIRED: { en: "Only Caudals operations can do this.", es: "Solo el equipo de operaciones de Caudals puede hacer esto." },
+  PUBLICATION_NOT_ALLOWED: { en: "This report cannot be published.", es: "Este informe no se puede publicar." },
+  REPORT_NOT_PUBLISHED: { en: "Publish this report first.", es: "Publica antes este informe." },
+  CONSENT_EXISTS: { en: "This revision already has a consent.", es: "Esta revisión ya tiene un consentimiento." },
   RETENTION_EXPIRED: { en: "These answers were removed under the workspace's retention setting.", es: "Estas respuestas se eliminaron por el ajuste de conservación del espacio de trabajo." },
 
   // Plans, credits and limits.

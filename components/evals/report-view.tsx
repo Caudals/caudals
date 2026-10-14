@@ -13,6 +13,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Copy, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, Presentation, RotateCcw, Share2, UserCheck, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { ExpertReviewRequest } from "./expert-review-request";
+import { PublicResultsConsent } from "./public-results-consent";
 import { buildExecutiveSummary, type ExecutiveSummary } from "@/lib/evals/reports/summary";
 import { answerCount, failingCsv, fixesCsv, fixesMarkdown, isFailing, type Fix } from "@/lib/evals/reports/fixes";
 import { summaryCopy } from "@/lib/evals/reports/summary-copy";
@@ -1119,6 +1120,7 @@ export function AuthenticatedReport({
   readoutMode = "off",
   expertReview = false,
   reportQuestions = false,
+  publicResults = false,
 }: {
   reportId: string;
   /** The booking page (`CALCOM_LINK`, read on the server); its link carries a hashed workspace id. */
@@ -1131,8 +1133,10 @@ export function AuthenticatedReport({
   expertReview?: boolean;
   /** "Ask this report" may be open for some workspace (launch L-36); its API decides for this one. */
   reportQuestions?: boolean;
+  /** PUBLIC_RESULTS_ENABLED, read on the server (launch L-31): the owner's consent for a public page. */
+  publicResults?: boolean;
 }) {
-  const { orgId, role, operator, withOrg } = useWorkspace();
+  const { orgId, role, operator, withOrg, workspace: currentWorkspace } = useWorkspace();
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -1273,6 +1277,9 @@ export function AuthenticatedReport({
           {reportQuestions && (
             <ReportQuestions orgId={orgId} reportId={reportId} revisionId={revision.id} snapshot={revision.snapshot}
               readoutHref={readoutUrl ? readoutLink(readoutUrl, "report", workspace) : null} onOpenResult={openResult} onOpenFinding={openFinding} />
+          )}
+          {publicResults && canManage && isCurrent && data.report.publication_status === "published" && (
+            <PublicResultsConsent orgId={orgId} reportId={reportId} revisionId={revision.id} workspaceName={currentWorkspace?.name ?? ""} marketingOrigin={marketingOrigin} />
           )}
           <ReportActions
             commands={commands}

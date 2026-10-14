@@ -489,6 +489,17 @@ test.describe("methodology (launch L-20)", () => {
   });
 });
 
+// Launch L-31: public results pages and index editions exist only for a
+// published, consented record (and PUBLIC_RESULTS_ENABLED); anything else is a miss.
+test.describe("public results stay dark without a record", () => {
+  for (const path of ["/en/results/no-such-page", "/es/resultados/no-such-page", "/en/sector-index/2026-q3", "/es/indice-sectorial/2026-q3"]) {
+    test(`${path} returns 404`, async ({ request }) => {
+      const response = await request.get(path, { maxRedirects: 0 });
+      expect(response.status()).toBe(404);
+    });
+  }
+});
+
 test.describe("removed routes", () => {
   for (const path of removedRoutes) {
     test(`${path} returns 404`, async ({ page }) => {

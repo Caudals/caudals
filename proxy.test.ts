@@ -153,6 +153,23 @@ describe("proxy locale routing", () => {
     expect(location.search).toBe("?utm_source=email");
   });
 
+  it("serves public results and index paths under their Spanish prefixes (launch L-31)", async () => {
+    const spanish = await proxy(marketingRequest("/es/resultados/gestoria-ejemplo"));
+    expect(spanish.status).toBe(200);
+    expect(new URL(spanish.headers.get("x-middleware-rewrite") ?? "").pathname).toBe("/es/results/gestoria-ejemplo");
+    const index = await proxy(marketingRequest("/es/indice-sectorial/2026-q3"));
+    expect(new URL(index.headers.get("x-middleware-rewrite") ?? "").pathname).toBe("/es/sector-index/2026-q3");
+    // The English prefix under /es, or the Spanish one under /en, redirects to the one public URL.
+    const wrong = await proxy(marketingRequest("/es/results/gestoria-ejemplo"));
+    expect(wrong.status).toBe(308);
+    expect(new URL(wrong.headers.get("location") ?? "").pathname).toBe("/es/resultados/gestoria-ejemplo");
+    const english = await proxy(marketingRequest("/en/resultados/gestoria-ejemplo"));
+    expect(new URL(english.headers.get("location") ?? "").pathname).toBe("/en/results/gestoria-ejemplo");
+    const served = await proxy(marketingRequest("/en/results/gestoria-ejemplo"));
+    expect(served.status).toBe(200);
+    expect(served.headers.get("location")).toBeNull();
+  });
+
   it("answers an unsupported language prefix with a 404", async () => {
     // Prefixing it would produce "/en/fr/blog"; a miss is the honest answer.
     const response = await proxy(marketingRequest("/fr/blog"));
