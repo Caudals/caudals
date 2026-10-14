@@ -14,6 +14,7 @@ import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
 import { ApiReference } from "./api-reference";
 import { WorkspaceDeletion } from "./workspace-deletion";
 import { EngineSettings } from "./engine-settings";
+import { ByokSettings, useByokSettings } from "./byok-settings";
 import { LocaleSwitch } from "./locale";
 import { RenameDialog } from "./item-actions";
 import { NoWorkspace } from "./workspace-evaluations";
@@ -34,7 +35,9 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
   const owner = role === "owner";
   // Billing and usage (launch L-15): owners and editors where the billing screens show.
   const { summary: billing } = useBilling();
-  const tabs = settingsTabs({ canManage, platformAdmin, owner, billing: !!billing });
+  // Your own model keys (launch L-27): the server answers only where BYOK is open or a key still exists.
+  const byok = useByokSettings(orgId, owner || platformAdmin);
+  const tabs = settingsTabs({ canManage, platformAdmin, owner, billing: !!billing, models: !!byok.data });
   const requested = params.get("tab") as Tab | null;
   const tab: Tab = tabs.some((item) => item.value === requested) ? requested! : "general";
   function select(value: Tab) {
@@ -69,7 +72,10 @@ export function WorkspaceSettings({ marketingOrigin, estimatesApi = false }: { m
         </Status>
       )}
       {tab === "models" ? (
-        <EngineSettings key={orgId} orgId={orgId} workspaceName={workspace.name} />
+        <div className="p-stack">
+          {byok.data && <ByokSettings key={`byok-${orgId}`} orgId={orgId} data={byok.data} onChange={byok.setData} />}
+          {platformAdmin && <EngineSettings key={orgId} orgId={orgId} workspaceName={workspace.name} />}
+        </div>
       ) : tab === "billing" ? (
         <WorkspaceBilling key={orgId} />
       ) : !summary ? (

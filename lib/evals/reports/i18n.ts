@@ -33,6 +33,9 @@ const EN = {
   denominatorsLead: "Every rate in this report states which of these counts it divides by.", planned: "Planned", eligibleCap: "Eligible",
   executed: "Executed", assessed: "Assessed", notScored: "Not scored", pending: "Pending", scope: "Scope", languages: "languages",
   sampling: "Sampling", reviewCoverage: "Review coverage", scoring: "Scoring", graders: "graders", missingBounds: "Missing-result bounds",
+  // Data routing of the run's grading and report models (launch L-27).
+  dataRouting: "Data routing", routing_local_only: "Caudals' private model only", routing_approved_providers: "A commercial model provider Caudals uses",
+  routing_customer_provider: "Your own provider account (your key)",
   missingBoundsHelp: "of eligible tests (not a confidence interval)", uncertainty: "Uncertainty", wilson: "95% Wilson interval on the strict pass rate",
   sourceRevision: "source revision", sourceRevisions: "source revisions", testSet: "Test set", run: "Run", reportRevision: "Report revision",
   contentHash: "Content hash", limitations: "Limitations", noLimitations: "No additional limitations were recorded.",
@@ -79,6 +82,8 @@ const ES: Strings = {
   denominatorsLead: "Cada tasa de este informe indica entre cuál de estos recuentos divide.", planned: "Planificadas", eligibleCap: "Elegibles",
   executed: "Ejecutadas", assessed: "Evaluadas", notScored: "Sin puntuar", pending: "Pendientes", scope: "Alcance", languages: "idiomas",
   sampling: "Muestreo", reviewCoverage: "Cobertura de revisión", scoring: "Puntuación", graders: "calificadores", missingBounds: "Límites por resultados ausentes",
+  dataRouting: "Enrutamiento de datos", routing_local_only: "Solo el modelo privado de Caudals", routing_approved_providers: "Un proveedor de modelos comercial que usa Caudals",
+  routing_customer_provider: "Tu propia cuenta del proveedor (tu clave)",
   missingBoundsHelp: "de las pruebas elegibles (no es un intervalo de confianza)", uncertainty: "Incertidumbre", wilson: "Intervalo de Wilson al 95 % de la tasa de acierto estricta",
   sourceRevision: "revisión de fuente", sourceRevisions: "revisiones de fuente", testSet: "Conjunto de pruebas", run: "Ejecución", reportRevision: "Revisión del informe",
   contentHash: "Hash del contenido", limitations: "Limitaciones", noLimitations: "No se han registrado limitaciones adicionales.",

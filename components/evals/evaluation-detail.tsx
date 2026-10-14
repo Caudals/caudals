@@ -48,6 +48,8 @@ import { TopUpDialog } from "./billing-top-up";
 import { CompareRunsDialog, RunComparisonPanel } from "./run-comparison";
 import { billingHref } from "./workspace-billing";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { isCustomerKeyReason } from "@/lib/evals/byok/shared";
+import { CustomerKeyNotice } from "./customer-key-notice";
 import type { HelpContextKey } from "@/lib/evals/help/articles";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
 
@@ -55,7 +57,7 @@ type RunView = {
   run: { id: string; status: string; phase: string; execution_mode: string; suite_version_id: string; created_at: string; reason_code: string | null };
   units: Array<{ id: string; status: string }>;
   targetUsage: { calls: number; unknown: number };
-  grading?: { queued: number; done: number; total: number };
+  grading?: { queued: number; done: number; total: number; blocked?: string | null };
 };
 type ReportData = { report: { current_revision_id: string | null }; revisions: Array<{ id: string; snapshot: ReportSnapshot }> };
 
@@ -583,6 +585,7 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
         ) : (
           <Panel title={t("reviewingResults")} live>
             <p>{t("reviewingResultsHelp")}</p>
+            {isCustomerKeyReason(run.grading?.blocked) && <CustomerKeyNotice reason={run.grading.blocked} />}
             <RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running={false} />
           </Panel>
         )
@@ -682,7 +685,7 @@ function RunPipeline({
   paused = false,
 }: {
   counts: { total: number; done: number };
-  grading?: { queued: number; done: number; total: number };
+  grading?: { queued: number; done: number; total: number; blocked?: string | null };
   phase: string;
   running: boolean;
   /** Stopped mid-way: the current stage shows no activity. */
@@ -731,7 +734,7 @@ function ResultsSummary({
   runStatus: string;
   targetCalls: { calls: number; unknown: number } | null;
   answersHref: string | null;
-  grading?: { queued: number; done: number; total: number };
+  grading?: { queued: number; done: number; total: number; blocked?: string | null };
   /** "Have an expert review this" (launch L-26), for owners once the report is published. */
   expertReview?: ReactNode;
   /** "Run again" on the frozen test set (launch L-18): the estimate first where billing shows. */
@@ -785,11 +788,11 @@ function ResultsSummary({
       </div>
       {expertReview && <div className="p-row" data-results-expert-review>{expertReview}</div>}
       <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} labels={{ pass: t("labelCorrect"), partial: t("labelPartiallyCorrect"), fail: t("labelIncorrect"), unscorable: t("filterNotScored") }} />
-      {grading && grading.queued > 0 && (
+      {grading && grading.queued > 0 && (isCustomerKeyReason(grading.blocked) ? <CustomerKeyNotice reason={grading.blocked} /> : (
         <Status tone="info">
           {t("stageGrading")} · {grading.done}/{grading.total}
         </Status>
-      )}
+      ))}
       {m.n_unscorable > 0 && <p className="p-field-hint">{t("notScoredHelp")}</p>}
       {m.headline_status === "incomplete" && <Status tone="warn">{t("incompleteReport")}</Status>}
       {findings.length > 0 && (

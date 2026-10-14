@@ -243,6 +243,7 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
     ${show("system") && show("scope") ? `<dt>${S.scope}</dt><dd>${label(report.system.execution_mode)} · ${label(report.scope.evidence_policy)} · ${S.languages} ${escapeHtml(report.scope.languages.join(", ") || "—")}</dd>` : ""}
     <dt>${S.sampling}</dt><dd>${escapeHtml(tx(report.methodology.sampling || "—"))}</dd>
     <dt>${S.reviewCoverage}</dt><dd>${escapeHtml(tx(report.methodology.review_coverage || "—"))}</dd>
+    ${report.methodology.data_routing ? `<dt>${S.dataRouting}</dt><dd>${S[`routing_${report.methodology.data_routing}`]}</dd>` : ""}
     <dt>${S.scoring}</dt><dd>${escapeHtml(report.methodology.scorer_version)} · CEF ${escapeHtml(report.methodology.cef_version)} · ${S.graders} ${escapeHtml(report.methodology.grader_revisions.join(", ") || "—")}</dd>
     ${show("metrics") && m.pass_bounds ? `<dt>${S.missingBounds}</dt><dd>${pct(m.pass_bounds.low)}–${pct(m.pass_bounds.high)} ${S.missingBoundsHelp}</dd>` : ""}
     ${show("metrics") && m.strict_pass_rate != null ? `<dt>${S.exactRate}</dt><dd>${pct(m.strict_pass_rate, 1)} (${m.n_pass} ${S.of} ${m.n_scorable})</dd>` : ""}

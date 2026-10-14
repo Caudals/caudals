@@ -21,6 +21,8 @@ import { resolveModelRoutes } from "./model-routes";
  * Choosing a model registers (or reuses) an immutable provider revision and a
  * price revision, then points the platform default or one workspace at it.
  * Nothing here returns a key; the DGX address never reaches the browser.
+ * These are Caudals' own (platform) providers: a workspace's own keys (BYOK,
+ * launch L-27) live in ./byok.ts and are invisible to the admin login.
  */
 
 export const ENGINE_ROLES = ["context_analyzer", "generator", "judge", "report_writer"] as const;
@@ -66,6 +68,8 @@ type RouteRow = {
   /** Credit rate in the price book in effect, µcr per 1M tokens; null when unpriced. */
   credit_input_ucr: string | null;
   credit_output_ucr: string | null;
+  /** The workspace's own provider key (BYOK, launch L-27): no token credits, no €0 guard. */
+  customer_key: boolean;
 };
 
 function dgxEndpoint(): string | null {
@@ -97,7 +101,8 @@ const ROUTE_SELECT = (table: string, where: string) => `SELECT r.role,r.provider
     pr.input_price::text AS input_price,pr.output_price::text AS output_price,pr.currency,r.updated_at,
     (a.enabled AND (p.retired_at IS NULL OR p.retired_at>now())) AS usable,
     r.web_research,(${WEB_CAPABLE}) AS web_capable,p.free_model,
-    billing.model_price_issue(p.adapter,p.endpoint,p.model_id,p.free_model,pr.input_price,pr.output_price) AS price_issue,
+    CASE WHEN p.org_id IS NULL THEN billing.model_price_issue(p.adapter,p.endpoint,p.model_id,p.free_model,pr.input_price,pr.output_price) END AS price_issue,
+    (p.org_id IS NOT NULL) AS customer_key,
     cr.input_ucr_per_m::text AS credit_input_ucr,cr.output_ucr_per_m::text AS credit_output_ucr
   FROM ${table} r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
   JOIN evals.provider_account a ON a.id=p.account_id
@@ -124,7 +129,7 @@ export async function getEngineSettings(identity: EvalIdentity, orgId: string) {
     const connections = (await c.query(`SELECT a.id,a.name,c.adapter,a.enabled,c.key_hint,(c.envelope IS NOT NULL) AS has_key,
         CASE WHEN c.adapter='dgx' THEN 'DGX Spark (private network)' ELSE split_part(split_part(c.endpoint,'://',2),'/',1) END AS host
       FROM evals.provider_connection c JOIN evals.provider_account a ON a.id=c.account_id
-      WHERE a.enabled ORDER BY (c.adapter='dgx') DESC,a.created_at`)).rows as Connection[];
+      WHERE a.enabled AND c.org_id IS NULL ORDER BY (c.adapter='dgx') DESC,a.created_at`)).rows as Connection[];
     const platform = (await c.query(ROUTE_SELECT("evals.platform_model_route", ""))).rows as RouteRow[];
     const workspace = (await c.query(ROUTE_SELECT("evals.generation_provider_route", "WHERE r.org_id=$1"), [orgId])).rows as RouteRow[];
     const dgx = dgxEndpoint();
@@ -207,7 +212,7 @@ export async function updateProviderConnection(identity: EvalIdentity, orgId: st
   const input = z.strictObject({ name: z.string().trim().min(1).max(120).optional(), apiKey: z.string().trim().min(8).max(8192).optional() }).parse(raw);
   const { keys, version } = keyring();
   return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
-    const row = (await c.query("SELECT adapter FROM evals.provider_connection WHERE account_id=$1", [accountId])).rows[0];
+    const row = (await c.query("SELECT adapter FROM evals.provider_connection WHERE account_id=$1 AND org_id IS NULL", [accountId])).rows[0];
     if (!row) throw new EvalError("SCOPE_DENIED", 404);
     if (input.name) await c.query("UPDATE evals.provider_account SET name=$2 WHERE id=$1", [accountId, input.name]);
     if (input.apiKey) {
@@ -233,7 +238,7 @@ export async function updateProviderConnection(identity: EvalIdentity, orgId: st
 export async function removeProviderConnection(identity: EvalIdentity, orgId: string, accountId: string) {
   requireRecentAuthentication(identity);
   return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
-    const row = (await c.query("SELECT account_id FROM evals.provider_connection WHERE account_id=$1", [accountId])).rows[0];
+    const row = (await c.query("SELECT account_id FROM evals.provider_connection WHERE account_id=$1 AND org_id IS NULL", [accountId])).rows[0];
     if (!row) throw new EvalError("SCOPE_DENIED", 404);
     await c.query("DELETE FROM evals.platform_model_route WHERE provider_revision_id IN (SELECT id FROM evals.provider_revision WHERE account_id=$1)", [accountId]);
     await c.query("UPDATE evals.provider_revision SET retired_at=now() WHERE account_id=$1 AND retired_at IS NULL", [accountId]);
@@ -458,7 +463,7 @@ async function connectionTarget(identity: EvalIdentity, orgId: string, connectio
   }
   if (!z.uuid().safeParse(connectionId).success) throw new EvalError("SCOPE_DENIED", 404);
   const row = await asAdmin({ orgId, actorId: identity.user.id }, async (c) =>
-    (await c.query("SELECT c.account_id,c.adapter,c.endpoint,c.envelope FROM evals.provider_connection c JOIN evals.provider_account a ON a.id=c.account_id WHERE c.account_id=$1 AND a.enabled", [connectionId])).rows[0]);
+    (await c.query("SELECT c.account_id,c.adapter,c.endpoint,c.envelope FROM evals.provider_connection c JOIN evals.provider_account a ON a.id=c.account_id WHERE c.account_id=$1 AND a.enabled AND c.org_id IS NULL", [connectionId])).rows[0]);
   if (!row) throw new EvalError("SCOPE_DENIED", 404);
   if (row.adapter === "dgx") {
     if (!dgx) throw new EvalError("PROVIDER_UNAVAILABLE", 503, "The DGX Spark is not connected in this environment.");

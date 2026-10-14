@@ -18,6 +18,7 @@ import {
 import { withTenant } from "./db";
 import { ensureWorkspaceBudget, internalTimeoutMs, resolveModelRoute, routingFor, type ModelRoute } from "./model-routes";
 import type { EvidenceScope } from "./evidence";
+import { isResumableKeyReason } from "../byok/shared";
 
 // Rubric judge orchestration (spec §11.3, WP-06). A judge call is an ordinary
 // budgeted invocation on the `grade` queue; this module creates the pass, then
@@ -149,7 +150,10 @@ export function advanceJudgments(scope: EvidenceScope, runId?: string, limit = 2
       if (!job.output) {
         // An unknown provider outcome is never replayed, so its grade cannot arrive:
         // the result stays unscorable for review and its liability stays unresolved.
-        if (["failed", "paused", "canceled", "unknown"].includes(job.step_status)) { await finish("failed", job.step_reason ?? `judge_step_${job.step_status}`); outcome.failed++; }
+        // Paused on the workspace's own key (BYOK): grading waits for a working key, then resumes (L-27).
+        // A removed key cannot come back: those results stay ungraded (never graded by another model).
+        if (job.step_status === "paused" && isResumableKeyReason(job.step_reason)) outcome.pending++;
+        else if (["failed", "paused", "canceled", "unknown"].includes(job.step_status)) { await finish("failed", job.step_reason ?? `judge_step_${job.step_status}`); outcome.failed++; }
         else outcome.pending++;
         continue;
       }

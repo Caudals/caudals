@@ -10,8 +10,11 @@ import { t } from "@/lib/evals/messages/en";
 
 export type SettingsTab = "general" | "billing" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
 
-/** `billing`: Billing and usage shows for this person and workspace (launch L-15; owners and editors where billing is on). */
-export function settingsTabs({ canManage, platformAdmin, owner, billing = false }: { canManage: boolean; platformAdmin: boolean; owner: boolean; billing?: boolean }): Array<{ value: SettingsTab; label: string }> {
+/**
+ * `billing`: Billing and usage shows for this person and workspace (launch L-15; owners and editors where billing is on).
+ * `models`: AI models shows to an owner whose workspace may use its own provider keys (launch L-27); platform admins always see it.
+ */
+export function settingsTabs({ canManage, platformAdmin, owner, billing = false, models = false }: { canManage: boolean; platformAdmin: boolean; owner: boolean; billing?: boolean; models?: boolean }): Array<{ value: SettingsTab; label: string }> {
   return [
     { value: "general", label: t("general") },
     ...(billing ? [{ value: "billing" as const, label: t("billingAndUsage") }] : []),
@@ -19,7 +22,7 @@ export function settingsTabs({ canManage, platformAdmin, owner, billing = false 
     { value: "notifications", label: t("notifications") },
     { value: "monitoring", label: t("monitoring") },
     { value: "developers", label: t("developers") },
-    ...(platformAdmin ? [{ value: "models" as const, label: t("aiModels") }] : []),
+    ...(platformAdmin || models ? [{ value: "models" as const, label: t("aiModels") }] : []),
     ...(owner || platformAdmin ? [{ value: "danger" as const, label: t("dangerZone") }] : []),
   ];
 }

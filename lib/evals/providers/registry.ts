@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { boundedInputTokens, type Invocation, type ProviderRevision } from './contracts';
+import { boundedInputTokens, CustomerKeyFailure, type Invocation, type ProviderRevision } from './contracts';
 import { units, type Price } from '../budget/money';
 export interface PriceRevision extends Price {id:string;currency:string;provider_revision_id:string}
 /** Upper bound, in bytes, of the web results message for an invocation that carries search queries. */
@@ -8,10 +8,12 @@ export function webResultsBound(input:Pick<Invocation,'webSearch'>):number {
  const queries=input.webSearch?.queries?.length??0;
  return queries?Math.min(WEB_RESULTS_MAX_BYTES,queries*input.webSearch!.maxResults*1600+600):0;
 }
-export async function loadProvider(client:PoolClient, input:Invocation):Promise<{provider:ProviderRevision;price:PriceRevision;inputBound:number}> {
+export async function loadProvider(client:PoolClient, input:Invocation, orgId:string):Promise<{provider:ProviderRevision;price:PriceRevision;inputBound:number}> {
  const provider=(await client.query('SELECT * FROM evals.provider_revision WHERE id=$1',[input.providerRevisionId])).rows[0] as ProviderRevision|undefined;
+ // A workspace's own key (BYOK) serves only that workspace's work, whatever the step names.
+ if(provider?.org_id && provider.org_id!==orgId) throw new Error('provider_scope_denied');
  const price=(await client.query('SELECT * FROM evals.price_revision WHERE id=$1 AND provider_revision_id=$2 AND effective_at<=now()',[input.priceRevisionId,input.providerRevisionId])).rows[0] as PriceRevision|undefined;
- if(!provider || !price || provider.retired_at && provider.retired_at.getTime()<=Date.now()) throw new Error('provider_revision_unavailable');
+ if(!provider || !price || provider.retired_at && provider.retired_at.getTime()<=Date.now()) throw provider?.org_id?new CustomerKeyFailure('customer_key_revoked'):new Error('provider_revision_unavailable');
  if(!provider.roles.includes(input.role) || !provider.data_classes.includes(input.dataClass) || !provider.regions.includes(input.region)) throw new Error('provider_policy_denied');
  if(provider.adapter!=='dgx' && (input.routing==='local_only' || !input.approvedProviderIds.includes(provider.id))) throw new Error('provider_policy_denied');
  // A vetted bounded-token contract is mandatory. No assumptions about unprobed inventory.
@@ -34,7 +36,7 @@ export async function acquireCapacity(client:PoolClient, provider:ProviderRevisi
  // Global row lock serializes capacity and rolling rate accounting across all tenants.
  await client.query('SELECT id FROM evals.provider_account WHERE id=$1 FOR UPDATE',[provider.account_id]);
  const health=(await client.query('SELECT * FROM evals.provider_health WHERE provider_revision_id=$1',[provider.id])).rows[0];
- if(health?.state==='invalid_credentials')throw new Error('provider_credentials_invalid');
+ if(health?.state==='invalid_credentials')throw provider.org_id?new CustomerKeyFailure('customer_key_invalid'):new Error('provider_credentials_invalid');
  if(health?.circuit_until && health.circuit_until.getTime()>Date.now()) throw new Error('provider_circuit_open');
  const counts=(await client.query(`SELECT count(*) FILTER(WHERE released_at IS NULL)::int AS active,
  count(*) FILTER(WHERE acquired_at>now()-interval '1 minute')::int AS requests,

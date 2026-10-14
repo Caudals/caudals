@@ -85,6 +85,7 @@ export async function listProviders(scope: AdminScope) {
         (SELECT json_build_object('input',cr.input_ucr_per_m::text,'output',cr.output_ucr_per_m::text,'label',cr.label)
          FROM billing.rate_for((billing.price_book_at(now())).id,billing.model_provider(p.adapter,p.endpoint),p.model_id,0) cr WHERE cr.id IS NOT NULL) AS credit_rate
       FROM evals.provider_revision p LEFT JOIN evals.provider_health h ON h.provider_revision_id=p.id
+      WHERE p.org_id IS NULL
       ORDER BY p.created_at DESC LIMIT 100`)).rows;
     const secrets = (await c.query(`SELECT r.id,r.scope_id AS provider_revision_id,r.created_at,r.revoked_at,
         (SELECT count(*)::int FROM evals.secret_version v WHERE v.org_id=r.org_id AND v.record_id=r.id) AS versions
@@ -112,7 +113,7 @@ export async function inferenceStatus(scope: AdminScope) {
         (SELECT count(*)::int FROM evals.provider_slot s WHERE s.provider_revision_id=p.id AND s.acquired_at>now()-interval '24 hours') AS calls_24h,
         (SELECT round(avg(extract(epoch FROM s.released_at-s.acquired_at)))::int FROM evals.provider_slot s WHERE s.provider_revision_id=p.id AND s.released_at IS NOT NULL AND s.acquired_at>now()-interval '24 hours') AS avg_seconds_24h
       FROM evals.provider_revision p LEFT JOIN evals.provider_health h ON h.provider_revision_id=p.id
-      WHERE p.retired_at IS NULL OR p.retired_at>now() ORDER BY p.adapter,p.model_id,p.created_at DESC`)).rows;
+      WHERE (p.retired_at IS NULL OR p.retired_at>now()) AND p.org_id IS NULL ORDER BY p.adapter,p.model_id,p.created_at DESC`)).rows;
     const probes = (await c.query(`SELECT s.id,s.status,s.reason_code,s.created_at,s.input->>'providerRevisionId' AS provider_revision_id,s.input->>'probeKind' AS kind,
         r.output->'capabilityEvidence' AS evidence
       FROM evals.workflow_step s LEFT JOIN evals.execution_result r ON (r.org_id,r.step_id)=(s.org_id,s.id)

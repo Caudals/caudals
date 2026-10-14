@@ -1041,6 +1041,7 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
               : []),
             { term: t("sampling"), value: gen(m.sampling || "—") },
             { term: t("reviewCoverage"), value: gen(m.review_coverage || "—") },
+            ...(m.data_routing ? [{ term: t("reportDataRouting"), value: t(`reportRouting_${m.data_routing}`) }] : []),
             { term: t("scorer"), value: `${m.scorer_version} · CEF ${m.cef_version}` },
             { term: t("graders"), value: m.grader_revisions.length ? m.grader_revisions.join(", ") : "—" },
             { term: t("sourcesUsed"), value: m.source_revisions.length },

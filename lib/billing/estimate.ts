@@ -70,8 +70,10 @@ export interface RoleModel {
   modelId: string;
   /** The price-book rate tiers that apply to the model (lowest tier first); empty when unpriced. */
   tiers: Array<Pick<ModelRate, "minInputTokens" | "inputUcrPerM" | "outputUcrPerM" | "cachedUcrPerM" | "label">>;
-  /** Explicit free models carry no token charge (§6.4). */
+  /** Explicit free models carry no token charge (§6.4), nor does the workspace's own key (BYOK, §6.11). */
   free: boolean;
+  /** The workspace's own provider key (launch L-27): its provider bills the tokens. */
+  customerKey?: boolean;
   webResearch: boolean;
   stats: CallStats;
 }
@@ -286,7 +288,7 @@ export class EstimateError extends Error {
   constructor(readonly code: "SCOPE_DENIED" | "INPUT_INVALID" | "PRICE_BOOK_MISSING", readonly detail: string) { super(detail); this.name = "EstimateError"; }
 }
 
-type RouteRow = { role: EngineRole; provider_revision_id: string; model_id: string; provider: string; model_key: string; free_model: boolean; web_research: boolean };
+type RouteRow = { role: EngineRole; provider_revision_id: string; model_id: string; provider: string; model_key: string; free_model: boolean; web_research: boolean; customer_key: boolean };
 
 async function modelRoutes(db: PoolClient, orgId: string, evaluationId: string, overrides: EstimateRequest["models"]): Promise<Map<EngineRole, RouteRow>> {
   // Same precedence as lib/evals/repositories/model-routes.ts: evaluation, workspace, platform.
@@ -295,7 +297,8 @@ async function modelRoutes(db: PoolClient, orgId: string, evaluationId: string, 
       UNION ALL SELECT r.role, r.provider_revision_id, r.web_research, 2 FROM evals.generation_provider_route r WHERE r.org_id=$1
       UNION ALL SELECT r.role, r.provider_revision_id, r.web_research, 3 FROM evals.platform_model_route r
     )
-    SELECT DISTINCT ON (c.role) c.role, c.provider_revision_id, p.model_id, k.free_model, c.web_research, k.provider, k.model_key
+    SELECT DISTINCT ON (c.role) c.role, c.provider_revision_id, p.model_id, k.free_model, c.web_research, k.provider, k.model_key,
+      (p.org_id IS NOT NULL) AS customer_key
     FROM chosen c JOIN evals.provider_revision p ON p.id=c.provider_revision_id
     CROSS JOIN LATERAL billing.provider_revision_rate_key(p.id) k
     JOIN evals.provider_account a ON a.id=p.account_id
@@ -303,10 +306,11 @@ async function modelRoutes(db: PoolClient, orgId: string, evaluationId: string, 
     ORDER BY c.role, c.rank`, [orgId, evaluationId, [...ENGINE_ROLES]])).rows as RouteRow[];
   const routes = new Map(rows.map(row => [row.role, row]));
   for (const [role, providerRevisionId] of Object.entries(overrides ?? {}) as Array<[EngineRole, string]>) {
-    const row = (await db.query(`SELECT p.id AS provider_revision_id, p.model_id, k.free_model, k.provider, k.model_key
+    // Another workspace's own key (BYOK) is never offered, even by id.
+    const row = (await db.query(`SELECT p.id AS provider_revision_id, p.model_id, k.free_model, k.provider, k.model_key, (p.org_id IS NOT NULL) AS customer_key
       FROM evals.provider_revision p CROSS JOIN LATERAL billing.provider_revision_rate_key(p.id) k
       JOIN evals.provider_account a ON a.id=p.account_id
-      WHERE p.id=$1 AND a.enabled AND (p.retired_at IS NULL OR p.retired_at > now()) AND $2 = ANY(k.roles)`, [providerRevisionId, role])).rows[0];
+      WHERE p.id=$1 AND a.enabled AND (p.retired_at IS NULL OR p.retired_at > now()) AND $2 = ANY(k.roles) AND (p.org_id IS NULL OR p.org_id = $3)`, [providerRevisionId, role, orgId])).rows[0];
     if (!row) throw new EstimateError("INPUT_INVALID", `That model is not available for ${role.replace("_", " ")}.`);
     routes.set(role, { ...row, role, web_research: routes.get(role)?.web_research ?? false });
   }
@@ -362,7 +366,7 @@ export async function estimateEvaluationRun(db: PoolClient, orgId: string, raw: 
   const roles: Partial<Record<EngineRole, RoleModel>> = {};
   for (const [role, route] of routes) {
     roles[role] = {
-      modelId: route.model_id, free: route.free_model, webResearch: route.web_research,
+      modelId: route.model_id, free: route.free_model, customerKey: route.customer_key, webResearch: route.web_research,
       tiers: tiersFor(book.models, route.provider, route.model_key),
       stats: callStatsFor(stats, role, route.provider, route.model_key),
     };
@@ -398,7 +402,7 @@ export async function estimateEvaluationRun(db: PoolClient, orgId: string, raw: 
       addCredits: account.billingMode === "contract" || shortfall === null ? null : wholeCreditsUp(shortfall).toString(),
     } : null,
     models: Object.fromEntries(Object.entries(roles).map(([role, model]) => [role, {
-      modelId: model!.modelId, free: model!.free, priced: model!.free || model!.tiers.length > 0, rate: model!.tiers[0]?.label ?? null,
+      modelId: model!.modelId, free: model!.free, customerKey: model!.customerKey === true, priced: model!.free || model!.tiers.length > 0, rate: model!.tiers[0]?.label ?? null,
       // Credits per 1M input and output tokens at the lowest prompt-size tier (L-15: rates beside each model).
       credits: model!.tiers[0] ? { input: ucrToCredits(model!.tiers[0].inputUcrPerM), output: ucrToCredits(model!.tiers[0].outputUcrPerM) } : null,
       webResearch: model!.webResearch, statsSource: model!.stats.source, samples: model!.stats.samples,
@@ -419,7 +423,7 @@ export async function evaluationModelRates(db: PoolClient, orgId: string, evalua
   const book = await getPriceBookAt(db, now);
   if (!book) throw new EstimateError("PRICE_BOOK_MISSING", "No price book is in effect.");
   const credits = (ucr: bigint) => ucrToCredits(ucr);
-  let roles: Array<{ role: EngineRole; modelId: string; label: string | null; free: boolean; input: string | null; output: string | null }> = [];
+  let roles: Array<{ role: EngineRole; modelId: string; label: string | null; free: boolean; customerKey: boolean; input: string | null; output: string | null }> = [];
   if (evaluationId) {
     const evaluation = (await db.query("SELECT id FROM evals.evaluation WHERE org_id=$1 AND id=$2 AND archived_at IS NULL", [orgId, evaluationId])).rows[0];
     if (!evaluation) throw new EstimateError("SCOPE_DENIED", "Evaluation not found.");
@@ -427,7 +431,8 @@ export async function evaluationModelRates(db: PoolClient, orgId: string, evalua
     roles = ENGINE_ROLES.filter(role => routes.has(role)).map(role => {
       const route = routes.get(role)!;
       const tier = tiersFor(book.models, route.provider, route.model_key)[0];
-      return { role, modelId: route.model_id, label: tier?.label ?? null, free: route.free_model, input: tier ? credits(tier.inputUcrPerM) : null, output: tier ? credits(tier.outputUcrPerM) : null };
+      return { role, modelId: route.model_id, label: route.customer_key ? null : tier?.label ?? null, free: route.free_model, customerKey: route.customer_key,
+        input: tier && !route.customer_key ? credits(tier.inputUcrPerM) : null, output: tier && !route.customer_key ? credits(tier.outputUcrPerM) : null };
     });
   }
   return {

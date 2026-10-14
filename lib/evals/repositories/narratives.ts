@@ -9,6 +9,7 @@ import { NARRATIVE_PROMPT_REVISION, evidencePacket, evidencePacketHash, narrativ
 import { withTenant } from "./db";
 import { ensureWorkspaceBudget, internalTimeoutMs, resolveModelRoute, routingFor } from "./model-routes";
 import type { EvidenceScope } from "./evidence";
+import { isResumableKeyReason } from "../byok/shared";
 
 // Report narrative orchestration (spec §15.1). The deterministic report always
 // exists first; a narrative is an optional budgeted DGX job whose validated
@@ -75,7 +76,9 @@ export function advanceReportNarratives(scope: EvidenceScope, limit = 10) {
         "UPDATE evals.report_narrative_job SET status=$3,reason_code=$4,narrative=$5,rejected_claims=$6,updated_at=now() WHERE org_id=$1 AND id=$2",
         [scope.orgId, job.id, status, reason, narrative === null ? null : JSON.stringify(narrative), JSON.stringify(rejectedClaims)]);
       if (!job.output) {
-        if (["failed", "paused", "canceled"].includes(job.step_status)) { await finish("failed", job.step_reason ?? `narrative_step_${job.step_status}`); result.failed++; }
+        // Paused on the workspace's own key (BYOK): the takeaways wait for a working key (L-27).
+        if (job.step_status === "paused" && isResumableKeyReason(job.step_reason)) result.pending++;
+        else if (["failed", "paused", "canceled"].includes(job.step_status)) { await finish("failed", job.step_reason ?? `narrative_step_${job.step_status}`); result.failed++; }
         else result.pending++;
         continue;
       }

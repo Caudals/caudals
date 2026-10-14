@@ -8,7 +8,7 @@ import { connectionInvocationSecret, invocationSecret, webSearchSecrets } from '
 import type { Keyring } from '../security/envelope';
 import { acquireCapacity, loadProvider, WEB_RESULTS_MAX_BYTES } from '../providers/registry';
 import { runWebSearch, webResultsMessage } from '../providers/web-search';
-import { invocationSchema, ProviderFailure, type Invocation, type ProviderOutput, type ProviderRevision, type WebResult } from '../providers/contracts';
+import { CustomerKeyFailure, customerKeyReason, invocationSchema, isCustomerKeyReason, ProviderFailure, type Invocation, type ProviderOutput, type ProviderRevision, type WebResult } from '../providers/contracts';
 import { invokeOpenAI } from '../providers/openai-compatible';
 import { digest, event, projectWorkflow, type Tenant, type TenantTransaction } from './store';
 import { jobSchema, type JobData } from './boss';
@@ -17,6 +17,7 @@ import { withContentHash } from '../contracts/hashing';
 import { BILLED_ENGINE_ROLES, captureEngineCall, chargeMeter, chargedUsage, engineBillingMode, holdEngineCall, meterCovered, releaseEngineCall, type EngineBillingMode, type EngineCallRef } from '../../billing/engine';
 import { BillingError, CreditsExhausted } from '../../billing/ledger';
 import { pauseWorkflowForCredits } from './credit-pause';
+import { assertCustomerKeyUsable, reportCustomerKey } from '../byok/worker';
 
 interface Step {id:string;workflow_id:string;input:unknown;input_hash:string;version:number;status:string;fence:string;lease_until:Date|null;step_kind:string}
 async function lockStep(c:PoolClient,orgId:string,stepId:string) {
@@ -54,7 +55,7 @@ export class InvocationWorker {
   const job=jobSchema.parse(raw), tenant={orgId:job.orgId,actorId:this.options.actorId};
   let claimed:Awaited<ReturnType<InvocationWorker['claim']>>;
   try{claimed=await this.claim(tenant,job);}catch(error){
-   const reason=error instanceof BudgetExceeded?'budget_exceeded':error instanceof CreditsExhausted?'credits_exhausted':error instanceof BillingError&&error.code==='ACCOUNT_FROZEN'?'billing_account_frozen'
+   const reason=error instanceof CustomerKeyFailure?error.reason:error instanceof BudgetExceeded?'budget_exceeded':error instanceof CreditsExhausted?'credits_exhausted':error instanceof BillingError&&error.code==='ACCOUNT_FROZEN'?'billing_account_frozen'
     :error instanceof Error&&['provider_capacity_unavailable','provider_circuit_open'].includes(error.message)?error.message:'invocation_configuration_invalid';
    await this.options.tx(tenant,async c=>{const {step}=await lockStep(c,tenant.orgId,job.stepId);
     if(step.status!=='queued')return;
@@ -69,6 +70,8 @@ export class InvocationWorker {
      }
      // Out of credits (enforce mode): the whole workflow pauses with the reason, and resume re-queues it.
      if(reason==='credits_exhausted')await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,'credits_exhausted');
+     // A workspace key that cannot be used (BYOK): the same pause; saving a working key resumes it.
+     else if(isCustomerKeyReason(reason))await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,reason);
     }
     await event(c,tenant.orgId,step.workflow_id,'dispatch_deferred',reason);await projectWorkflow(c,tenant.orgId,step.workflow_id);
     const target=invocationSchema.safeParse(step.input);
@@ -157,13 +160,16 @@ export class InvocationWorker {
     await c.query("UPDATE evals.execution_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,attemptId]);
     await c.query("UPDATE evals.workflow_step SET status=$3,reason_code=$4,lease_until=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,output.complete?'completed':'failed',output.complete?null:'incomplete_response']);
     await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
-    await this.health(c,provider.id,'healthy');await event(c,tenant.orgId,step.workflow_id,'step_completed');await projectWorkflow(c,tenant.orgId,step.workflow_id);
+    await this.health(c,provider.id,'healthy');
+    // A workspace key that answered is working (again).
+    if(provider.org_id)await reportCustomerKey(c,provider.account_id,'valid');
+    await event(c,tenant.orgId,step.workflow_id,'step_completed');await projectWorkflow(c,tenant.orgId,step.workflow_id);
     if(input.caseUnitId)await projectExecutionRun(c,tenant.orgId,current.workflow.run_id);
     // Enforce mode (the process's, or the workspace's override) charged what the
     // balance covered: the work is kept, the workflow pauses. Shadow never has a shortfall.
     if(shortfall)await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,'credits_exhausted');
    });
-  }catch(error){await this.finishFailure(tenant,step,attemptId,provider.id,amount,error,input);}
+  }catch(error){await this.finishFailure(tenant,step,attemptId,provider,amount,error,input);}
   finally{clearInterval(timer);secret?.fill(0);}
  }
  private checkFence(step:Step,fence:string) {
@@ -187,7 +193,9 @@ export class InvocationWorker {
    if(input.role==='target'&&input.caseUnitId&&!await startQueuedRun(c,tenant.orgId,workflow.run_id)){await deferRunStep(c,tenant.orgId,step.id,step.step_kind);return;}
    // Enforce mode: an answer is charged after it arrives, so a run whose balance cannot pay for one more stops here.
    if(input.role==='target'&&input.caseUnitId&&!await meterCovered(c,this.mode(),tenant.orgId,'api_question',workflow.run_id))throw new CreditsExhausted();
-   const {provider,price,inputBound}=await loadProvider(c,input);
+   const {provider,price,inputBound}=await loadProvider(c,input,tenant.orgId);
+   // A workspace key (BYOK) that was removed or rejected stops here, before any reservation or call.
+   if(provider.org_id)await assertCustomerKeyUsable(c,provider.account_id);
    if(input.generationJobId&&input.generationStep)await c.query("UPDATE evals.generation_batch SET status='running',attempt_count=LEAST(attempt_count+1,3),updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 AND version=$4",[tenant.orgId,input.generationJobId,input.generationStep,step.version]);
    const amount=worstCase(price,inputBound,input.maxOutputTokens),attemptId=randomUUID();
    const updated=(await c.query("UPDATE evals.workflow_step SET status='running',fence=fence+1,lease_owner=$3,lease_until=now()+$4::int*interval '1 second',updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING *",[tenant.orgId,step.id,this.options.workerId,this.lease])).rows[0] as Step;
@@ -205,7 +213,8 @@ export class InvocationWorker {
   await c.query(`INSERT INTO evals.provider_health(provider_revision_id,state,last_probe_at,circuit_until) VALUES($1,$2,now(),CASE WHEN $2='healthy' THEN NULL ELSE now()+interval '60 seconds' END)
    ON CONFLICT(provider_revision_id) DO UPDATE SET state=excluded.state,last_probe_at=excluded.last_probe_at,circuit_until=excluded.circuit_until`,[providerId,state]);
  }
- private async finishFailure(tenant:Tenant,step:Step,attemptId:string,providerId:string,amount:string,error:unknown,input:Invocation) {
+ private async finishFailure(tenant:Tenant,step:Step,attemptId:string,provider:ProviderRevision,amount:string,error:unknown,input:Invocation) {
+  const providerId=provider.id,customerKey=!!provider.org_id;
   await this.options.tx(tenant,async c=>{
    const current=await lockStep(c,tenant.orgId,step.id);
    // A replacement/reconciler owns expired leases. Never permit a stale completion.
@@ -213,9 +222,11 @@ export class InvocationWorker {
    const attempt=(await c.query('SELECT status,ordinal FROM evals.execution_attempt WHERE org_id=$1 AND id=$2',[tenant.orgId,attemptId])).rows[0];
    const dispatched=attempt.status==='dispatching', failure=error instanceof ProviderFailure?error:undefined;
    const unknown=dispatched&&failure?.outcome!=='rejected';
-   const reason=failure?.code??'invocation_failed';
+   // On a workspace's own key the reason says so ("Your provider key failed: …"); the work never moves to a Caudals key (INV-11).
+   const reason=error instanceof CustomerKeyFailure?error.reason:customerKey&&failure?customerKeyReason(failure.code):failure?.code??'invocation_failed';
    const engine=internal(step.input);
-   if(failure)console.warn(JSON.stringify({event:'provider_call_failed',reason,detail:failure.detail??null,attempt:attempt.ordinal,stepId:step.id}));
+   if(failure)console.warn(JSON.stringify({event:'provider_call_failed',reason,detail:failure.detail??null,attempt:attempt.ordinal,stepId:step.id,...(customerKey?{customerKey:true}:{})}));
+   else if(error instanceof CustomerKeyFailure)console.warn(JSON.stringify({event:'customer_key_unusable',reason,attempt:attempt.ordinal,stepId:step.id}));
    if(unknown)await c.query("UPDATE evals.budget_reservation SET state='unresolved',provenance='unknown_external_outcome' WHERE org_id=$1 AND attempt_id=$2",[tenant.orgId,attemptId]);
    else await settle(c,tenant.orgId,attemptId,dispatched?amount:'0',dispatched?'bounded_estimate':'confirmed_not_dispatched');
    // §6.8 step 4: the customer pays nothing for a failed call. An unknown outcome keeps its hold; it expires after 24 h.
@@ -239,6 +250,11 @@ export class InvocationWorker {
    if(retry)await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue,available_at) VALUES($1,$2,$3,now()+$4::int*interval '1 millisecond')",[tenant.orgId,step.id,step.step_kind,delay]);
    // Out of credit is not a bad key: open the short circuit instead of blocking the provider until its key is replaced.
    if(failure)await this.health(c,providerId,failure.code==='quota_exceeded'?'overloaded':failure.code);
+   if(customerKey&&failure&&(failure.code==='invalid_credentials'||failure.code==='quota_exceeded'))
+    await reportCustomerKey(c,provider.account_id,failure.code==='invalid_credentials'?'invalid':'quota_exceeded');
+   // Work stopped on a workspace key pauses as a whole (like credits); saving a working key resumes it.
+   if(!retry&&!unknown&&isCustomerKeyReason(reason)&&['running','queued'].includes(current.workflow.status))
+    await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,reason);
    await event(c,tenant.orgId,step.workflow_id,unknown?'attempt_unknown':'attempt_failed',reason);await projectWorkflow(c,tenant.orgId,step.workflow_id);
   });
  }

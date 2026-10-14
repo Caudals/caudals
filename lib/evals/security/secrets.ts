@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { decryptSecret, encryptSecret, type Keyring, type SecretScope } from './envelope';
+import { CustomerKeyFailure } from '../providers/contracts';
 
 /** Authorization belongs to the authenticated owner/admin action; client must be tenant scoped. */
 export async function addSecretVersion(client: PoolClient, scope: Omit<SecretScope,'versionId'>, actorId:string, value:Buffer, keyVersion:string, keys:Keyring) {
@@ -79,25 +80,56 @@ export function connectionSecretScope(accountId:string):SecretScope {
   return {orgId:PLATFORM_SECRET_ORG,recordId:accountId,versionId:accountId,purpose:'provider',scopeId:accountId};
 }
 /**
+ * A workspace's own provider key (BYOK, launch L-27): the envelope is bound to
+ * the workspace, the account and the key version of that save, so it opens
+ * only for that workspace and only until the key is replaced or removed.
+ */
+export function customerKeySecretScope(orgId:string,accountId:string,keyVersion:string):SecretScope {
+  return {orgId,recordId:accountId,versionId:keyVersion,purpose:'provider',scopeId:accountId};
+}
+/**
  * The key of a commercial provider connection, for one live reserved attempt
  * on a revision of that account. Same rule as tenant secrets: decrypt only
  * after a reservation exists, and only inside the inference worker.
+ *
+ * A workspace's own key (BYOK) is read only for that workspace's attempt (the
+ * revision, the connection and the attempt must all belong to it; row-level
+ * security hides every other workspace's connections from this role). A
+ * missing, removed or unreadable key fails the call with a customer_key_*
+ * reason: there is never a fallback to a Caudals key (INV-11).
  */
 export async function connectionInvocationSecret(client:PoolClient,orgId:string,attemptId:string,fence:string,keys:Keyring):Promise<Buffer|undefined> {
   // Revisions registered before provider connections (or keyless endpoints) carry no connection key.
   if(!(await client.query("SELECT to_regclass('evals.provider_connection') AS present")).rows[0].present) return undefined;
+  const revision=(await client.query(`SELECT p.org_id FROM evals.execution_attempt a JOIN evals.provider_revision p ON p.id=a.provider_revision_id
+    WHERE a.org_id=$1 AND a.id=$2`,[orgId,attemptId])).rows[0];
+  if(!revision) throw new Error('secret_scope_denied');
+  if(revision.org_id) return customerKeyInvocationSecret(client,orgId,attemptId,fence,keys);
   const connected=(await client.query(`SELECT 1 FROM evals.execution_attempt a JOIN evals.provider_revision p ON p.id=a.provider_revision_id
-    JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter WHERE a.org_id=$1 AND a.id=$2`,[orgId,attemptId])).rowCount;
+    JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter AND c.org_id IS NULL WHERE a.org_id=$1 AND a.id=$2`,[orgId,attemptId])).rowCount;
   if(!connected) return undefined;
   const row=(await client.query(`SELECT c.account_id,c.envelope FROM evals.execution_attempt a
     JOIN evals.workflow_step s ON (s.org_id,s.id)=(a.org_id,a.step_id)
     JOIN evals.budget_reservation b ON (b.org_id,b.attempt_id)=(a.org_id,a.id)
     JOIN evals.provider_revision p ON p.id=a.provider_revision_id
-    JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter
+    JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter AND c.org_id IS NULL
     WHERE a.org_id=$1 AND a.id=$2 AND a.status='reserved' AND b.state='reserved' AND s.fence=$3 AND a.fence=s.fence AND s.lease_until>now()`,[orgId,attemptId,fence])).rows[0];
   if(!row) throw new Error('secret_scope_denied');
   if(!row.envelope) return undefined;
   return decryptSecret(row.envelope,connectionSecretScope(row.account_id),keys);
+}
+async function customerKeyInvocationSecret(client:PoolClient,orgId:string,attemptId:string,fence:string,keys:Keyring):Promise<Buffer> {
+  const row=(await client.query(`SELECT p.org_id AS revision_org,c.org_id AS key_org,c.account_id,c.envelope,c.key_version,c.revoked_at
+    FROM evals.execution_attempt a
+    JOIN evals.workflow_step s ON (s.org_id,s.id)=(a.org_id,a.step_id)
+    JOIN evals.budget_reservation b ON (b.org_id,b.attempt_id)=(a.org_id,a.id)
+    JOIN evals.provider_revision p ON p.id=a.provider_revision_id
+    LEFT JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter
+    WHERE a.org_id=$1 AND a.id=$2 AND a.status='reserved' AND b.state='reserved' AND s.fence=$3 AND a.fence=s.fence AND s.lease_until>now()`,[orgId,attemptId,fence])).rows[0];
+  if(!row||row.revision_org!==orgId) throw new Error('secret_scope_denied');
+  if(row.key_org!==orgId||row.revoked_at||!row.envelope||!row.key_version) throw new CustomerKeyFailure('customer_key_revoked');
+  try { return decryptSecret(row.envelope,customerKeySecretScope(orgId,row.account_id,row.key_version),keys); }
+  catch { throw new CustomerKeyFailure('customer_key_unavailable'); }
 }
 
 /** Web search engine keys (Tavily, Exa) belong to the platform, like provider keys. */

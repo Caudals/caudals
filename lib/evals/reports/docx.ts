@@ -206,6 +206,7 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     ...(show("scope") ? [[S.evidencePolicy, plain(report.scope.evidence_policy)]] : []),
     [S.sampling, tx(method.sampling)],
     [S.reviewCoverage, tx(method.review_coverage)],
+    ...(method.data_routing ? [[S.dataRouting, S[`routing_${method.data_routing}`]]] : []),
     ...(show("metrics") && m.strict_pass_rate != null ? [[S.exactRate, `${(m.strict_pass_rate * 100).toFixed(1)}% (${m.n_pass} ${S.of} ${m.n_scorable})`]] : []),
     ...(show("metrics") && m.wilson_interval ? [[S.interval95, `${(m.wilson_interval.low * 100).toFixed(1)}% – ${(m.wilson_interval.high * 100).toFixed(1)}%`]] : []),
     ...(method.exclusions.length ? [[S.excludedFromScoring, method.exclusions.map(tx).join(", ")]] : []),

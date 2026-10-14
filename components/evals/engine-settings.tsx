@@ -23,6 +23,8 @@ export type Route = {
   input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean;
   /** Price-book status (migration 088): free model flag, €0 guard issue and the credit rate in effect (µcr per 1M). */
   free_model?: boolean; price_issue?: "MODEL_PRICE_ZERO" | "MODEL_RATE_MISSING" | null; credit_input_ucr?: string | null; credit_output_ucr?: string | null;
+  /** The workspace's own provider key (BYOK, launch L-27): billed by its provider, no token credits. */
+  customer_key?: boolean;
 };
 type SearchEngineId = "tavily" | "exa";
 type SearchEngineRow = { engine: SearchEngineId; key_hint: string | null; priority: number; enabled: boolean; updated_at: string };
@@ -79,7 +81,7 @@ const perMillion = (value: string) => {
   return number === 0 ? "0" : number.toFixed(number < 1 ? 3 : 2).replace(/\.?0+$/, "");
 };
 
-function useAction() {
+export function useAction() {
   const [error, setError] = useState<{ message: string } | null>(null);
   const [pending, setPending] = useState(false);
   const reauth = useReauth();
@@ -172,12 +174,13 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                         {inherited && <Badge>{t("engineInherited")}</Badge>}
                         {route.web_research && <Badge tone="info"><Globe aria-hidden="true" width={12} />{t("engineWebBadge")}</Badge>}
                         {scope === "workspace" && !inherited && <Badge tone="info">{t("engineOverride")}</Badge>}
+                        {route.customer_key && <Badge tone="info"><KeyRound aria-hidden="true" width={12} />{t("byokBadge")}</Badge>}
                       </span>
                       <span className="p-cell-meta">
                         {route.account_name} · {Math.round(route.context_limit / 1000)}k {t("engineContext")}
                         {route.adapter !== "dgx" && ` · €${perMillion(route.input_price)} / €${perMillion(route.output_price)} ${t("enginePerMillion")}`}
                       </span>
-                      <RoutePriceStatus route={route} />
+                      {!route.customer_key && <RoutePriceStatus route={route} />}
                     </span>
                   ) : (
                     <Badge tone="warn" dot>{t("engineNotSet")}</Badge>

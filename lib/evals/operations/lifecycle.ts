@@ -33,6 +33,8 @@ export async function requestWorkspaceDeletion(scope:LifecycleScope,reason:strin
   // Access stops now; object deletion follows in the lifecycle worker.
   await db.query("UPDATE evals.share_grant SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1",[scope.orgId]);
   await db.query("UPDATE evals.secret_record SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1",[scope.orgId]);
+  // The workspace's own model keys (BYOK, launch L-27) are erased with its other credentials.
+  await db.query("SELECT evals.byok_revoke_for_deletion($1)",[scope.orgId]);
   await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'workspace.deletion_requested',$3)",[scope.orgId,scope.actorId,request.id]);
   return request;
  });
@@ -49,7 +51,8 @@ export async function processDeletionRequests(scope:LifecycleScope){
   if(!row)return null;
   await db.query("UPDATE evals.deletion_request SET status='processing' WHERE org_id=$1 AND id=$2",[scope.orgId,row.id]);
   const shares=(await db.query("UPDATE evals.share_grant SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1 AND revoked_at IS NULL",[scope.orgId])).rowCount??0;
-  const secrets=(await db.query("UPDATE evals.secret_record SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1 AND revoked_at IS NULL",[scope.orgId])).rowCount??0;
+  const secrets=((await db.query("UPDATE evals.secret_record SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1 AND revoked_at IS NULL",[scope.orgId])).rowCount??0)
+   +Number((await db.query("SELECT evals.byok_revoke_for_deletion($1) AS revoked",[scope.orgId])).rows[0].revoked);
   const runs=(await db.query("UPDATE evals.run SET status='cancel_requested',updated_at=now() WHERE org_id=$1 AND status IN ('queued','running','pause_requested','paused')",[scope.orgId])).rowCount??0;
   const reports=(await db.query("UPDATE evals.report SET publication_status='withdrawn',updated_at=now() WHERE org_id=$1 AND publication_status<>'withdrawn'",[scope.orgId])).rowCount??0;
   await db.query(`INSERT INTO evals.retention_job(org_id,object_type,object_id,action,not_before)

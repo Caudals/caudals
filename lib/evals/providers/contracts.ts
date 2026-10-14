@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { CustomerKeyReason } from '../byok/shared';
+export { CUSTOMER_KEY_REASONS, isCustomerKeyReason, type CustomerKeyReason } from '../byok/shared';
 export const invocationSchema=z.object({
   probe:z.boolean().default(false), probeKind:z.enum(['text','json_object','tools']).default('text'), outputFormat:z.enum(['text','json_object']).default('text'), generationJobId:z.string().uuid().optional(), generationStep:z.enum(['profile','draft']).optional(), judgeJobId:z.string().uuid().optional(), narrativeJobId:z.string().uuid().optional(), providerRevisionId:z.string().uuid(), priceRevisionId:z.string().uuid(), secretVersionId:z.string().uuid().optional(),
   workspaceBudgetId:z.string().uuid(), runBudgetId:z.string().uuid(),
@@ -49,10 +51,31 @@ export interface ProviderRevision {
  id:string; account_id:string; adapter:'dgx'|'openai_compatible'; endpoint:string; model_id:string;
  roles:string[]; capabilities:{text?:boolean; boundedTokens?:boolean; jsonObject?:boolean; probeApproved?:boolean}; context_limit:number;output_limit:number;
  data_classes:string[]; regions:string[]; concurrency_limit:number; rpm:number;tpm:number; retired_at:Date|null;
+ /** The workspace whose own key (BYOK, launch L-27) serves this revision; null for Caudals' own providers. */
+ org_id?:string|null;
 }
 export class ProviderFailure extends Error {
  /** `detail`: the provider's own error message, shortened, for logs and diagnosis (never shown raw to customers). */
  constructor(public readonly code:'network_unavailable'|'service_unavailable'|'model_missing'|'overloaded'|'malformed_output'|'unsupported_feature'|'invalid_credentials'|'quota_exceeded',public readonly outcome:'unknown'|'rejected',public readonly retryAfterMs=0,public readonly detail?:string) {super(code);}
+}
+/**
+ * A call on a workspace's own provider key (BYOK, launch L-27) failed, or the
+ * key cannot be used. The work pauses with the reason; it never moves to a
+ * Caudals key (INV-11).
+ */
+export class CustomerKeyFailure extends Error {
+ constructor(public readonly reason:CustomerKeyReason){super(reason);this.name='CustomerKeyFailure';}
+}
+/** The customer-key reason for a provider failure on a BYOK revision. */
+export function customerKeyReason(code:ProviderFailure['code']):CustomerKeyReason {
+ switch(code){
+  case 'invalid_credentials':return 'customer_key_invalid';
+  case 'quota_exceeded':return 'customer_key_quota';
+  case 'model_missing':return 'customer_key_model';
+  case 'overloaded':return 'customer_key_rate_limited';
+  case 'unsupported_feature':return 'customer_key_rejected';
+  default:return 'customer_key_unavailable';
+ }
 }
 export type WebResult={url:string;title:string;content:string;published?:string};
 export interface ProviderOutput {text:string; complete:boolean; finishReason:string; requestId?:string; usage?:{input:number;output:number;cached:number}; latencyMs:number; toolCalls?:Array<{name:string;arguments:string}>; capabilityEvidence?:{kind:'text'|'json_object'|'tools';status:'supported'|'unsupported'|'unknown';scope:'single_bounded_probe'};

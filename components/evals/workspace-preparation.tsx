@@ -24,6 +24,8 @@ import type { ReviewMode } from "@/lib/evals/review/spot-check";
 import { ContextConfirmation, DocumentIntake, HelpCentreImport, ScanNotice, scanInfo, type ScanInfo } from "./intake";
 import { CONFIRMATION_REASON } from "@/lib/evals/intake/constants";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { isCustomerKeyReason } from "@/lib/evals/byok/shared";
+import { CustomerKeyNotice, customerKeyReasonText } from "./customer-key-notice";
 
 type Evaluation = {
   id: string;
@@ -790,7 +792,7 @@ export function PrepareEvaluation({
           <Status tone="info">{tv("onbAutoStarting", { cases: autoStartCases })}</Status>
         ) : (
           <div className="p-generate-block">
-            {stopped && <Status tone="warn">{generationStopMessage(stopReason)}</Status>}
+            {stopped && (isCustomerKeyReason(stopReason) ? <CustomerKeyNotice reason={stopReason} /> : <Status tone="warn">{generationStopMessage(stopReason)}</Status>)}
             {stopped && !!progress?.written && !stopReason?.startsWith("operator_") && (
               <div className="p-row">
                 <Action variant="secondary" onClick={() => void keepPartial()} disabled={!!pending}>
@@ -894,6 +896,14 @@ export function generationStopMessage(reason: string | null | undefined) {
       return t("genStopQuota");
     case "model_missing":
       return t("genStopModelMissing");
+    case "customer_key_invalid":
+    case "customer_key_quota":
+    case "customer_key_revoked":
+    case "customer_key_model":
+    case "customer_key_rate_limited":
+    case "customer_key_unavailable":
+    case "customer_key_rejected":
+      return tv("keyFailedTitle", { reason: customerKeyReasonText(reason) });
     case "service_unavailable":
     case "overloaded":
     case "provider_capacity_unavailable":

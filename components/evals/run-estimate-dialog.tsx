@@ -36,7 +36,7 @@ export type RunEstimate = {
   largestHold: { ucr: string; credits: string };
   eta: { p50Seconds: number; p90Seconds: number; basis: "measured" | "seeded" };
   balance: { billingMode: string; requiresCredits: boolean; availableCredits: string; coversP90: boolean; addCredits: string | null } | null;
-  models: Partial<Record<Role, { modelId: string; free: boolean; priced: boolean; rate: string | null; credits: { input: string; output: string } | null; webResearch: boolean }>>;
+  models: Partial<Record<Role, { modelId: string; free: boolean; customerKey?: boolean; priced: boolean; rate: string | null; credits: { input: string; output: string } | null; webResearch: boolean }>>;
   gate?: { enforced: boolean; autoRechargeCovers: boolean; autoRechargePackCredits: number | null; canStart: boolean };
   lines?: Array<{ kind: "meter" | "tokens"; key: string }>;
 };
@@ -61,7 +61,9 @@ export function duration(seconds: number) {
 function newKey() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
-export function rateText(credits: { input: string; output: string } | null, free = false) {
+export function rateText(credits: { input: string; output: string } | null, free = false, customerKey = false) {
+  // The workspace's own provider key (launch L-27): its provider bills the tokens.
+  if (customerKey) return t("estimateYourKey");
   if (free) return t("estimateFreeModel");
   return credits ? tv("estimateRate", { input: decimal(credits.input), output: decimal(credits.output) }) : t("estimateNoRate");
 }
@@ -142,7 +144,7 @@ export function RunEstimateDialog({ open, onClose, evaluationId, targetRevisionI
       <ul className="p-plain-list" data-testid="estimate-models">
         {models.map(role => {
           const model = estimate.models[role]!;
-          return <li key={role}><strong>{t(ROLE_KEY[role])}</strong>: {model.rate ?? model.modelId}{!contract && <span className="p-cell-meta"> · {rateText(model.credits, model.free)}</span>}</li>;
+          return <li key={role}><strong>{t(ROLE_KEY[role])}</strong>: {model.customerKey ? model.modelId : model.rate ?? model.modelId}{!contract && <span className="p-cell-meta"> · {rateText(model.credits, model.free, model.customerKey)}</span>}</li>;
         })}
       </ul>
     ) },
@@ -204,7 +206,7 @@ export function RunEstimateDialog({ open, onClose, evaluationId, targetRevisionI
 }
 
 type RatesView = {
-  roles: Array<{ role: Role; modelId: string; label: string | null; free: boolean; input: string | null; output: string | null }>;
+  roles: Array<{ role: Role; modelId: string; label: string | null; free: boolean; customerKey?: boolean; input: string | null; output: string | null }>;
   catalog: Array<{ label: string; provider: string; minInputTokens: number; input: string; output: string }>;
   meters: Array<{ meter: string; unit: string; credits: string }>;
 };
@@ -240,7 +242,7 @@ export function ModelRates({ evaluationId }: { evaluationId: string }) {
       <h3 id="model-rates-title">{t("modelRatesTitle")}</h3>
       <ul className="p-plain-list">
         {rates.roles.map(role => (
-          <li key={role.role}><strong>{t(ROLE_KEY[role.role])}</strong>: {role.label ?? role.modelId} <span className="p-cell-meta">· {rateText(role.input && role.output ? { input: role.input, output: role.output } : null, role.free)}</span></li>
+          <li key={role.role}><strong>{t(ROLE_KEY[role.role])}</strong>: {role.label ?? role.modelId} <span className="p-cell-meta">· {rateText(role.input && role.output ? { input: role.input, output: role.output } : null, role.free, role.customerKey)}</span></li>
         ))}
       </ul>
       {payg ? (
