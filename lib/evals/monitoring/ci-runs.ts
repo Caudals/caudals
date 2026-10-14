@@ -187,8 +187,12 @@ export async function runGate(orgId: string, runId: string) {
 
 /** Approved test sets with their thresholds (Settings → Developers → Release gate). */
 export function listGateThresholds(scope: EvidenceScope) {
+  // The system version: the evaluation's selected one, else the newest version of its project's system (before any run selects one).
   return withTenant(scope, async db => (await db.query(`SELECT e.id AS evaluation_id,e.title AS evaluation_title,
-      e.selected_suite_version_id AS suite_version_id,e.selected_target_revision_id AS target_revision_id,
+      e.selected_suite_version_id AS suite_version_id,
+      COALESCE(e.selected_target_revision_id,(SELECT tr.id FROM evals.target_revision tr JOIN evals.target t ON (t.org_id,t.id)=(tr.org_id,tr.target_id)
+        WHERE tr.org_id=e.org_id AND t.project_id=e.project_id AND t.archived_at IS NULL AND tr.document->>'kind'<>'imported_responses'
+        ORDER BY tr.created_at DESC,tr.id DESC LIMIT 1)) AS target_revision_id,
       s.id AS suite_id,s.title AS suite_title,s.gate_threshold::float8 AS gate_threshold
     FROM evals.evaluation e
     JOIN evals.suite_version sv ON (sv.org_id,sv.id)=(e.org_id,e.selected_suite_version_id)

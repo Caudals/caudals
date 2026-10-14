@@ -258,6 +258,9 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("integrations v2: CI trigger, gate and
     expect(await runGate(f.orgId, run.run_id)).toMatchObject({ status: "fail", reason_codes: ["below_threshold"] });
     expect((await listGateThresholds(f.ownerScope))[0]).toMatchObject({ evaluation_id: f.evaluationId, suite_id: f.suiteId, suite_version_id: f.suiteVersionId, target_revision_id: f.revisionId, gate_threshold: 66.67 });
     await expect(saveSuiteGateThreshold(f.ownerScope, f.suiteId, 100.5)).rejects.toThrow();
+    // Before any run selects a system version, the release gate lists the newest one of the evaluation's system.
+    await owner.query("UPDATE evals.evaluation SET selected_target_revision_id=NULL WHERE id=$1", [f.evaluationId]);
+    expect((await listGateThresholds(f.ownerScope))[0].target_revision_id).toBe(f.revisionId);
     // Thresholds on schedules need the flag; they win over the test set's for the schedule's runs and keep the schedule's version.
     setEnv({ INTEGRATIONS_V2_ENABLED: "false" });
     const scheduleInput = { evaluationId: f.evaluationId, targetRevisionId: f.revisionId, suiteVersionId: f.suiteVersionId, timezone: "Europe/Madrid", cadence: "monthly", localTime: "09:00", weekday: null, dayOfMonth: 1, maxRunSpend: "10", currency: "EUR", sourceMaxAgeDays: null };
