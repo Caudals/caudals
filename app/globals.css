@@ -95,6 +95,16 @@
   --breakpoint-2xl: 1280px;
 }
 
+/*
+ * Newsreader loads after the first paint (launch L-24d, components/document/
+ * serif-gate.ts): until <html data-serif> is set, the public pages use its
+ * metric-matched local fallback, which is what they showed before the font
+ * arrived anyway, so laying out the first frame requests no Newsreader file.
+ */
+html:not([data-serif]) .mk-serif-gate {
+  --font-newsreader: "Newsreader Fallback";
+}
+
 .hover-lift {
   transition:
     transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
