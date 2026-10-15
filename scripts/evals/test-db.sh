@@ -84,7 +84,7 @@ SQL
 # revisions) get their own copy of the migrated database, so every suite passes
 # in one parallel run. tests/helpers/test-database.ts points a
 # listed suite at caudals_<suite>; roles and grants are cluster-wide.
-isolated="analytics_growth billing_ops data_controls demo_disclosure demo_queue health_alerts invoicing price_notice prospect_snapshots reconcile"
+isolated="analytics_growth billing_ops data_controls demo_disclosure demo_queue funnel_events health_alerts invoicing price_notice prospect_snapshots reconcile"
 for suite in $isolated; do
   # From the maintenance database: a template must have no open sessions.
   docker exec -i "$name" psql -v ON_ERROR_STOP=1 -q -U postgres -d postgres -c "CREATE DATABASE caudals_$suite TEMPLATE caudals" >&2

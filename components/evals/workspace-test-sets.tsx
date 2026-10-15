@@ -31,6 +31,7 @@ import { DeleteDialog, useItemActions } from "./item-actions";
 import { ExcerptSnippet } from "./preparation-parts";
 import { NoWorkspace } from "./workspace-evaluations";
 import { MonthlyQuestionsPanel, SectorQuestionsCard } from "./sector-questions";
+import { ExampleEvaluationLink, useExampleEvaluation } from "./example-evaluation-links";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t } from "@/lib/evals/messages/runtime";
 
@@ -62,6 +63,7 @@ type DraftDetails = { suiteId: string; suiteTitle: string; version: number; case
 export function WorkspaceTestSets() {
   const router = useRouter();
   const { orgId, workspace, canWrite, withOrg } = useWorkspace();
+  const example = useExampleEvaluation();
   const [items, setItems] = useState<TestSetRow[] | null>(null);
   const [projectId, setProjectId] = useState("all");
   const [query, setQuery] = useState("");
@@ -118,7 +120,8 @@ export function WorkspaceTestSets() {
       {items === null ? (
         <TableSkeleton columns={4} />
       ) : !items.length ? (
-        <EmptyState title={t("noTestSets")} icon={<ListChecks />}>
+        // The example evaluation (L-33) shows a finished test set and its results (launch L-06, P-02).
+        <EmptyState title={t("noTestSets")} icon={<ListChecks />} action={example.visible ? <ExampleEvaluationLink variant="button" /> : undefined}>
           <p>{t("noTestSetsCustomerHelp")}</p>
         </EmptyState>
       ) : (

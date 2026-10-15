@@ -9,6 +9,7 @@ import { ActionMenu } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { useWorkspaceSummary } from "./workspace-data";
+import { ExampleEvaluationLink, useExampleEvaluation } from "./example-evaluation-links";
 import { t } from "@/lib/evals/messages/runtime";
 
 export function WorkspaceReports() {
@@ -16,6 +17,7 @@ export function WorkspaceReports() {
   const { summary, error, retry, loading, reload } = useWorkspaceSummary(orgId);
   const [query, setQuery] = useState("");
   const items = useItemActions(orgId, reload);
+  const example = useExampleEvaluation();
   if (!workspace) return <NoWorkspace />;
   const needle = query.trim().toLowerCase();
   const reports = (summary?.reports ?? []).filter((item) => !needle || `${item.title} ${item.system_name ?? ""}`.toLowerCase().includes(needle));
@@ -32,7 +34,8 @@ export function WorkspaceReports() {
       {!summary ? (
         loading ? <TableSkeleton columns={4} /> : null
       ) : !summary.reports.length ? (
-        <EmptyState title={t("noReports")} icon={<FileText />}>
+        // The example evaluation (L-33) shows what a finished report looks like (launch L-06, P-02).
+        <EmptyState title={t("noReports")} icon={<FileText />} action={example.visible ? <ExampleEvaluationLink variant="button" /> : undefined}>
           <p>{t("noReportsHelp")}</p>
         </EmptyState>
       ) : (

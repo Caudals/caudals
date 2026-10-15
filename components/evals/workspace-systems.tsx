@@ -35,6 +35,7 @@ import { TargetCredentials } from "./workspace-credentials";
 import { WebsiteLoginSessions } from "./website-login-sessions";
 import { WebAppConnector } from "./web-app-connector";
 import { NoWorkspace } from "./workspace-evaluations";
+import { ExampleEvaluationLink, useExampleEvaluation } from "./example-evaluation-links";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary, type WorkspaceReport, type WorkspaceSystem } from "./workspace-data";
 import { HEALTH_LABEL, canCheckConnection, fixAction, isApiKind, lastHealthy, scoreHistory, systemHealth } from "@/lib/evals/workspace/health";
@@ -332,6 +333,7 @@ export function WorkspaceSystems() {
 /** No systems yet: the three ways to connect one, each with an example. */
 function SystemsEmpty() {
   const { canWrite, withOrg } = useWorkspace();
+  const example = useExampleEvaluation();
   const kinds = [
     { icon: <Globe />, title: t("websiteChatbot"), body: t("systemsEmptyWebsite"), example: t("systemsEmptyWebsiteExample") },
     { icon: <Code2 />, title: t("apiSystem"), body: t("systemsEmptyApi"), example: t("systemsEmptyApiExample") },
@@ -343,15 +345,19 @@ function SystemsEmpty() {
         title={t("noSystems")}
         icon={<Plug />}
         action={
-          canWrite && (
+          canWrite ? (
             <ActionLink href={withOrg("/workspace/evaluations/new")}>
               <Plus aria-hidden="true" />
               {t("connectSystemAction")}
             </ActionLink>
-          )
+          ) : example.visible ? (
+            // Viewers cannot connect a system; the example evaluation (L-33) is their action (launch L-06, P-02).
+            <ExampleEvaluationLink variant="button" />
+          ) : undefined
         }
       >
         <p>{t("systemsEmptyHelp")}</p>
+        {canWrite && example.visible && <p><ExampleEvaluationLink /></p>}
       </EmptyState>
       <ul className="p-connect-kinds" aria-label={t("systemsEmptyKinds")}>
         {kinds.map((kind) => (

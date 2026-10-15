@@ -1486,7 +1486,7 @@ test("result review queue records attributed decisions with a required reason", 
   });
   await page.goto("/ops/review");
   // Queue rows lead with the question that was asked.
-  await page.getByRole("button", { name: "Can I get a refund?" }).click();
+  await page.getByRole("button", { name: "Can I get a refund?", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Refund window" })).toBeVisible();
   await expect(page.getByText(/experimental/)).toBeVisible();
   await page.getByLabel("Override with a new outcome").check();
@@ -2963,9 +2963,16 @@ test("growth accounts show company, system, activity, score and credits, and dra
   const accounts = page.getByRole("table", { name: "New accounts · latest 200" });
   const row = accounts.getByRole("row", { name: /Gestoría Ejemplo SL/ });
   await expect(row).toContainText("gestoria-ejemplo.es");
-  await expect(row).toContainText("Website chatbot");
+  // System type is the welcome answer (P-04) with the connected kind under it, and the goal beside it (launch G1).
+  await expect(row.locator("td").nth(3)).toHaveText("A chat on our websiteConnected: Website chatbot");
+  await expect(row.locator("td").nth(4)).toHaveText("Check it before launch");
+  await expect(accounts.getByRole("columnheader")).toHaveText(["Company", "Created", "Source", "Stage", "System type", "Goal", "Last activity", "Latest score", "Credits bought", "Actions"]);
+  // No welcome answer and nothing connected: dashes, never a guess.
+  const quiet = accounts.getByRole("row", { name: /00000000/ });
+  await expect(quiet.locator("td").nth(3)).toHaveText("—");
+  await expect(quiet.locator("td").nth(4)).toHaveText("—");
   await expect(row).toContainText("63 % · 8");
-  await expect(row.locator("td").nth(6)).toHaveText("—");
+  await expect(row.locator("td").nth(7)).toHaveText("—");
   expect(drafts).toHaveLength(0);
   await row.getByRole("button", { name: "Create CRM draft" }).click();
   await expect(row).toContainText("CRM draft created");

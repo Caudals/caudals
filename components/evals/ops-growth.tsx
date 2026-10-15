@@ -5,7 +5,7 @@ import type { GrowthData } from "@/lib/analytics/growth";
 import { Action, Badge, DataTable, PageHeading, Stat, StatGrid, Time, humanize, Section } from "./primitives";
 import { evalRequest } from "./api";
 import { notify } from "./overlays";
-import { t, type MessageKey } from "@/lib/evals/messages/runtime";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { tr, type Phrase } from "@/lib/evals/messages/phrases";
 /** Connection kinds as people say them (launch L-21). */
 const CONNECTION: Record<string, Phrase> = { website: "Website chatbot", openai_compatible: "OpenAI-compatible API", https_json: "HTTPS JSON API", provider_native: "Provider API", imported_responses: "Uploaded answers", private_runner: "Private runner" };
@@ -93,15 +93,17 @@ export function OpsGrowth({ data }: { data: GrowthData }) {
       </DataTable>
     </Section>
     <Section title={t("growthNewAccounts")}>
-      <DataTable caption={t("growthNewAccounts")} headers={[t("growthCompany"), t("growthCreated"), t("growthSource"), t("growthStage"), t("growthSystem"), t("lastActivity"), t("growthLatestScore"), t("growthCreditsBought"), t("growthSystemType"), t("growthGoal"), { label: t("actions"), align: "end", hidden: true }]}>
+      <DataTable caption={t("growthNewAccounts")} headers={[t("growthCompany"), t("growthCreated"), t("growthSource"), t("growthStage"), t("growthSystemType"), t("growthGoal"), t("lastActivity"), t("growthLatestScore"), t("growthCreditsBought"), { label: t("actions"), align: "end", hidden: true }]}>
         {data.accounts.map(row => <tr key={row.orgId}>
           <th scope="row"><span className="p-table-primary"><Link href={`/workspace/evaluations?orgId=${row.orgId}`}>{row.company ?? row.orgId.slice(0, 8)}</Link>{row.emailDomain && <span className="p-cell-meta">{row.emailDomain}</span>}</span></th>
           <td><Time value={row.createdAt} /></td><td>{row.source}</td><td>{label(row.stage)}</td>
-          <td>{row.connection ? tr(CONNECTION[row.connection] ?? humanize(row.connection)) : "—"}</td>
+          {/* System type is what the account said in the welcome (P-04); the connected kind sits under it (launch G1). */}
+          <td><span className="p-table-primary"><span>{answer("onbSystem_", row.systemType)}</span>
+            {row.connection && <span className="p-cell-meta">{tv("growthConnected", { kind: tr(CONNECTION[row.connection] ?? humanize(row.connection)) })}</span>}</span></td>
+          <td>{answer("onbGoal_", row.goal)}</td>
           <td><Time value={row.lastActivity ?? null} /></td>
           <td className="p-num">{score(row.latestScore, row.latestScored)}</td>
           <td className="p-num">{credits(row.creditsBought)}</td>
-          <td>{answer("onbSystem_", row.systemType)}</td><td>{answer("onbGoal_", row.goal)}</td>
           <td className="p-table-action">{row.hasReport && (drafted.includes(row.orgId)
             ? <span className="p-cell-meta">{t("growthCrmDraftDone")}</span>
             : <Action variant="secondary" size="sm" disabled={drafting === row.orgId} onClick={() => void crmDraft(row.orgId)}>{t("growthCrmDraft")}</Action>)}</td>

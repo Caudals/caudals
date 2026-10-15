@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, Badge, Check, DataTable, DefinitionList, EmptyState, Field, PageHeading, RowTitle, SectionHeading, SelectField, Status, StatusBadge, TableSkeleton, TextArea, humanize, type Tone } from "./primitives";
+import { Action, Badge, Check, DataTable, DefinitionList, EmptyState, Field, FilterChips, PageHeading, RowTitle, SectionHeading, SelectField, Status, StatusBadge, TableSkeleton, TextArea, humanize, type Tone } from "./primitives";
 import { SidePanel, notify } from "./overlays";
 import { useClientSummaries } from "./operator-overview";
 import { useWorkspace } from "./workspace-context";
@@ -67,6 +67,32 @@ function Sla({ since }: { since: string | null | undefined }) {
   const sla = slaFor(since);
   return sla ? <Badge tone={sla.tone} dot={sla.tone !== "neutral"}>{sla.label}</Badge> : <span className="p-cell-meta">—</span>;
 }
+/**
+ * "Assign to me" (launch G1, spec v2 §5.3): a member of staff claims a test
+ * set awaiting approval or a result needing review, so two people do not
+ * work the same item. The server (migration 113) serialises claims and
+ * audits each one; taking over someone else's item is explicit.
+ */
+type Assignment = { orgId: string; subjectKind: "evaluation" | "assessment"; subjectId: string; assigneeId: string; assigneeName: string | null; assignedAt: string; mine: boolean };
+type AssignFilter = "all" | "mine" | "unassigned";
+const assignmentKey = (orgId: string, kind: Assignment["subjectKind"], id: string) => `${orgId}:${kind}:${id}`;
+function Assignee({ assignment, title, busy, onChange }: { assignment: Assignment | undefined; title: string; busy: boolean; onChange: (action: "assign" | "release", takeOver?: boolean) => void }) {
+  if (!assignment) {
+    return <Action variant="secondary" size="sm" disabled={busy} aria-label={`${t("reviewAssignToMe")}: ${title}`} onClick={() => onChange("assign")}>{t("reviewAssignToMe")}</Action>;
+  }
+  const held = slaFor(assignment.assignedAt)?.label;
+  return (
+    <span className="p-row p-nowrap">
+      {assignment.mine ? <Badge tone="pass" dot>{t("reviewAssignedYou")}</Badge> : <span>{assignment.assigneeName ?? t("reviewAssignedSomeone")}</span>}
+      {held && <span className="p-cell-meta">{held}</span>}
+      {assignment.mine ? (
+        <Action variant="ghost" size="sm" disabled={busy} aria-label={`${t("reviewUnassign")}: ${title}`} onClick={() => onChange("release")}>{t("reviewUnassign")}</Action>
+      ) : (
+        <Action variant="ghost" size="sm" disabled={busy} aria-label={`${t("reviewTakeOver")}: ${title}`} onClick={() => onChange("assign", true)}>{t("reviewTakeOver")}</Action>
+      )}
+    </span>
+  );
+}
 const scoreFor = { pass: 1, partial: 0.5, fail: 0, unscorable: null } as const;
 const SEVERITY = ["critical", "high", "medium", "low"];
 
@@ -83,21 +109,57 @@ export function ReviewQueue() {
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkReason, setBulkReason] = useState("");
   const [bulkPending, setBulkPending] = useState(false);
+  const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
+  const [assignFilter, setAssignFilter] = useState<AssignFilter>("all");
+  const [assigning, setAssigning] = useState("");
 
+  const loadAssignments = useCallback(async () => {
+    const rows = await Promise.all(
+      workspaces.map(async (workspace) =>
+        (await evalRequest<Omit<Assignment, "orgId">[]>(`/review-assignments?orgId=${encodeURIComponent(workspace.id)}`).catch(() => [])).map((row) => ({ ...row, orgId: workspace.id })),
+      ),
+    );
+    setAssignments(Object.fromEntries(rows.flat().map((row) => [assignmentKey(row.orgId, row.subjectKind, row.subjectId), row])));
+  }, [workspaces]);
   const load = useCallback(async () => {
     try {
-      const rows = await Promise.all(
-        workspaces.map(async (workspace) =>
-          (await evalRequest<Item[]>(`/reviews?orgId=${encodeURIComponent(workspace.id)}`).catch(() => [] as Item[])).map((item) => ({ ...item, orgId: workspace.id, client: workspace.name })),
+      const [rows] = await Promise.all([
+        Promise.all(
+          workspaces.map(async (workspace) =>
+            (await evalRequest<Item[]>(`/reviews?orgId=${encodeURIComponent(workspace.id)}`).catch(() => [] as Item[])).map((item) => ({ ...item, orgId: workspace.id, client: workspace.name })),
+          ),
         ),
-      );
+        loadAssignments(),
+      ]);
       setItems(rows.flat().sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity)));
       setError("");
     } catch (value) {
       setItems([]);
       setError(value instanceof Error ? value.message : t("error"));
     }
-  }, [workspaces]);
+  }, [workspaces, loadAssignments]);
+
+  async function changeAssignment(orgId: string, subjectKind: Assignment["subjectKind"], subjectId: string, action: "assign" | "release", takeOver = false) {
+    const key = assignmentKey(orgId, subjectKind, subjectId);
+    setAssigning(key);
+    try {
+      const result = await evalRequest<{ assignment: Omit<Assignment, "orgId"> | null }>("/review-assignments", "POST", { orgId, subjectKind, subjectId, action, ...(takeOver ? { takeOver: true } : {}) });
+      setAssignments((current) => {
+        const next = { ...current };
+        if (result.assignment) next[key] = { ...result.assignment, orgId };
+        else delete next[key];
+        return next;
+      });
+      notify(t(action === "release" ? "reviewUnassigned" : takeOver ? "reviewTakenOver" : "reviewAssigned"));
+    } catch (value) {
+      notify(value instanceof Error ? value.message : t("error"));
+      await loadAssignments();
+    } finally {
+      setAssigning("");
+    }
+  }
+  const assignee = (orgId: string, kind: Assignment["subjectKind"], id: string) => assignments[assignmentKey(orgId, kind, id)];
+  const shown = (assignment: Assignment | undefined) => assignFilter === "all" || (assignFilter === "mine" ? !!assignment?.mine : !assignment);
   useEffect(() => {
     void load();
   }, [load]);
@@ -110,6 +172,12 @@ export function ReviewQueue() {
     [clients],
   );
   const current = items?.find((item) => item.assessment_id === openId) ?? null;
+  const visibleApprovals = approvals.filter(({ client, evaluation }) => shown(assignee(client.id, "evaluation", evaluation.id)));
+  const visibleItems = (items ?? []).filter((item) => shown(assignee(item.orgId, "assessment", item.assessment_id)));
+  const queued = [
+    ...approvals.map(({ client, evaluation }) => assignee(client.id, "evaluation", evaluation.id)),
+    ...(items ?? []).map((item) => assignee(item.orgId, "assessment", item.assessment_id)),
+  ];
 
   function open(item: Queued) {
     setOpenId(item.assessment_id);
@@ -168,26 +236,37 @@ export function ReviewQueue() {
   }
   const keyOf = (item: Queued) => `${item.orgId}:${item.assessment_id}`;
   const toggle = (key: string) => setSelected((current) => (current.includes(key) ? current.filter((value) => value !== key) : [...current, key]));
-  const allSelected = !!items?.length && items.every((item) => selected.includes(keyOf(item)));
+  const allSelected = !!visibleItems.length && visibleItems.every((item) => selected.includes(keyOf(item)));
 
   return (
     <>
       <PageHeading title={t("reviewQueue")}>{t("reviewQueueHelp")}</PageHeading>
       {error && !current && <Status error>{error}</Status>}
+      <div className="p-toolbar">
+        <FilterChips value={assignFilter} onChange={setAssignFilter} label={t("reviewFilterAssignee")} options={[
+          { value: "all", label: t("all"), count: queued.length },
+          { value: "mine", label: t("reviewFilterMine"), count: queued.filter((row) => row?.mine).length },
+          { value: "unassigned", label: t("reviewFilterUnassigned"), count: queued.filter((row) => !row).length },
+        ]} />
+      </div>
 
       <section>
         <SectionHeading title={t("testSetsAwaitingApproval")}>{t("testSetsAwaitingApprovalHelp")}</SectionHeading>
         {clients === null ? (
           <TableSkeleton rows={2} columns={3} />
-        ) : approvals.length ? (
-          <DataTable caption={t("testSetsAwaitingApproval")} headers={[t("evaluation"), t("client"), t("slaWaiting"), { label: t("statusLabel"), align: "end" }]}>
-            {approvals.map(({ client, evaluation }) => (
+        ) : visibleApprovals.length ? (
+          <DataTable caption={t("testSetsAwaitingApproval")} headers={[t("evaluation"), t("client"), t("slaWaiting"), t("reviewAssignee"), { label: t("statusLabel"), align: "end" }]}>
+            {visibleApprovals.map(({ client, evaluation }) => (
               <tr key={`${client.id}-${evaluation.id}`}>
                 <RowTitle href={`/workspace/evaluations/${evaluation.id}?orgId=${client.id}`} meta={evaluation.project_title}>
                   {evaluation.title}
                 </RowTitle>
                 <td>{client.name}</td>
                 <td><Sla since={evaluation.updated_at} /></td>
+                <td>
+                  <Assignee assignment={assignee(client.id, "evaluation", evaluation.id)} title={evaluation.title} busy={assigning === assignmentKey(client.id, "evaluation", evaluation.id)}
+                    onChange={(action, takeOver) => void changeAssignment(client.id, "evaluation", evaluation.id, action, takeOver)} />
+                </td>
                 <td className="p-table-action">
                   <StatusBadge value={evaluation.preparation_status} />
                 </td>
@@ -195,7 +274,7 @@ export function ReviewQueue() {
             ))}
           </DataTable>
         ) : (
-          <p className="p-cell-meta">{t("noTestSetsAwaiting")}</p>
+          <p className="p-cell-meta">{approvals.length ? t("reviewFilterNone") : t("noTestSetsAwaiting")}</p>
         )}
       </section>
 
@@ -203,7 +282,7 @@ export function ReviewQueue() {
         <SectionHeading title={t("resultReview")}>{t("resultReviewHelp")}</SectionHeading>
         {items === null ? (
           <TableSkeleton columns={4} />
-        ) : items.length ? (
+        ) : visibleItems.length ? (
           <>
           {selected.length > 0 && (
             <form className="p-row" onSubmit={approveSelected} aria-label={t("bulkApprove")}>
@@ -212,9 +291,9 @@ export function ReviewQueue() {
               <Action variant="ghost" onClick={() => setSelected([])}>{t("cancel")}</Action>
             </form>
           )}
-          <div className="p-toolbar"><Check label={t("bulkSelectAll")} checked={allSelected} onChange={() => setSelected(allSelected ? [] : items.map(keyOf))} /></div>
-          <DataTable caption={t("resultReview")} headers={[{ label: t("bulkSelect"), hidden: true }, t("test"), t("severity"), t("outcome"), t("slaWaiting"), { label: t("reason"), align: "end" }]}>
-            {items.map((item) => (
+          <div className="p-toolbar"><Check label={t("bulkSelectAll")} checked={allSelected} onChange={() => setSelected(allSelected ? [] : visibleItems.map(keyOf))} /></div>
+          <DataTable caption={t("resultReview")} headers={[{ label: t("bulkSelect"), hidden: true }, t("test"), t("severity"), t("outcome"), t("slaWaiting"), t("reviewAssignee"), { label: t("reason"), align: "end" }]}>
+            {visibleItems.map((item) => (
               <tr key={`${item.orgId}-${item.assessment_id}`}>
                 <td><input type="checkbox" aria-label={`${t("bulkSelect")}: ${item.question ?? item.case_title}`} checked={selected.includes(keyOf(item))} onChange={() => toggle(keyOf(item))} /></td>
                 <th scope="row">
@@ -234,11 +313,17 @@ export function ReviewQueue() {
                   <ResultBadge result={{ outcome: item.outcome as "pass", label: queuedLabel(item) }} />
                 </td>
                 <td><Sla since={item.created_at} /></td>
+                <td>
+                  <Assignee assignment={assignee(item.orgId, "assessment", item.assessment_id)} title={item.question ?? item.case_title} busy={assigning === assignmentKey(item.orgId, "assessment", item.assessment_id)}
+                    onChange={(action, takeOver) => void changeAssignment(item.orgId, "assessment", item.assessment_id, action, takeOver)} />
+                </td>
                 <td className="p-table-action p-cell-meta">{reviewReason(item)}</td>
               </tr>
             ))}
           </DataTable>
           </>
+        ) : items.length ? (
+          <p className="p-cell-meta">{t("reviewFilterNone")}</p>
         ) : (
           <EmptyState title={t("noResultsToReview")} icon={<ClipboardCheck />}>
             <p>{t("noResultsToReviewHelp")}</p>

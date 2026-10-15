@@ -170,7 +170,7 @@ const localizedPublic = /^\/(en|es)(\/|$)/.exec(location.pathname)?.[1] as "en" 
 /** A privately shared report (launch L-17): no shell, the public frame only; its API is routed by each test. */
 const sharePage = location.pathname === "/share";
 /** The public sample report (launch L-33), in the Paper frame without the platform shell. */
-const sampleReportPage = location.pathname === "/sample-report";
+const sampleReportPage = location.pathname === "/sample-report" || /^\/(en|es)\/(sample-report|informe-de-ejemplo)$/.test(location.pathname);
 /** The public methodology page (launch L-20), in the Paper frame. */
 const methodologyPage = location.pathname === "/methodology";
 /** Launch L-31: an opt-in public results page and an anonymous index edition, as the server renders them from their frozen records. */
@@ -197,7 +197,7 @@ const sectorIndexFixture: PublicSectorIndex = {
       aggregates: { systems: 11, answers_scored: 398, median_pass: 58, p25_pass: 47, p75_pass: 69, correct_share: 57, partial_share: 13, incorrect_share: 30 } },
   ],
 };
-const sampleLocale = params.get("locale") === "es" ? "es" as const : "en" as const;
+const sampleLocale = params.get("locale") === "es" || location.pathname.startsWith("/es/") ? "es" as const : "en" as const;
 const growthWeeks = Array.from({length:8},(_,i)=>({week:`2026-09-${String(i+1).padStart(2,"0")}`,events:{page_view:40+i,demo_started:12,account_created:4,report_viewed:2}}));
 /** Launch L-21 fixtures: growth KPIs and demo health on the Overview. */
 const opsKpis = { stage: "gate_a" as const, targets: { sessions: 150, demoStarts: 15, demoSuccess: 0.85, newAccounts: 3, activation: 0.3, snapshotsShared: 15, payingCustomers: 0, demoP50Seconds: 300 },
@@ -361,8 +361,10 @@ const content =
   ) : (
     <WorkspaceEvaluations />
   );
-createRoot(document.getElementById("root")!).render(
-  authPage || demoPage || landingPage || sampleReportPage || sharePage || methodologyPage || resultsPage || sectorIndexPage ? (
+createRoot(document.getElementById("root")!).render(<>
+  {/* `?track` mounts the root funnel tracker on any page, as the app's root layout does (launch G1's scripted funnel). */}
+  {params.has("track") && location.pathname !== "/analytics-fixture" && !sharePage && <FunnelVisitTracker />}
+  {authPage || demoPage || landingPage || sampleReportPage || sharePage || methodologyPage || resultsPage || sectorIndexPage ? (
     content
   ) : anonymous ? (
     <div className="p-root">
@@ -370,5 +372,5 @@ createRoot(document.getElementById("root")!).render(
     </div>
   ) : (
     <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding"), home: params.has("home"), billing: params.has("billing"), sectorPacks: params.has("sector-packs"), dataControls: params.has("data-controls") }}>{content}</ShellFrame>
-  ),
-);
+  )}
+</>);

@@ -401,6 +401,7 @@ export const API_MESSAGES_ES: Record<string, string> = {
   "Only a Caudals operator can inspect regression drafts.": "Solo un operador de Caudals puede revisar los borradores de regresión.",
   "A Caudals reviewer must release a reviewed report.": "Un revisor de Caudals debe publicar un informe revisado.",
   "evaluationId or relatedRunId is required.": "Se necesita evaluationId o relatedRunId.",
+  "Someone else is already reviewing this item. Refresh the queue, or take it over.": "Otra persona ya está revisando este elemento. Actualiza la cola o hazte cargo de él.",
 
   // Ask your report (launch L-36).
   "That report is not available.": "Ese informe no está disponible.",
@@ -710,6 +711,9 @@ export const API_CODES: Record<string, { en: string; es: string }> = {
   REPORT_QUESTION_MONTHLY_LIMIT: { en: "This month's report questions are used up.", es: "Ya se han usado las preguntas sobre informes de este mes." },
   REPORT_QUESTION_MODEL_UNAVAILABLE: { en: "No model is available to answer questions about this report.", es: "No hay ningún modelo disponible para responder preguntas sobre este informe." },
   REPORT_QUESTION_MODEL_NOT_PERMITTED: { en: "The free plan answers questions with the local model only.", es: "El plan gratuito responde a las preguntas solo con el modelo local." },
+
+  // Review queue assignments (launch G1).
+  REVIEW_ASSIGNED: { en: "Someone else is already reviewing this item.", es: "Otra persona ya está revisando este elemento." },
 
   // Prospect snapshots (launch L-21).
   SNAPSHOT_DAILY_CAP: { en: "Today's snapshot limit is reached. Try again tomorrow.", es: "Se ha alcanzado el límite diario de pruebas externas. Vuelve a intentarlo mañana." },

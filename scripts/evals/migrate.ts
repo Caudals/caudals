@@ -85,6 +85,7 @@ const migrations=[
  '104_evals_publication_consent.sql',
  '110_evals_publication_published_at.sql',
  '111_billing_shadow_admission_mode.sql',
+ '113_evals_review_assignment.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

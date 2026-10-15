@@ -167,3 +167,76 @@ test("evidence links on the sample report point at numbered results", async ({ p
   expect(href).toMatch(/^#t\d+$/);
   await expect(page.locator(href!)).toHaveCount(1);
 });
+
+/* ------------------------------------------------ every empty state (G1) --- */
+
+// L-06 acceptance: the example evaluation is reachable from every empty state, not only the evaluations list.
+const EMPTY_STATES = [
+  { path: "/workspace/evaluations", title: "Run your first evaluation" },
+  { path: "/workspace/systems", title: "No connected systems yet" },
+  { path: "/workspace/test-sets", title: "No frozen test sets" },
+  { path: "/workspace/reports", title: "No published reports yet" },
+] as const;
+const onboardingState = (exampleHidden: boolean) => ({ data: { enabled: false, tracked: false, dismissed: false, complete: false, firstEvaluationId: null, steps: { connect: false, sources: false, run: false, results: false, invite: false }, welcome: { pending: false, systemType: null, goal: null }, exampleHidden }, meta: {} });
+
+for (const width of WIDTHS) {
+  test(`every empty state opens the example at ${width}px, for owners and viewers`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await routeApi(page);
+    for (const role of ["owner", "viewer=1"]) {
+      for (const { path, title } of EMPTY_STATES) {
+        await page.goto(`${path}?${role}`);
+        const empty = page.locator(".p-empty").filter({ has: page.getByRole("heading", { name: title }) });
+        await expect(empty.getByRole("link", { name: "See an example evaluation" }), `${path} as ${role}`).toHaveAttribute("href", /\/workspace\/example/);
+        expect(await noHorizontalScroll(page), `${path} at ${width}px`).toBe(true);
+        if (role === "owner" && width === 390) await page.screenshot({ path: `/tmp/caudals-g1-empty${path.replaceAll("/", "-")}-${width}.png`, fullPage: true });
+      }
+    }
+  });
+}
+
+test("the reports empty state leads to the example", async ({ page }) => {
+  await routeApi(page);
+  await page.goto("/workspace/reports?viewer=1");
+  await page.locator(".p-empty").getByRole("link", { name: "See an example evaluation" }).click();
+  await expect(page).toHaveURL(/\/workspace\/example/);
+  await expect(page.getByRole("heading", { level: 1, name: "Hogarel home-policy assistant" })).toBeVisible();
+});
+
+test("empty states keep systems' own action for writers and give viewers the example instead", async ({ page }) => {
+  await routeApi(page);
+  await page.goto("/workspace/systems?owner");
+  const empty = page.locator(".p-empty");
+  await expect(empty.getByRole("link", { name: "Connect a system" })).toBeVisible();
+  await expect(empty.getByRole("link", { name: "See an example evaluation" })).toBeVisible();
+  await page.goto("/workspace/systems?viewer=1");
+  await expect(empty.getByRole("link", { name: "Connect a system" })).toHaveCount(0);
+  await expect(empty.locator(".p-empty-action").getByRole("link", { name: "See an example evaluation" })).toBeVisible();
+});
+
+test("empty states respect the workspace's hidden example and the switched-off example", async ({ page }) => {
+  await routeApi(page);
+  await page.route("**/api/evals/v1/workspace/onboarding**", (route) => route.fulfill({ json: onboardingState(true) }));
+  for (const { path, title } of EMPTY_STATES) {
+    await page.goto(`${path}?owner`);
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+    await expect(page.getByRole("link", { name: "See an example evaluation" }), path).toHaveCount(0);
+    // No empty action box is left behind.
+    if (path !== "/workspace/evaluations" && path !== "/workspace/systems") await expect(page.locator(".p-empty-action")).toHaveCount(0);
+  }
+  await page.unroute("**/api/evals/v1/workspace/onboarding**");
+  for (const { path, title } of EMPTY_STATES) {
+    await page.goto(`${path}?owner&no-example`);
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+    await expect(page.getByRole("link", { name: "See an example evaluation" }), path).toHaveCount(0);
+  }
+});
+
+test("empty states link the example in Spanish", async ({ page }) => {
+  await routeApi(page);
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  for (const path of ["/workspace/systems", "/workspace/test-sets", "/workspace/reports"]) {
+    await page.goto(`${path}?owner`);
+    await expect(page.locator(".p-empty").getByRole("link", { name: "Ver una evaluación de ejemplo" }), path).toBeVisible();
+  }
+});
