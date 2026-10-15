@@ -13,6 +13,7 @@ export const EVALS_CLIENT_KEYS = {
     "accepted",
     "checking",
     "clearSearch",
+    "currency",
     "current",
     "done",
     "error",

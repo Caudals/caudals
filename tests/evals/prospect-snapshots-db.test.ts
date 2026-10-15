@@ -243,6 +243,8 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("prospect snapshots and the ops digest
     await expect(managed.resolveShareWithContext(first.token!, randomUUID())).rejects.toMatchObject({ status: 404 });
     token = second.token!;
     expect((await managed.resolveShareWithContext(token, randomUUID())).report).toHaveProperty("metrics");
+    // The list reads the link from its grant (launch R4).
+    expect((await prospects.listProspectSnapshots(operator)).snapshots.find((row) => row.id === snapshotId)).toMatchObject({ shareActive: true, shareRevoked: false });
     expect((await owner.query("SELECT count(*)::int n FROM evals.crm_handoff_draft WHERE org_id=$1", [sandboxOrg])).rows[0].n).toBe(0);
   }, 30000);
 
@@ -259,6 +261,8 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("prospect snapshots and the ops digest
     // Expiry ends the link without touching the draft.
     await owner.query("UPDATE evals.share_grant SET expires_at=now()-interval '1 minute' WHERE org_id=$1 AND revoked_at IS NULL", [sandboxOrg]);
     await expect(managed.resolveShareWithContext(token, randomUUID())).rejects.toMatchObject({ status: 404 });
+    // An expired grant reads as expired in the list, though the snapshot row still has the original date (launch R4).
+    expect((await prospects.listProspectSnapshots(operator)).snapshots.find((row) => row.id === snapshotId)).toMatchObject({ shareActive: false, shareRevoked: false });
   });
 
   it("computes the digest and growth details from fixtures, without sandboxes", async () => {

@@ -23,7 +23,7 @@ type Basis = "public_information" | "owner_permission";
 type Limits = { dailyCap: number; maxQuestions: number; requestsPerMinute: number; concurrentSessions: number; runsPerMonth: number; helpPages: number };
 type ListRow = {
   id: string; orgId: string; company: string; targetHost: string; helpHost: string; testingBasis: Basis; locale: "en" | "es";
-  evaluationId: string | null; shared: boolean; shareActive: boolean; shareExpiresAt: string | null; crmDraft: boolean; createdAt: string; mine: boolean;
+  evaluationId: string | null; shared: boolean; shareActive: boolean; shareRevoked?: boolean; shareExpiresAt: string | null; crmDraft: boolean; createdAt: string; mine: boolean;
 };
 type ListData = { snapshots: ListRow[]; today: { created: number; cap: number }; limits: Limits };
 type Draft = { linkedin: string; emailSubject: string; emailBody: string };
@@ -83,9 +83,9 @@ export function ProspectSnapshots() {
                   <td>{row.shared && row.shareExpiresAt
                     ? row.shareActive
                       ? <Badge tone="pass" dot>{tv("psSharedUntil", { date: formatDate(row.shareExpiresAt) })}</Badge>
-                      : <Badge tone="neutral">{t("psLinkExpired")}</Badge>
+                      : <Badge tone="neutral" dot>{row.shareRevoked ? t("psLinkRevoked") : t("psLinkExpired")}</Badge>
                     : <span className="p-cell-meta">{t("psNotShared")}</span>}</td>
-                  <td>{row.crmDraft ? <Badge tone="info">{t("psDraftCreated")}</Badge> : <span className="p-cell-meta">—</span>}</td>
+                  <td>{row.crmDraft ? <Badge tone="info" dot>{t("psDraftCreated")}</Badge> : <span className="p-cell-meta">—</span>}</td>
                   <td className="p-table-action p-cell-meta"><Time value={row.createdAt} /></td>
                 </tr>
               ))}
@@ -155,7 +155,7 @@ export function NewProspectSnapshot({ limits }: { limits: Limits }) {
         <TextArea id="ps-basis-note" label={basis === "owner_permission" ? t("psBasisNoteRequired") : t("psBasisNote")} value={basisNote}
           onChange={(event) => setBasisNote(event.target.value)} maxLength={500} rows={2} required={basis === "owner_permission"} />
         <Section title={t("psPolicyTitle")}>
-          <ul className="p-list-steps" data-testid="snapshot-policy">
+          <ul className="p-bullets" data-testid="snapshot-policy">
             <li>{t("psPolicyOrdinary")}</li>
             <li>{t("psPolicyPublic")}</li>
             <li>{tv("psPolicyLimits", { questions: limits.maxQuestions, rpm: limits.requestsPerMinute, runs: limits.runsPerMonth })}</li>
@@ -315,8 +315,8 @@ export function ProspectSnapshotDetail({ id }: { id: string }) {
 
       <Section title={t("psScope")}>
         <DefinitionList items={[
-          { term: t("psChatUrl"), value: <a className="p-link" href={detail.targetUrl} target="_blank" rel="noreferrer noopener">{detail.targetHost}<ExternalLink aria-hidden="true" size={14} /></a> },
-          { term: t("psHelpUrl"), value: <a className="p-link" href={detail.helpUrl} target="_blank" rel="noreferrer noopener">{detail.helpHost}<ExternalLink aria-hidden="true" size={14} /></a> },
+          { term: t("psChatUrl"), value: <a className="p-link p-link-external" href={detail.targetUrl} target="_blank" rel="noreferrer noopener">{detail.targetHost}<ExternalLink aria-hidden="true" size={14} /></a> },
+          { term: t("psHelpUrl"), value: <a className="p-link p-link-external" href={detail.helpUrl} target="_blank" rel="noreferrer noopener">{detail.helpHost}<ExternalLink aria-hidden="true" size={14} /></a> },
           { term: t("psBasis"), value: detail.basisNote ? `${basisLabel(detail.testingBasis)} · ${detail.basisNote}` : basisLabel(detail.testingBasis) },
           { term: t("psLimits"), value: tv("psLimitsValue", { questions: detail.trafficLimit.max_questions, rpm: detail.trafficLimit.requests_per_minute, runs: detail.trafficLimit.runs_per_month }) },
           { term: t("psSharing"), value: t("psSharingValue") },
@@ -342,11 +342,13 @@ export function ProspectSnapshotDetail({ id }: { id: string }) {
       <Section title={t("psLinkTitle")} description={t("psLinkHelp")}>
         <div className="p-stack">
         {detail.share && (
-          <p>
-            <Badge tone={detail.share.active ? "pass" : "neutral"} dot>{t("psExternalSnapshot")}</Badge>{" "}
-            {detail.share.active ? tv("psExpires", { date: formatDate(detail.share.expiresAt) }) : t("psLinkExpired")}
-            {" · "}{tv("psViews", { views: detail.share.views })}
-            {detail.share.active && !detail.share.current && <> · {t("psLinkOutdated")}</>}
+          <p className="p-row">
+            <span>{t("psExternalSnapshot")}</span>
+            <Badge tone={detail.share.active ? "pass" : "neutral"} dot>
+              {detail.share.active ? tv("psExpires", { date: formatDate(detail.share.expiresAt) }) : detail.share.revokedAt ? t("psLinkRevoked") : t("psLinkExpired")}
+            </Badge>
+            <span className="p-cell-meta">{detail.share.views === 1 ? t("psViewsOne") : tv("psViews", { views: detail.share.views })}</span>
+            {detail.share.active && !detail.share.current && <span className="p-cell-meta">{t("psLinkOutdated")}</span>}
           </p>
         )}
         {link && (
@@ -403,9 +405,9 @@ function warmblyText(detail: Detail) {
   const tags = Array.isArray(summary.tags) ? summary.tags.join(", ") : "";
   const lines = [
     `${t("psCompany")}: ${detail.company}`,
-    `Website: https://${detail.targetHost}`,
+    `${t("psWebsite")}: https://${detail.targetHost}`,
     `${t("psHelpUrl")}: ${detail.helpUrl}`,
-    `Tags: ${tags}`,
+    `${t("psTags")}: ${tags}`,
     `${t("psBasis")}: ${basisLabel(detail.testingBasis)}`,
     detail.share ? `${t("psLinkTitle")}: ${t("psExternalSnapshot")} · ${tv("psExpires", { date: formatDate(detail.share.expiresAt) })}` : "",
     "",

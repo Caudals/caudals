@@ -6,6 +6,7 @@ import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import { SidePanel } from "./overlays";
 import { ExpertBench, ReviewRequestList } from "./expert-reviews";
+import { kindLabel } from "./expert-workbench";
 import { t } from "@/lib/evals/messages/runtime";
 import {
   Action, Card, DataTable, EmptyState, Field, PageHeading, RowTitle,
@@ -75,7 +76,8 @@ export function ExpertManagement({ reviewOrders = false }: { reviewOrders?: bool
     return { profile, reviewed, gold, agreement, reliable: reviewed >= 10 && gold >= 10 };
   }), [profiles, assignments]);
   return <div className="p-stack">
-    <PageHeading title={t("expertWork")} meta={<span>{t("clientContext")} <strong>{workspace?.name ?? "—"}</strong></span>}>{t("expertWorkIntro")}</PageHeading>
+    {/* Requests and the bench span every client; only assignments and quality are one client's (launch R4). */}
+    <PageHeading title={t("expertWork")} meta={tab === "assignments" || tab === "experts" ? <span>{t("clientContext")} <strong>{workspace?.name ?? "—"}</strong></span> : undefined}>{t("expertWorkIntro")}</PageHeading>
     {!detail && notice && <Status tone="success">{notice}</Status>}{!detail && error && <Status error>{error}</Status>}
     <Tabs value={tab} onChange={setTab} label={t("expertViewLabel")} options={[
       ...(reviewOrders ? [{ value: "requests" as const, label: t("erTabRequests") }] : []),
@@ -83,7 +85,7 @@ export function ExpertManagement({ reviewOrders = false }: { reviewOrders?: bool
       ...(reviewOrders ? [{ value: "bench" as const, label: t("erTabBench") }] : []),
     ]} />
     {tab === "requests" ? <ReviewRequestList /> : tab === "bench" ? <ExpertBench /> : tab === "assignments" ? assignments.length ? <DataTable caption={t("expertAssignmentsCaption")} headers={[t("expertColAssignment"), t("expertColExpert"), t("expertColSeverity"), t("expertColStatus"), { label: "", align: "end" }]}>
-      {assignments.map((item) => <tr key={item.id}><RowTitle meta={item.kind.replaceAll("_", " ")}>{item.id.slice(0, 8)}…</RowTitle><td>{item.assigned_profile_id.slice(0, 8)}…</td><td><StatusBadge value={item.severity} /></td><td><StatusBadge value={item.status} /></td><td className="p-table-action"><Action size="sm" variant="secondary" onClick={() => void inspect(item.id)}>{t("expertInspect")}</Action></td></tr>)}
+      {assignments.map((item) => <tr key={item.id}><RowTitle meta={<code className="p-code" title={item.id}>{item.id.slice(0, 8)}</code>}>{kindLabel(item.kind)}</RowTitle><td><code className="p-code" title={item.assigned_profile_id}>{item.assigned_profile_id.slice(0, 8)}</code></td><td><StatusBadge value={item.severity} /></td><td><StatusBadge value={item.status} /></td><td className="p-table-action"><Action size="sm" variant="secondary" onClick={() => void inspect(item.id)}>{t("expertInspect")}</Action></td></tr>)}
     </DataTable> : <EmptyState title={t("expertNoAssignments")} icon={<ClipboardCheck />}><p>{t("expertNoAssignmentsHelp")}</p></EmptyState> :
     profiles.length ? <div className="p-grid">{quality.map(({ profile, reviewed, gold, agreement, reliable }) => <Card title={profile.user_id} key={profile.id}>
       <div className="p-row"><StatusBadge value={profile.eligibility_status} /><StatusBadge value={profile.credentials_status} /></div>

@@ -3,14 +3,14 @@
 /** Shared helpers of the ops billing console (L-16): formatting, actions with re-authentication, request keys. */
 import { useCallback, useState } from "react";
 import { EvalRequestError } from "./api";
-import { Status, formatMoney } from "./primitives";
+import { Status, formatEuros, formatMoney } from "./primitives";
 import { notify } from "./overlays";
 import { useReauth } from "./reauth";
 import { t } from "@/lib/evals/messages/runtime";
 
 /** Credits as people read them (grouped, at most two decimals). */
 export const credits = (value: string | number | null | undefined) => (value == null ? "—" : formatMoney(value));
-export const euros = (cents: number | null | undefined) => (cents == null ? "—" : `${formatMoney(cents / 100)} €`);
+export const euros = (cents: number | null | undefined) => (cents == null ? "—" : formatEuros(cents / 100));
 export const short = (id: string | null | undefined) => (id ? id.slice(0, 8) : "—");
 
 /**

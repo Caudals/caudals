@@ -227,7 +227,10 @@ routes remain English-only; `/admin` is removed and returns 404.
   (connection and web-search tests) go through `apiResultText()`, which
   quotes a model provider's own words as such. A reason or error code without
   a label of its own is shown by `codeText()`/`humanize()` as the code itself
-  in Spanish, not as English words. A GET opened in the browser (a download
+  in Spanish, not as English words; the codes operators read routinely have
+  Spanish in the phrase table (launch R4), and fixed engine placeholders
+  stored as a rationale ("Waiting for the answer judge.") read in the
+  interface language through `engineText()`. A GET opened in the browser (a download
   link, a file in a new tab: `Sec-Fetch-Mode: navigate`) that fails gets a
   small page in the reader's language (`errorPage` in
   `lib/evals/domain/http.ts`, cookie then `Accept-Language`) with the API's

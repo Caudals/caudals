@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { evalRequest } from "./api";
-import { Action, DataTable, DefinitionList, RowTitle, SectionHeading, Status, StatusBadge, humanize } from "./primitives";
+import { Action, Badge, DataTable, RowTitle, SectionHeading, Status, StatusBadge, humanize } from "./primitives";
 import { t } from "@/lib/evals/messages/runtime";
+import { percent } from "./ops-labels";
 
 type Judgments = {
   jobs: Array<{ id: string; case_revision_id: string; status: string; reason_code: string | null; result_assessment_id: string | null }>;
@@ -32,13 +33,19 @@ export function RunJudgments({ orgId, runId }: { orgId: string; runId: string })
     <section className="p-section" aria-label={t("rubricJudge")}>
       <SectionHeading title={t("rubricJudge")} actions={counts.queued ? <Action variant="secondary" size="sm" onClick={() => void collect()} disabled={pending}>{t("collectJudgeResults")}</Action> : undefined}>{t("rubricJudgeHelp")}</SectionHeading>
       {error && <Status error>{error}</Status>}
-      <DefinitionList items={[
-        ...Object.entries(counts).map(([status, count]) => ({ term: humanize(status), value: count })),
-        ...data.calibration.map((item) => ({
-          term: `${t("judgeCalibration")} · ${item.promptRevision}`,
-          value: `${item.examples} ${t("calibrationExamples")} · ${item.agreement === null ? "—" : `${Math.round(item.agreement * 100)}%`}${item.adequate ? "" : ` · ${t("calibrationExperimental")}`}`,
-        })),
-      ]} />
+      {/* Counts as pills and calibration as a sentence, so the block reads before the table (launch R4). */}
+      <div className="p-toolbar">
+        {Object.entries(counts).map(([status, count]) => <StatusBadge key={status} value={status} label={`${humanize(status)} · ${count}`} />)}
+      </div>
+      {data.calibration.map((item) => (
+        <p key={`${item.modelRevisionId}-${item.promptRevision}`} className="p-row p-cell-meta p-judge-calibration">
+          <span>
+            {t("judgeCalibration")} <code className="p-code">{item.promptRevision}</code>: {item.examples} {t("calibrationExamples")}
+            {item.agreement === null ? "" : ` · ${percent(item.agreement)} ${t("agreement")}`}
+          </span>
+          {!item.adequate && <Badge tone="warn">{t("calibrationExperimental").replace(/^./, (first) => first.toUpperCase())}</Badge>}
+        </p>
+      ))}
       <DataTable caption={t("rubricJudge")} headers={[t("test"), t("statusLabel"), t("reason")]}>
         {data.jobs.map((job) => (
           <tr key={job.id}>

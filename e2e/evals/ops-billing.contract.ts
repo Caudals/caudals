@@ -95,7 +95,8 @@ const fixtures: Record<string, (url: URL, route: Route) => unknown> = {
       checks: { paid_order_purchase_mismatch: { count: 0, ids: [] }, paid_order_invoice_mismatch: { count: 0, ids: [] }, holds_open_over_25h: { count: 0, ids: [] }, inconsistent_accounts: { count: 0, ids: [] }, shadow_drift: { count: 0, ids: [] } },
       notes: { voided_test_documents: 0, orders_flagged_for_review: 0 }, totals: {},
       stripe: { checked: true, matched: 3, issues: [], unpaidOrders: [], timing: [], unrelated: [{ stripeId: "txn_1", type: "charge", amount: 100 }, { stripeId: "txn_2", type: "refund", amount: -100 }] } } } }),
-  "/billing/admin/invoices": () => ({ documents: [{ id: "d1", org_id: ORG, kind: "invoice", status: "pending_issue", number: null, series_code: "CAU", gross_cents: 6050, operation_date: ago(10).slice(0, 10), livemode: false, workspace: "Example client", legal_name: "Acme Software SL", country: "ES", pdf_attached: false, created_at: ago(10) }] }),
+  // camelCase, as lib/billing/invoicing/store.ts `adminDocuments` returns them (launch R4: the console read snake_case and showed "undefined").
+  "/billing/admin/invoices": () => ({ documents: [{ id: "d1", orgId: ORG, kind: "invoice", status: "pending_issue", number: null, seriesCode: "CAU", grossCents: 6050, operationDate: "2026-10-05", livemode: false, workspace: "Example client", legalName: "Acme Software SL", country: "ES", pdfAttached: false, createdAt: ago(10) }] }),
   "/billing/admin/export": () => ({ month: "2026-09", livemode: false, complete: true, from: "", to: "", checks: { documents_to_issue: 1, unmatched: 0 }, orders: 1, documentsToIssue: 1, chargebacks: 0,
     sales: [{ tax_treatment: "es_vat", tax_mention: null, orders: 1, net_cents: 5000, vat_cents: 1050, gross_cents: 6050, credits: 5000, bonus_credits: 150 }],
     refunds: [], purchasedCredits: { opening: { credits: 0, eur: 0 }, purchased: { credits: 5000, eur: 48.5 }, consumed: { credits: 12, eur: 0.12 }, closing: { credits: 4988, eur: 48.38 } }, freeCredits: {},
@@ -174,9 +175,24 @@ test("account view: search, open, grant above the threshold goes for a second ap
   await dialog.getByLabel("Credits", { exact: true }).fill("15000");
   await dialog.getByLabel("Campaign tag").fill("founding-pilot");
   await dialog.getByLabel("Reason").fill("Founding pilot re-runs");
-  await dialog.getByRole("button", { name: "Grant credits" }).click();
+  // The confirm button restates the amount (launch R4).
+  await dialog.getByRole("button", { name: "Grant 15,000 credits (€150)" }).click();
   await expect(page.getByText("Sent for a second administrator's approval.")).toBeVisible();
   expect(posts).toEqual([{ path: "/billing/admin/grants", body: { orgId: ORG, credits: 15000, source: "grant", reason: "Founding pilot re-runs", campaign: "founding-pilot" }, key: expect.any(String) }]);
+});
+
+test("invoices: rows read the API's fields, attaching is the visible step and voiding sits in the menu as danger (launch R4)", async ({ page }) => {
+  await routes(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/ops/platform/billing?admin&view=invoices");
+  const row = page.getByRole("table", { name: "Invoices" }).getByRole("row", { name: /Acme Software SL/ });
+  await expect(row).toContainText("CAU-…");
+  await expect(row).toContainText("€60.50");
+  await expect(row).toContainText("5 Oct 2026");
+  await expect(page.getByRole("table", { name: "Invoices" })).not.toContainText("undefined");
+  await expect(row.getByRole("button", { name: "Attach issued invoice" })).toBeVisible();
+  await row.getByRole("button", { name: /^Actions/ }).click();
+  await expect(page.getByRole("menuitem", { name: "Void test document" })).toBeVisible();
 });
 
 test("approvals: your own request waits for another admin; approving sends the reviewed payload hash (L-16)", async ({ page }) => {

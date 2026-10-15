@@ -9,11 +9,36 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, DataTable, DefinitionList, FilterChips, PageHeading, RowTitle, SectionHeading, Stat, StatGrid, Status, StatusBadge, Time, formatMoney, humanize } from "./primitives";
+import { Action, DataTable, DefinitionList, FilterChips, PageHeading, RowTitle, SectionHeading, Stat, StatGrid, Status, StatusBadge, Time, formatEuros, formatMoney, humanize } from "./primitives";
 import { OutcomeBar } from "./charts";
 import { RunJudgments } from "./run-judgments";
 import { usePageCrumb } from "./workspace-context";
-import { t, tv } from "@/lib/evals/messages/runtime";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
+import { tr, type Phrase } from "@/lib/evals/messages/phrases";
+import { countOf } from "./ops-labels";
+
+/** The frozen plan's fields an operator reads first, labelled (launch R4). */
+const PLAN_LABEL: Record<string, Phrase> = {
+  run_id: "Run ID", execution_mode: "Execution mode", suite_version_id: "Test set version", repetition_policy: "Repetition policy",
+  target_config_hash: "System configuration hash", target_revision_id: "System revision", candidate_context_hash: "Context hash",
+  execution_conditions_hash: "Execution conditions hash",
+};
+
+/** An id or hash, shortened the same way everywhere, the full value on hover. */
+function Hash({ value }: { value: string }) {
+  return <code className="p-code" title={value}>{value.length > 16 ? `${value.slice(0, 12)}…` : value}</code>;
+}
+
+function planValue(key: string, value: unknown) {
+  const text = String(value);
+  if (/(_hash|_id)$/.test(key)) return <Hash value={text} />;
+  return /^[a-z][a-z0-9_]*$/.test(text) ? humanize(text) : text;
+}
+
+/** A timeline step to the second, so order and duration read at a glance. */
+function exactTime(value: string) {
+  return new Intl.DateTimeFormat(getLocale() === "es" ? "es-ES" : "en-GB", { dateStyle: "medium", timeStyle: "medium" }).format(new Date(value));
+}
 
 type RunData = {
   run: { status: string; phase: string; created_at?: string; execution_mode?: string; reason_code?: string | null };
@@ -88,10 +113,10 @@ export function RunInspector({ runId }: { runId: string }) {
         <>
           {data.run.reason_code && <Status tone="warn">{humanize(data.run.reason_code)}</Status>}
           <StatGrid>
-            <Stat label={t("tests")} value={data.units.length} meta={`${answered} ${t("answeredLower")} · ${pending} ${t("pendingLower")}`} />
-            <Stat label={t("settledCost")} value={formatMoney(data.costs.settled)} meta={`${t("reserved")} ${formatMoney(data.costs.reserved)}`} />
-            <Stat label={t("unresolvedCost")} value={formatMoney(data.costs.unresolved)} meta={t("unresolvedCostHelp")} />
-            <Stat label={t("externalTargetCalls")} value={data.targetUsage.calls} meta={`${data.targetUsage.unknown} ${t("unknownOutcome")}`} />
+            <Stat label={t("tests")} value={data.units.length} meta={`${countOf(answered, "countAnsweredOne", "countAnswered")} · ${countOf(pending, "countPendingOne", "countPending")}`} />
+            <Stat label={t("settledCost")} value={formatEuros(data.costs.settled)} meta={`${t("reserved")} ${formatEuros(data.costs.reserved)}`} />
+            <Stat label={t("unresolvedCost")} value={formatEuros(data.costs.unresolved)} meta={t("unresolvedCostHelp")} />
+            <Stat label={t("externalTargetCalls")} value={data.targetUsage.calls} meta={countOf(data.targetUsage.unknown, "countUnknownOne", "countUnknown")} />
           </StatGrid>
           <div className="p-section">
             <OutcomeBar counts={{ pass: answered, partial: 0, fail: errored, unscorable: pending }} label={t("executionOutcomes")} labels={{ pass: t("answeredLabel"), partial: null, fail: t("errorsLabel"), unscorable: t("pendingLabel") }} />
@@ -141,7 +166,7 @@ export function RunInspector({ runId }: { runId: string }) {
                     <span className="p-timeline-text">{humanize(event.kind)}</span>
                     <span className="p-cell-meta">
                       {event.reason_code ? `${humanize(event.reason_code)} · ` : ""}
-                      <Time value={event.created_at} />
+                      <time dateTime={event.created_at}>{exactTime(event.created_at)}</time>
                     </span>
                   </li>
                 ))}
@@ -151,11 +176,11 @@ export function RunInspector({ runId }: { runId: string }) {
               <SectionHeading title={t("frozenPlan")}>{t("frozenPlanHelp")}</SectionHeading>
               <DefinitionList
                 items={[
-                  { term: t("planHash"), value: <code className="p-code">{data.plan.content_hash.slice(0, 24)}…</code> },
+                  { term: t("planHash"), value: <Hash value={data.plan.content_hash} /> },
                   ...Object.entries(data.plan.document)
-                    .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
+                    .filter(([key, value]) => ["string", "number", "boolean"].includes(typeof value) && key !== "content_hash")
                     .slice(0, 12)
-                    .map(([key, value]) => ({ term: humanize(key), value: <span className="p-mono-cell">{String(value)}</span> })),
+                    .map(([key, value]) => ({ term: PLAN_LABEL[key] ? tr(PLAN_LABEL[key]) : humanize(key), value: planValue(key, value) })),
                 ]}
               />
             </section>
@@ -190,8 +215,8 @@ function RunCredits({ orgId, runId }: { orgId: string; runId: string }) {
       <StatGrid>
         <Stat label={t("runCreditsCharged")} value={formatMoney(Number(data.totals.engineCredits) + Number(data.totals.meterCredits))}
           meta={tv("runCreditsSplit", { engine: formatMoney(data.totals.engineCredits), meters: formatMoney(data.totals.meterCredits) })} />
-        <Stat label={t("runCreditsRevenue")} value={`${formatMoney(data.totals.chargedEur)} €`} meta={Number(data.totals.refundedCredits) ? tv("runCreditsRefunded", { credits: formatMoney(data.totals.refundedCredits) }) : undefined} />
-        <Stat label={t("runCreditsOurCost")} value={`${formatMoney(data.totals.settledEur)} €`} meta={t("runCreditsOurCostHelp")} />
+        <Stat label={t("runCreditsRevenue")} value={formatEuros(data.totals.chargedEur)} meta={Number(data.totals.refundedCredits) ? tv("runCreditsRefunded", { credits: formatMoney(data.totals.refundedCredits) }) : undefined} />
+        <Stat label={t("runCreditsOurCost")} value={formatEuros(data.totals.settledEur)} meta={t("runCreditsOurCostHelp")} />
       </StatGrid>
       {data.attempts.length > 0 && (
         <DataTable caption={t("runCreditsTitle")} headers={[t("attempt"), t("statusLabel"), { label: t("runCreditsCostColumn"), align: "end" }, { label: t("runCreditsHeldColumn"), align: "end" }, { label: t("runCreditsChargedColumn"), align: "end" }]}>
@@ -199,7 +224,7 @@ function RunCredits({ orgId, runId }: { orgId: string; runId: string }) {
             <tr key={row.attemptId}>
               <RowTitle meta={humanize(row.role)}><code className="p-code">{row.attemptId.slice(0, 12)}</code></RowTitle>
               <td><StatusBadge value={row.status} /></td>
-              <td className="p-num">{row.settledEur !== null ? `${formatMoney(row.settledEur)} €` : row.reservedEur !== null ? `${formatMoney(row.reservedEur)} € (${humanize(row.reservation ?? "reserved")})` : "—"}</td>
+              <td className="p-num">{row.settledEur !== null ? formatEuros(row.settledEur) : row.reservedEur !== null ? `${formatEuros(row.reservedEur)} (${humanize(row.reservation ?? "reserved")})` : "—"}</td>
               <td className="p-num">{row.held !== null ? formatMoney(row.held) : "—"}</td>
               <td className="p-num">{row.charged !== null ? formatMoney(row.charged) : "—"}{row.shadow ? <span className="p-cell-meta p-cell-note">{t("runCreditsShadow")}</span> : null}</td>
             </tr>
@@ -207,7 +232,7 @@ function RunCredits({ orgId, runId }: { orgId: string; runId: string }) {
         </DataTable>
       )}
       {data.meters.length > 0 && (
-        <p className="p-field-hint">{data.meters.map((row) => `${humanize(row.meter)}: ${row.count} · ${formatMoney(row.credits)}${row.shadow ? ` (${t("runCreditsShadow")})` : ""}`).join(" · ")}</p>
+        <p className="p-stats-note">{data.meters.map((row) => `${humanize(row.meter)}: ${row.count} · ${formatMoney(row.credits)}${row.shadow ? ` (${t("runCreditsShadow")})` : ""}`).join(" · ")}</p>
       )}
     </section>
   );

@@ -8,7 +8,7 @@ import { methodologyUrl } from "@/lib/evals/public-links";
 import { evalRequest, EvalRequestError } from "./api";
 import {
   Action, ActionLink, Badge, Card, Check, DataTable, EmptyState, Loading, PageHeading,
-  RowTitle, SelectField, Status, StatusBadge, Tabs, TextArea, Toolbar, formatDate,
+  RowTitle, SelectField, Status, StatusBadge, Tabs, TextArea, Toolbar, formatDate, humanize,
 } from "./primitives";
 
 type WorkSummary = {
@@ -34,7 +34,7 @@ type Assignment = {
 const KIND: Record<string, MessageKey> = {
   authoring: "xwKindAuthoring", independent_review: "xwKindReview", adjudication: "xwKindAdjudication", calibration: "xwKindCalibration",
 };
-const kindLabel = (kind: string) => (KIND[kind] ? t(KIND[kind]) : kind.replaceAll("_", " "));
+export const kindLabel = (kind: string) => (KIND[kind] ? t(KIND[kind]) : humanize(kind));
 const CLOSED = new Set(["approved", "rejected", "adjudicated", "canceled"]);
 const LOCKED = new Set(["guideline_changed", "submitted", "approved", "rejected", "adjudicated", "canceled"]);
 
@@ -69,7 +69,7 @@ export function ExpertAssignmentQueue() {
       <EmptyState title={t("xwEmpty")} icon={<ClipboardCheck />}><p>{t("xwEmptyHelp")}</p></EmptyState> :
       <DataTable caption={t("xwQueueTitle")} headers={[t("xwColAssignment"), t("xwColSeverity"), t("xwColStatus"), t("xwColDue"), { label: "", align: "end" }]}>
         {visible.map((row) => <tr key={row.id}>
-          <RowTitle meta={kindLabel(row.kind)}>{row.id.slice(0, 8)}…</RowTitle>
+          <RowTitle meta={<span className="p-mono-cell">{row.id.slice(0, 8)}</span>}>{kindLabel(row.kind)}</RowTitle>
           <td><StatusBadge value={row.severity} /></td><td><StatusBadge value={row.status} /></td>
           <td><DueBadge due={row.due_at} closed={CLOSED.has(row.status) || LOCKED.has(row.status)} /></td>
           <td className="p-table-action"><ActionLink size="sm" variant="secondary" href={`/review/assignments/${row.id}`}>{t("xwOpenAssignment")}</ActionLink></td>

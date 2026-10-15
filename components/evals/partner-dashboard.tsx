@@ -19,7 +19,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Modal, notify } from "./overlays";
 import {
   Action, ActionAnchor, ActionLink, Badge, DataTable, DefinitionList, EmptyState, Field, Loading, PageHeading, Section,
-  SelectField, Stat, StatGrid, Status, Time,
+  SelectField, Stat, StatGrid, Status, Time, formatDate,
 } from "./primitives";
 
 type Overview = PartnerOverview;
@@ -90,7 +90,7 @@ export function PartnerDashboard({ partnerId, partners }: { partnerId: string; p
       <PageHeading
         title={data.partner.name}
         meta={<>
-          <Badge tone="info">{t("title")}</Badge>
+          <Badge>{t("title")}</Badge>
           {data.role && <Badge>{data.role === "admin" ? t("roleAdmin") : t("roleMember")}</Badge>}
           {data.partner.status !== "active" && <Badge tone="warn">{statusLabel}</Badge>}
         </>}
@@ -201,7 +201,7 @@ function Clients({ data, admin, copy, money, onCreated, partnerId }: { data: Ove
                   <span>{client.name}</span>
                 </span>
               </th>
-              <td>{client.access === "manage" ? t("accessManage") : t("accessWork")}</td>
+              <td className="p-cell-nowrap">{client.access === "manage" ? t("accessManage") : t("accessWork")}</td>
               <td className="p-table-action p-cell-meta"><Time value={client.lastActivity} /></td>
               <td className="p-num">{client.evaluations}</td>
               <td className="p-num">{client.runsThisMonth}</td>
@@ -381,7 +381,7 @@ function Allowance({ data, copy, money }: { data: Overview; copy: Copy; money: M
             { term: t("allowanceMonthly"), value: tv("credits", { n: money.credits(allowance.monthlyCredits) ?? "0" }) },
             { term: t("allowanceGranted"), value: tv("credits", { n: money.credits(allowance.grantedCredits) ?? "0" }) },
             { term: t("allowanceLeft"), value: tv("credits", { n: money.credits(allowance.remainingCredits) ?? "0" }) },
-            { term: t("allowanceValidity"), value: allowance.validUntil ? tv("allowanceUntil", { from: allowance.validFrom, until: allowance.validUntil }) : tv("allowanceFrom", { from: allowance.validFrom }) },
+            { term: t("allowanceValidity"), value: allowance.validUntil ? tv("allowanceUntil", { from: formatDate(allowance.validFrom), until: formatDate(allowance.validUntil) }) : tv("allowanceFrom", { from: formatDate(allowance.validFrom) }) },
           ]} />
           {allowance.grants.length > 0 && (<>
             <h3 className="p-partner-subhead">{t("recentGrants")}</h3>

@@ -38,7 +38,16 @@ type RightsKind = "public_official_text" | "public_sector_reuse" | "licensed" | 
 type VersionDetail = { role: Role; pack: Omit<Pack, "versions">; version: VersionSummary; items: Item[]; minPublished: number };
 
 const STATUS_LABEL: Record<Status, MessageKey> = { draft: "sectorPackStatusDraft", in_review: "sectorPackStatusInReview", published: "sectorPackStatusPublished" };
-const STATUS_TONE: Record<Status, "warn" | "info" | "pass"> = { draft: "warn", in_review: "info", published: "pass" };
+// A draft is neutral, as everywhere else on the platform (launch R4).
+const STATUS_TONE: Record<Status, "neutral" | "info" | "pass"> = { draft: "neutral", in_review: "info", published: "pass" };
+/** "ES" and "es" as a reader says them ("Spain · Spanish"); an unknown code stays as it is. */
+function placeName(code: string, type: "region" | "language") {
+  try {
+    return new Intl.DisplayNames([getLocale()], { type }).of(type === "region" ? code.toUpperCase() : code) ?? code;
+  } catch {
+    return code;
+  }
+}
 const REVIEW_LABEL: Record<ReviewStatus, MessageKey> = { pending: "sectorPackReviewPending", approved: "sectorPackReviewApproved", changes_requested: "sectorPackReviewChanges", rejected: "sectorPackReviewRejected" };
 const REVIEW_TONE: Record<ReviewStatus, "warn" | "pass" | "info" | "fail"> = { pending: "warn", approved: "pass", changes_requested: "info", rejected: "fail" };
 const RIGHTS_LABEL: Record<RightsKind, MessageKey> = { public_official_text: "sectorPackRightsPublicOfficial", public_sector_reuse: "sectorPackRightsPublicReuse", licensed: "sectorPackRightsLicensed", caudals_owned: "sectorPackRightsCaudals" };
@@ -58,20 +67,25 @@ function PackList({ mode, onOpen }: { mode: "ops" | "expert"; onOpen: (id: strin
   const [importing, setImporting] = useState(false);
   const load = useCallback(() => evalRequest<{ role: Role; packs: Pack[] }>("/sector-packs").then(setData).catch((value) => setError(value instanceof Error ? value.message : t("error"))), []);
   useEffect(() => { void load(); }, [load]);
+  const importAction = (
+    <Action variant="secondary" onClick={() => setImporting(true)}>
+      <Upload aria-hidden="true" />
+      {t("sectorPackImport")}
+    </Action>
+  );
   return (
     <>
-      {mode === "expert" && <PageHeading title={t("sectorPacks")}>{t("sectorPacksHelp")}</PageHeading>}
-      {mode === "ops" && <p className="p-cell-meta">{t("sectorPacksHelp")}</p>}
-      {error && <Status error>{error}</Status>}
-      {data?.role.staff && (
+      {mode === "expert" && (
+        <PageHeading title={t("sectorPacks")} actions={data?.role.staff ? importAction : undefined}>{t("sectorPacksHelp")}</PageHeading>
+      )}
+      {mode === "ops" && (
+        // The help reads as a description beside its action, not as a caption across the page (launch R4).
         <Toolbar>
-          <span className="p-toolbar-spacer" />
-          <Action variant="secondary" onClick={() => setImporting(true)}>
-            <Upload aria-hidden="true" />
-            {t("sectorPackImport")}
-          </Action>
+          <p className="p-toolbar-note">{t("sectorPacksHelp")}</p>
+          {data?.role.staff && <><span className="p-toolbar-spacer" />{importAction}</>}
         </Toolbar>
       )}
+      {error && <Status error>{error}</Status>}
       {!data && !error ? (
         <TableSkeleton columns={5} />
       ) : data && !data.packs.length ? (
@@ -88,7 +102,7 @@ function PackList({ mode, onOpen }: { mode: "ops" | "expert"; onOpen: (id: strin
                     <button type="button" className="p-row-link p-row-button" onClick={() => onOpen(version.id)}>
                       {title(pack.title)}
                     </button>
-                    <span className="p-cell-meta">{sectorLabel(pack.sector)} · {pack.jurisdiction} · {pack.language}</span>
+                    <span className="p-cell-meta">{sectorLabel(pack.sector)} · {placeName(pack.jurisdiction, "region")} · {placeName(pack.language, "language")}</span>
                   </span>
                 </th>
                 <td>

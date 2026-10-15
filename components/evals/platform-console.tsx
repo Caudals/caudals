@@ -28,6 +28,10 @@ import {
   TabLinks,
   TableSkeleton,
   Time,
+  Toolbar,
+  InlineSelect,
+  SearchInput,
+  formatDate,
   formatMoney,
   humanize,
 } from "./primitives";
@@ -37,6 +41,7 @@ import { usePlatformAction } from "./platform-action";
 import { EntitlementForm } from "./entitlement-form";
 import { OpsBilling, type BillingView } from "./ops-billing";
 import { accountHref, credits as fmtCredits, euros, planLabel } from "./ops-billing-shared";
+import { adapterLabel, amendmentText, countOf, perMillion, roleName } from "./ops-labels";
 import { t, tv } from "@/lib/evals/messages/runtime";
 
 export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit" | "billing";
@@ -288,8 +293,8 @@ function Providers({ admin }: { admin: boolean }) {
                 <td className="p-num">
                   {formatMoney(account.ceiling, account.currency)}
                 </td>
-                <td className="p-num">{formatMoney(account.settled)}</td>
-                <td className="p-num">{formatMoney(account.reserved)}</td>
+                <td className="p-num">{formatMoney(account.settled, account.currency)}</td>
+                <td className="p-num">{formatMoney(account.reserved, account.currency)}</td>
                 <td>
                   <StatusBadge value={account.enabled ? "enabled" : "disabled"} />
                 </td>
@@ -343,7 +348,7 @@ function Providers({ admin }: { admin: boolean }) {
               return (
                 <tr key={revision.id}>
                   <RowTitle
-                    meta={`${revision.adapter === "dgx" ? "DGX Spark" : "OpenAI-compatible"} · ${revision.endpoint_host}${revision.price ? ` · ${money(revision.price.input)}/${money(revision.price.output)} ${revision.price.currency} per token` : ` · ${t("noPrice")}`}`}
+                    meta={`${adapterLabel(revision.adapter)} · ${revision.endpoint_host} · ${revision.id.slice(0, 8)} · ${revision.price ? perMillion(revision.price) : t("noPrice")}`}
                   >
                     {revision.model_id}
                   </RowTitle>
@@ -364,7 +369,7 @@ function Providers({ admin }: { admin: boolean }) {
                   </td>
                   <td>
                     {revision.adapter === "dgx" ? (
-                      <span className="p-cell-meta">{t("privateRoute")}</span>
+                      <Badge>{t("privateRoute")}</Badge>
                     ) : keys.length ? (
                       <Badge tone="pass" dot>
                         {t("keyStored")} · v{keys[0].versions}
@@ -410,7 +415,7 @@ function Providers({ admin }: { admin: boolean }) {
             })}
           </DataTable>
         ) : (
-          <p className="p-cell-meta">{t("noModels")}</p>
+          <EmptyState compact title={t("noModels")} />
         )}
       </section>
 
@@ -435,13 +440,13 @@ function Providers({ admin }: { admin: boolean }) {
                 <td>{humanize(route.role)}</td>
                 <td className="p-cell-meta">{model(route.provider_revision_id)}</td>
                 <td className="p-cell-meta">
-                  {route.data_class} · {route.region}
+                  {humanize(route.data_class)} · {humanize(route.region)}
                 </td>
               </tr>
             ))}
           </DataTable>
         ) : (
-          <p className="p-cell-meta">{t("noRoutes")}</p>
+          <EmptyState compact title={t("noRoutes")} />
         )}
       </section>
 
@@ -668,7 +673,7 @@ function Inference() {
         <DataTable caption={t("inferenceHealth")} headers={[t("model"), t("health"), t("lastProbe"), { label: t("activeSlots"), align: "end" }, { label: t("calls24h"), align: "end" }, { label: t("avgSeconds"), align: "end" }]}>
           {data.health.map((row) => (
             <tr key={row.id}>
-              <RowTitle meta={`${row.adapter === "dgx" ? "DGX Spark" : "OpenAI-compatible"} · ${row.roles.map(humanize).join(", ")}`}>{row.model_id}</RowTitle>
+              <RowTitle meta={`${adapterLabel(row.adapter)} · ${row.id.slice(0, 8)} · ${row.roles.map(humanize).join(", ")}`}>{row.model_id}</RowTitle>
               <td>
                 <StatusBadge value={row.circuit_until && Date.parse(row.circuit_until) > now ? "circuit_open" : row.state ?? "unprobed"} />
               </td>
@@ -685,7 +690,7 @@ function Inference() {
       <section className="p-section">
         <SectionHeading title={t("recentProbes")}>{t("recentProbesHelp")}</SectionHeading>
         {data.probes.length ? (
-          <DataTable caption={t("recentProbes")} headers={[t("probe"), t("statusLabel"), t("capabilityEvidence"), { label: t("createdAt"), align: "end" }]}>
+          <DataTable caption={t("recentProbes")} headers={[t("probeNoun"), t("statusLabel"), t("capabilityEvidence"), { label: t("createdAt"), align: "end" }]}>
             {data.probes.map((probe) => (
               <tr key={probe.id}>
                 <RowTitle meta={probe.provider_revision_id?.slice(0, 8)}>{humanize(probe.kind)}</RowTitle>
@@ -700,7 +705,7 @@ function Inference() {
             ))}
           </DataTable>
         ) : (
-          <p className="p-cell-meta">{t("noProbes")}</p>
+          <EmptyState compact title={t("noProbes")} />
         )}
       </section>
     </>
@@ -748,9 +753,9 @@ function Usage({ admin }: { admin: boolean }) {
       {dialog === "" && messages}
       <StatGrid>
         <Stat label={t("ceiling")} value={workspaceBudget ? formatMoney(workspaceBudget.ceiling, workspaceBudget.currency) : t("notSet")} meta={t("workspaceBudget")} />
-        <Stat label={t("settledSpend")} value={formatMoney(workspaceBudget?.settled ?? "0")} />
-        <Stat label={t("outstandingSpend")} value={formatMoney(workspaceBudget?.reserved ?? "0")} />
-        <Stat label={t("externalTargetCalls")} value={data.targetCalls.calls} meta={`${data.targetCalls.unknown} ${t("unknownOutcome")}`} />
+        <Stat label={t("settledSpend")} value={formatMoney(workspaceBudget?.settled ?? "0", workspaceBudget?.currency ?? "EUR")} />
+        <Stat label={t("outstandingSpend")} value={formatMoney(workspaceBudget?.reserved ?? "0", workspaceBudget?.currency ?? "EUR")} />
+        <Stat label={t("externalTargetCalls")} value={data.targetCalls.calls} meta={countOf(data.targetCalls.unknown, "countUnknownOne", "countUnknown")} />
       </StatGrid>
 
       <CreditUsage admin={admin} />
@@ -768,7 +773,7 @@ function Usage({ admin }: { admin: boolean }) {
             <div className="p-setting-text">
               <h3>{t("entitlements")}</h3>
               <div className="p-setting-desc">
-                {entitlement.max_active_runs} {t("activeRunsLower")} · {formatMoney(entitlement.monthly_spend_limit, entitlement.currency)} {t("perMonth")} · {entitlement.review_allowance} {t("reviewsLower")} ·{" "}
+                {countOf(entitlement.max_active_runs, "countActiveRunsOne", "countActiveRuns")} · {formatMoney(entitlement.monthly_spend_limit, entitlement.currency)} {t("perMonth")} · {countOf(entitlement.review_allowance, "countReviewsOne", "countReviews")} ·{" "}
                 {entitlement.allowed_connection_types.map(humanize).join(", ")} · {entitlement.can_schedule ? t("schedulingOn") : t("schedulingOff")} · {entitlement.can_export ? t("exportsOn") : t("exportsOff")}
               </div>
             </div>
@@ -779,7 +784,7 @@ function Usage({ admin }: { admin: boolean }) {
 
       <section className="p-section">
         <SectionHeading title={t("evaluationCaps")}>{t("evaluationCapsHelp")}</SectionHeading>
-        {!data.evaluations.length ? <p className="p-cell-meta">{t("noEvaluationsYet")}</p> : <DataTable caption={t("evaluationCaps")} headers={[t("evaluation"), { label: t("ceiling"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
+        {!data.evaluations.length ? <EmptyState compact title={t("noEvaluationsYet")} /> : <DataTable caption={t("evaluationCaps")} headers={[t("evaluation"), { label: t("ceiling"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
           {data.evaluations.map((evaluation) => (
             <tr key={evaluation.id}>
               <RowTitle>{evaluation.title}</RowTitle>
@@ -801,10 +806,10 @@ function Usage({ admin }: { admin: boolean }) {
       <section className="p-section">
         <SectionHeading title={t("amendmentHistory")} />
         {data.amendments.length ? (
-          <DataTable caption={t("amendmentHistory")} headers={[t("change"), t("amendmentReason"), { label: t("createdAt"), align: "end" }]}>
+          <DataTable caption={t("amendmentHistory")} headers={[t("changeNoun"), t("amendmentReason"), { label: t("createdAt"), align: "end" }]}>
             {data.amendments.map((item) => (
               <tr key={item.id}>
-                <RowTitle meta={Object.entries(item.next).map(([key, value]) => `${humanize(key)}: ${Array.isArray(value) ? value.join(", ") : String(value)}`).join(" · ")}>{humanize(item.target_kind)}</RowTitle>
+                <RowTitle meta={amendmentText(item.next)}>{humanize(item.target_kind)}</RowTitle>
                 <td>{item.reason}</td>
                 <td className="p-table-action p-cell-meta">
                   <Time value={item.created_at} />
@@ -813,7 +818,7 @@ function Usage({ admin }: { admin: boolean }) {
             ))}
           </DataTable>
         ) : (
-          <p className="p-cell-meta">{t("noAmendments")}</p>
+          <EmptyState compact title={t("noAmendments")} />
         )}
       </section>
 
@@ -923,7 +928,7 @@ function CreditUsage({ admin }: { admin: boolean }) {
   }, [month]);
   return (
     <section className="p-section">
-      <SectionHeading title={t("billingOpsCreditUsage")} actions={
+      <SectionHeading title={`${t("billingOpsCreditUsage")} · ${t("allWorkspaces")}`} actions={
         <Field id="credit-usage-month" label={t("billingOpsMonth")} type="month" value={month} onChange={(event) => event.target.value && setMonth(event.target.value)} />
       }>{t("billingOpsCreditUsageHelp")}</SectionHeading>
       {failed ? <Status error>{t("error")}</Status> : !data ? <TableSkeleton columns={6} /> : (
@@ -934,11 +939,11 @@ function CreditUsage({ admin }: { admin: boolean }) {
             <Stat label={t("billingOpsHeld")} value={fmtCredits(data.totals.held)} meta={tv("billingOpsAvailableCredits", { credits: fmtCredits(data.totals.available) })} />
             <Stat label={t("billingOpsExpired")} value={fmtCredits(data.totals.expired)} meta={tv("billingOpsGrantedCredits", { credits: fmtCredits(data.totals.granted) })} />
           </StatGrid>
-          {!data.workspaces.length ? <p className="p-cell-meta">{t("billingOpsNoCreditActivity")}</p> : (
+          {!data.workspaces.length ? <EmptyState compact title={t("billingOpsNoCreditActivity")} /> : (
             <DataTable caption={t("billingOpsCreditUsage")} headers={[t("workspace"), { label: t("billingOpsSold"), align: "end" }, { label: t("billingOpsConsumed"), align: "end" }, { label: t("billingOpsHeld"), align: "end" }, { label: t("billingOpsExpired"), align: "end" }, { label: t("billingOpsAvailable"), align: "end" }]}>
               {data.workspaces.map(row => (
                 <tr key={row.orgId}>
-                  <RowTitle href={admin ? accountHref(row.orgId) : undefined} meta={[planLabel(row.plan), humanize(row.billingMode), row.frozen && t("billingOpsFrozen")].filter(Boolean).join(" · ")}>{row.workspace}</RowTitle>
+                  <RowTitle href={admin ? accountHref(row.orgId) : undefined} meta={[...new Set([planLabel(row.plan), humanize(row.billingMode)]), row.frozen && t("billingOpsFrozen")].filter(Boolean).join(" · ")}>{row.workspace}</RowTitle>
                   <td className="p-num">{fmtCredits(row.sold)}{row.soldNetCents ? <span className="p-cell-meta p-cell-note">{euros(row.soldNetCents)}</span> : null}</td>
                   <td className="p-num">{fmtCredits(row.consumed)}{Number(row.shadowCharged) ? <span className="p-cell-meta p-cell-note">{tv("billingOpsShadowShort", { credits: fmtCredits(row.shadowCharged) })}</span> : null}</td>
                   <td className="p-num">{fmtCredits(row.held)}</td>
@@ -959,6 +964,7 @@ function CreditUsage({ admin }: { admin: boolean }) {
 function Accounts({ admin }: { admin: boolean }) {
   const [data, setData] = useState<{ platformRoles: Array<{ user_id: string; email: string; name: string; role: string }>; memberships: Array<{ org_id: string; workspace: string; user_id: string; email: string; role: string; created_at: string }> } | null>(null);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
   useEffect(() => {
     if (admin) void evalRequest<NonNullable<typeof data>>("/accounts").then(setData).catch(() => setError(t("error")));
   }, [admin]);
@@ -974,7 +980,7 @@ function Accounts({ admin }: { admin: boolean }) {
             <tr key={row.user_id}>
               <RowTitle meta={row.name}>{row.email}</RowTitle>
               <td className="p-table-action">
-                <Badge tone={row.role === "platform_admin" ? "strong" : "neutral"}>{humanize(row.role)}</Badge>
+                <Badge tone={row.role === "platform_admin" ? "strong" : "neutral"}>{roleName(row.role)}</Badge>
               </td>
             </tr>
           ))}
@@ -982,12 +988,15 @@ function Accounts({ admin }: { admin: boolean }) {
       </section>
       <section className="p-section">
         <SectionHeading title={t("workspaceMembers")} />
+        <Toolbar>
+          <SearchInput value={query} onChange={setQuery} label={t("searchMembers")} />
+        </Toolbar>
         <DataTable caption={t("workspaceMembers")} headers={[t("account"), t("workspace"), t("roleLabel"), { label: t("joined"), align: "end" }]}>
-          {data.memberships.map((row) => (
+          {data.memberships.filter((row) => !query.trim() || `${row.email} ${row.workspace}`.toLowerCase().includes(query.trim().toLowerCase())).map((row) => (
             <tr key={`${row.org_id}-${row.user_id}`}>
               <RowTitle>{row.email}</RowTitle>
               <td>{row.workspace}</td>
-              <td>{humanize(row.role)}</td>
+              <td><Badge>{roleName(row.role)}</Badge></td>
               <td className="p-table-action p-cell-meta">
                 <Time value={row.created_at} withTime={false} />
               </td>
@@ -1004,6 +1013,7 @@ function Accounts({ admin }: { admin: boolean }) {
 function Audit() {
   const { orgId } = useWorkspace();
   const [rows, setRows] = useState<Array<{ id: string; actor_id: string; action: string; subject_id: string; created_at: string }> | null>(null);
+  const [action, setAction] = useState("");
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setRows(null);
@@ -1017,22 +1027,31 @@ function Audit() {
     const next = await evalRequest<NonNullable<typeof rows>>(`/audit?orgId=${orgId}&before=${encodeURIComponent(new Date(last.created_at).toISOString())}`).catch(() => []);
     setRows((current) => [...(current ?? []), ...next]);
   }
+  const actionLabel = (value: string) => humanize(value.replaceAll(".", "_"));
+  const actions = [...new Set((rows ?? []).map((row) => row.action))].sort();
+  const visible = (rows ?? []).filter((row) => !action || row.action === action);
   const body: ReactNode = !rows ? (
     <TableSkeleton columns={4} />
   ) : rows.length ? (
     <>
+      <Toolbar>
+        <InlineSelect id="audit-action" label={t("auditFilterAction")} value={action} onChange={(event) => setAction(event.target.value)}>
+          <option value="">{t("auditAllActions")}</option>
+          {actions.map((item) => <option key={item} value={item}>{actionLabel(item)}</option>)}
+        </InlineSelect>
+      </Toolbar>
       <DataTable caption={t("auditLog")} headers={[t("action"), t("account"), t("subject"), { label: t("createdAt"), align: "end" }]}>
-        {rows.map((row) => (
+        {visible.map((row) => (
           <tr key={row.id}>
-            <RowTitle>{humanize(row.action.replaceAll(".", "_"))}</RowTitle>
+            <RowTitle>{actionLabel(row.action)}</RowTitle>
             <td className="p-cell-meta">
-              <code className="p-code">{row.actor_id.slice(0, 14)}</code>
+              <code className="p-code" title={row.actor_id}>{row.actor_id.slice(0, 12)}</code>
             </td>
             <td className="p-cell-meta">
-              <code className="p-code">{row.subject_id.slice(0, 14)}</code>
+              <code className="p-code" title={row.subject_id}>{row.subject_id.slice(0, 8)}</code>
             </td>
             <td className="p-table-action p-cell-meta">
-              <Time value={row.created_at} />
+              <time dateTime={row.created_at}>{formatDate(row.created_at, true)}</time>
             </td>
           </tr>
         ))}
@@ -1046,7 +1065,7 @@ function Audit() {
       )}
     </>
   ) : (
-    <p className="p-cell-meta">{t("noAudit")}</p>
+    <EmptyState compact title={t("noAudit")} />
   );
   return (
     <>

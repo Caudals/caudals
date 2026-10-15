@@ -166,15 +166,28 @@ export async function completeSnapshotSetup(identity: EvalIdentity, snapshotId: 
 export async function listProspectSnapshots(identity: EvalIdentity) {
   requireSnapshotOperator(identity);
   const limits = snapshotLimits();
-  return withTenant({ orgId: "", actorId: identity.user.id }, async (db) => {
+  const listed = await withTenant({ orgId: "", actorId: identity.user.id }, async (db) => {
     const rows = (await db.query(
       `SELECT s.id,s.org_id AS "orgId",s.company,s.target_host AS "targetHost",s.help_host AS "helpHost",s.testing_basis AS "testingBasis",
         s.locale,s.evaluation_id AS "evaluationId",s.share_id IS NOT NULL AS shared,COALESCE(s.share_expires_at>now(),false) AS "shareActive",s.share_expires_at AS "shareExpiresAt",
-        s.crm_draft_id IS NOT NULL AS "crmDraft",s.created_at AS "createdAt",s.created_by=$1 AS mine
+        s.crm_draft_id IS NOT NULL AS "crmDraft",s.created_at AS "createdAt",s.created_by=$1 AS mine,s.share_id AS "shareId"
        FROM evals.prospect_snapshot s ORDER BY s.created_at DESC,s.id LIMIT 100`, [identity.user.id])).rows;
     const today = (await db.query("SELECT created FROM evals.prospect_snapshot_day WHERE day=$1", [madridDay()])).rows[0];
-    return { snapshots: rows, today: { created: Number(today?.created ?? 0), cap: limits.dailyCap }, limits };
+    return { rows, today };
   });
+  // The link's state comes from its share grant, as on the detail page: a link revoked or expired
+  // on the report itself reads that way here too (launch R4). Grants are tenant-scoped, so each
+  // shared snapshot is read in its own workspace.
+  const snapshots = [];
+  for (const { shareId, ...row } of listed.rows) {
+    if (!shareId) { snapshots.push({ ...row, shareRevoked: false }); continue; }
+    const grant = (await withTenant({ orgId: row.orgId, actorId: identity.user.id }, (db) => db.query(
+      `SELECT expires_at AS "expiresAt",revoked_at AS "revokedAt" FROM evals.share_grant WHERE org_id=$1 AND id=$2`, [row.orgId, shareId]))).rows[0];
+    snapshots.push(grant
+      ? { ...row, shareExpiresAt: grant.expiresAt, shareActive: !grant.revokedAt && new Date(grant.expiresAt).getTime() > Date.now(), shareRevoked: !!grant.revokedAt }
+      : { ...row, shareRevoked: false });
+  }
+  return { snapshots, today: { created: Number(listed.today?.created ?? 0), cap: limits.dailyCap }, limits };
 }
 
 const SEVERITY = ["critical", "high", "medium", "low"];

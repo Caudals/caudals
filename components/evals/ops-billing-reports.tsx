@@ -13,9 +13,9 @@ import { Download, Plus, RefreshCw } from "lucide-react";
 import { evalRequest } from "./api";
 import {
   Action, Badge, Check, DataTable, EmptyState, Field, FilterChips, RowTitle, SectionHeading, SelectField, Stat, StatGrid, Status, StatusBadge,
-  TableSkeleton, Time, humanize,
+  TableSkeleton, Time, formatDate, formatEuros, humanize,
 } from "./primitives";
-import { Modal } from "./overlays";
+import { ActionMenu, Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { accountHref, credits, euros, newKey, short, treatmentLabel, useOpsAction } from "./ops-billing-shared";
 import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
@@ -91,10 +91,10 @@ export function PriceBook() {
             <tr key={revision.id}>
               <RowTitle meta={`${revision.title}${revision.id === list.effectiveRevisionId ? ` · ${t("billingOpsInEffect")}` : ""}`}>{tv("billingOpsRevisionNumber", { n: revision.revision })}</RowTitle>
               <td><StatusBadge value={revision.status} /></td>
-              <td className="p-table-action p-cell-meta"><Time value={revision.effectiveAt} /></td>
+              <td className="p-table-action p-cell-meta">{revision.effectiveAt ? <time dateTime={revision.effectiveAt}>{formatDate(revision.effectiveAt)}</time> : "—"}</td>
               <td>
                 <Badge tone={notice === "missed" ? "fail" : notice === "due" ? "warn" : notice === "sent" ? "pass" : "neutral"} dot={notice === "due" || notice === "missed"}>{t(NOTICE_LABEL[notice])}</Badge>
-                {notice === "due" && revision.effectiveAt && <span className="p-cell-meta p-cell-note">{tv("billingOpsNoticeBy", { date: new Date(Date.parse(revision.effectiveAt) - 30 * 86_400_000).toISOString().slice(0, 10) })}</span>}
+                {notice === "due" && revision.effectiveAt && <span className="p-cell-meta p-cell-note">{tv("billingOpsNoticeBy", { date: formatDate(new Date(Date.parse(revision.effectiveAt) - 30 * 86_400_000)) })}</span>}
               </td>
               <td className="p-table-action"><Action variant="ghost" size="sm" onClick={() => setSelected(revision.id)}>{t("billingOpsView")}</Action></td>
             </tr>
@@ -126,15 +126,15 @@ function PriceCheckPanel({ check, onChanged }: { check: PriceCheck | null; onCha
         ? <Action variant="secondary" onClick={() => setOpen(true)}>{t("billingOpsAcknowledge")}</Action> : undefined}>
         {t("billingOpsPriceCheckHelp")}
       </SectionHeading>
-      {!check ? <p className="p-cell-meta">{t("billingOpsNoPriceCheck")}</p> : (
+      {!check ? <EmptyState compact title={t("billingOpsNoPriceCheck")} /> : (
         <>
           <p className="p-row">
             <Badge tone={state === "open" ? "warn" : state === "acknowledged" ? "pass" : "neutral"} dot={state === "open"}>
               {state === "open" ? t("billingOpsPriceCheckOpen") : state === "acknowledged" ? t("billingOpsPriceCheckAcknowledged") : t("billingOpsPriceCheckClean")}
             </Badge>
-            <span className="p-cell-meta">{tv("billingOpsPriceCheckOn", { date: check.checkedAt.slice(0, 10) })}</span>
+            <span className="p-cell-meta">{tv("billingOpsPriceCheckOn", { date: formatDate(check.checkedAt) })}</span>
           </p>
-          {check.acknowledgement && <Status tone="info">{tv("billingOpsPriceCheckAckBy", { date: check.acknowledgement.at.slice(0, 10), note: check.acknowledgement.note })}</Status>}
+          {check.acknowledgement && <Status tone="info">{tv("billingOpsPriceCheckAckBy", { date: formatDate(check.acknowledgement.at), note: check.acknowledgement.note })}</Status>}
           {rows.length > 0 && (
             <DataTable caption={t("billingOpsPriceCheck")} headers={[t("billingOpsModel"), t("billingOpsListedInput"), t("billingOpsListedOutput"), { label: t("billingOpsRecompute"), align: "end" }]}>
               {rows.map(change => (
@@ -213,7 +213,7 @@ function DraftDialog({ open, list, onClose, onCreated }: { open: boolean; list: 
         </fieldset>
         <Check name="useCheck" disabled={!changed.length} defaultChecked={changed.length > 0}
           label={tv("billingOpsUseCheck", { count: changed.length })}
-          description={list.latestCheck ? tv("billingOpsUseCheckHelp", { date: list.latestCheck.checkedAt.slice(0, 10) }) : t("billingOpsNoCheck")} />
+          description={list.latestCheck ? tv("billingOpsUseCheckHelp", { date: formatDate(list.latestCheck.checkedAt) }) : t("billingOpsNoCheck")} />
       </form>
     </Modal>
   );
@@ -276,7 +276,7 @@ function RevisionDetail({ id, list, onBack, onChanged }: { id: string; list: Boo
         <Stat label={t("billingOpsMultiplier")} value={`× ${view.multiplier}`} meta={tv("billingOpsFxValue", { rate: view.fxUsdPerEur, date: view.fxDate })} />
         <Stat label={t("billingOpsChange")} value={base ? (raises ? t("billingOpsIncrease") : t("billingOpsNoIncrease")) : "—"}
           meta={base ? tv("billingOpsComparedTo", { n: list.revisions.find(item => item.id === list.effectiveRevisionId)?.revision ?? "—" }) : t("billingOpsInEffect")} />
-        <Stat label={t("billingOpsNotice")} value={t(NOTICE_LABEL[notice.state])} meta={notice.deadline ? tv("billingOpsNoticeBy", { date: notice.deadline.slice(0, 10) }) : undefined} />
+        <Stat label={t("billingOpsNotice")} value={t(NOTICE_LABEL[notice.state])} meta={notice.deadline ? tv("billingOpsNoticeBy", { date: formatDate(notice.deadline) }) : undefined} />
       </StatGrid>
 
       {(notice.state === "due" || notice.state === "sent" || notice.state === "missed" || (notice.state === "draft" && raises)) && (
@@ -418,8 +418,8 @@ export function Reconciliation() {
       </SectionHeading>
       {messages}
       <StatGrid>
-        <Stat label={t("billingOpsCleanStreak")} value={data.streak.days} meta={data.streak.since ? tv("billingOpsSince", { date: data.streak.since }) : t("billingOpsGateBNeeds")} />
-        <Stat label={t("billingOpsDay")} value={current?.day ?? "—"} meta={current ? <Time value={current.generatedAt} /> : undefined} />
+        <Stat label={t("billingOpsCleanStreak")} value={data.streak.days} meta={data.streak.since ? tv("billingOpsSince", { date: formatDate(data.streak.since) }) : t("billingOpsGateBNeeds")} />
+        <Stat label={t("billingOpsDay")} value={current?.day ? formatDate(current.day) : "—"} meta={current ? <Time value={current.generatedAt} /> : undefined} />
         <Stat label={t("billingOpsDiscrepancies")} value={current?.discrepancies ?? "—"} meta={current ? tv("billingOpsExplained", { count: current.explained }) : undefined} />
         <Stat label={t("billingOpsStripe")} value={report ? (report.stripe.checked ? tv("billingOpsStripeMatched", { count: report.stripe.matched }) : t("billingOpsStripeNotChecked")) : "—"}
           meta={report && !report.stripe.checked ? humanize(report.stripe.reason ?? "unavailable") : undefined} />
@@ -455,11 +455,11 @@ export function Reconciliation() {
       )}
       <section className="p-section">
         <SectionHeading title={t("billingOpsReportHistory")} />
-        {!data.reports.length ? <p className="p-cell-meta">{t("billingOpsNoReports")}</p> : (
+        {!data.reports.length ? <EmptyState compact title={t("billingOpsNoReports")} /> : (
           <DataTable caption={t("billingOpsReportHistory")} headers={[t("billingOpsDay"), { label: t("billingOpsDiscrepancies"), align: "end" }, { label: t("billingOpsExplainedShort"), align: "end" }, t("billingOpsStripe"), { label: t("billingOpsGenerated"), align: "end" }]}>
             {data.reports.slice(0, 30).map(row => (
               <tr key={row.id}>
-                <RowTitle><button type="button" className="p-link-button" onClick={() => { setDay(row.day); void load(row.day); }}>{row.day}</button></RowTitle>
+                <RowTitle><button type="button" className="p-link-button" onClick={() => { setDay(row.day); void load(row.day); }}>{formatDate(row.day)}</button></RowTitle>
                 <td className="p-num">{row.discrepancies ? <Badge tone="fail" dot>{row.discrepancies}</Badge> : 0}</td>
                 <td className="p-num">{row.explained}</td>
                 <td className="p-cell-meta">{row.stripeChecked ? t("billingOpsChecked") : t("billingOpsStripeNotChecked")}</td>
@@ -475,7 +475,8 @@ export function Reconciliation() {
 
 /* ------------------------------------------------------ manual invoices --- */
 
-type InvoiceDoc = { id: string; org_id: string; kind: "invoice" | "credit_note"; status: string; number: string | null; series_code: string; gross_cents: number; operation_date: string; livemode: boolean; workspace: string; legal_name: string | null; country: string | null; pdf_attached: boolean; created_at: string };
+/** `GET /billing/admin/invoices` documents (`AdminDocument` in lib/billing/invoicing/store.ts): camelCase, as the API sends them. */
+type InvoiceDoc = { id: string; orgId: string; kind: "invoice" | "credit_note"; status: string; number: string | null; seriesCode: string; grossCents: number; operationDate: string; livemode: boolean; workspace: string; legalName: string | null; country: string | null; pdfAttached: boolean; createdAt: string };
 
 function readBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -505,7 +506,7 @@ export function ManualInvoices() {
     const key = newKey();
     const ok = await run(async () => {
       const pdfBase64 = file instanceof File && file.size ? await readBase64(file) : "";
-      await evalRequest(`/billing/admin/invoices/${dialog.doc.id}`, "POST", { action: "issue", orgId: dialog.doc.org_id, kind: dialog.doc.kind,
+      await evalRequest(`/billing/admin/invoices/${dialog.doc.id}`, "POST", { action: "issue", orgId: dialog.doc.orgId, kind: dialog.doc.kind,
         number: form.get("number"), issueDate: form.get("issueDate"), pdfBase64, verifactuStatus: form.get("verifactu") || undefined, reason: form.get("reason") }, key);
       return t("billingOpsInvoiceAttached");
     });
@@ -522,18 +523,19 @@ export function ManualInvoices() {
       </div>
       {dialog === null && messages}
       {failure && <Status error>{failure}</Status>}
-      {!rows ? <TableSkeleton columns={4} /> : !rows.length ? <p className="p-cell-meta">{t("billingOpsNoDocuments")}</p> : (
+      {!rows ? <TableSkeleton columns={4} /> : !rows.length ? <EmptyState compact title={t("billingOpsNoDocuments")} /> : (
         <DataTable caption={t("billingOpsInvoices")} headers={[t("billingOpsDocument"), t("workspace"), { label: t("billingOpsGross"), align: "end" }, { label: t("billingOpsOperationDate"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
           {rows.map(doc => (
             <tr key={doc.id}>
-              <RowTitle meta={[doc.number ?? `${doc.series_code}-…`, doc.livemode ? t("billingOpsLive") : t("billingOpsTestMode")].join(" · ")}>{t(doc.kind === "credit_note" ? "billingOpsCreditNote" : "billingOpsInvoice")}</RowTitle>
-              <td>{doc.legal_name ?? doc.workspace}<span className="p-cell-meta p-cell-note">{doc.workspace}</span></td>
-              <td className="p-num">{euros(doc.gross_cents)}</td>
-              <td className="p-table-action p-cell-meta">{String(doc.operation_date).slice(0, 10)}</td>
+              <RowTitle meta={[doc.number ?? `${doc.seriesCode}-…`, doc.livemode ? t("billingOpsLive") : t("billingOpsTestMode")].join(" · ")}>{t(doc.kind === "credit_note" ? "billingOpsCreditNote" : "billingOpsInvoice")}</RowTitle>
+              <td>{doc.legalName || doc.workspace}{doc.legalName && doc.legalName !== doc.workspace && <span className="p-cell-meta p-cell-note">{doc.workspace}</span>}</td>
+              <td className="p-num">{euros(doc.grossCents)}</td>
+              <td className="p-table-action p-cell-meta">{formatDate(doc.operationDate)}</td>
               <td className="p-table-action">
+                {/* Attaching the issued invoice is the next step; voiding a test document is destructive and sits in the menu (launch R4). */}
                 <span className="p-row">
-                  {(doc.status === "pending_issue" || doc.status === "queued") && <Action variant="ghost" size="sm" onClick={() => setDialog({ kind: "issue", doc })}>{t("billingOpsAttach")}</Action>}
-                  {!doc.livemode && doc.status !== "voided" && <Action variant="ghost" size="sm" onClick={() => setDialog({ kind: "void", doc })}>{t("billingOpsVoid")}</Action>}
+                  {(doc.status === "pending_issue" || doc.status === "queued") && <Action variant="secondary" size="sm" onClick={() => setDialog({ kind: "issue", doc })}>{t("billingOpsAttach")}</Action>}
+                  {!doc.livemode && doc.status !== "voided" && <ActionMenu label={`${t("actions")}: ${doc.number ?? t("billingOpsInvoice")}`} items={[{ label: t("billingOpsVoid"), tone: "danger", onSelect: () => setDialog({ kind: "void", doc }) }]} />}
                 </span>
               </td>
             </tr>
@@ -544,7 +546,7 @@ export function ManualInvoices() {
         footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-issue" disabled={pending}>{t("billingOpsAttach")}</Action></>}>
         <form id="ob-issue" className="p-stack" onSubmit={issue}>
           <div className="p-grid-2 p-form-grid">
-            <Field id="ob-issue-number" name="number" label={t("billingOpsInvoiceNumber")} required minLength={3} maxLength={60} placeholder={dialog?.doc.livemode ? `${dialog.doc.series_code}-2026-0001` : `TEST-${dialog?.doc.series_code ?? "CAU"}-0001`} />
+            <Field id="ob-issue-number" name="number" label={t("billingOpsInvoiceNumber")} required minLength={3} maxLength={60} placeholder={dialog?.doc.livemode ? `${dialog.doc.seriesCode}-2026-0001` : `TEST-${dialog?.doc.seriesCode ?? "CAU"}-0001`} />
             <Field id="ob-issue-date" name="issueDate" type="date" label={t("billingOpsIssueDate")} required max={today()} />
           </div>
           <Field id="ob-issue-pdf" name="pdf" type="file" accept="application/pdf" label={t("billingOpsInvoicePdf")} required hint={t("billingOpsInvoicePdfHint")} />
@@ -563,7 +565,7 @@ export function ManualInvoices() {
           const reason = new FormData(event.currentTarget).get("reason");
           const key = newKey();
           void run(async () => {
-            await evalRequest(`/billing/admin/invoices/${dialog.doc.id}`, "POST", { action: "void", orgId: dialog.doc.org_id, kind: dialog.doc.kind, reason }, key);
+            await evalRequest(`/billing/admin/invoices/${dialog.doc.id}`, "POST", { action: "void", orgId: dialog.doc.orgId, kind: dialog.doc.kind, reason }, key);
             return t("billingOpsVoided");
           }).then(async ok => { if (ok) { close(); await load(); } });
         }}>
@@ -624,7 +626,7 @@ export function MonthlyExport() {
           <div className="p-split p-section">
             <section>
               <SectionHeading title={t("billingOpsSales")} />
-              {!data.sales.length ? <p className="p-cell-meta">{t("billingOpsNoSales")}</p> : (
+              {!data.sales.length ? <EmptyState compact title={t("billingOpsNoSales")} /> : (
                 <DataTable caption={t("billingOpsSales")} headers={[t("billingOpsTreatment"), { label: t("billingOpsNet"), align: "end" }, { label: t("billingOpsVat"), align: "end" }, { label: t("billingOpsGross"), align: "end" }]}>
                   {data.sales.map(row => (
                     <tr key={row.tax_treatment}>
@@ -637,9 +639,9 @@ export function MonthlyExport() {
             </section>
             <section>
               <SectionHeading title={t("billingOpsDeferred")} />
-              <DataTable caption={t("billingOpsDeferred")} headers={[t("billingOpsBucket"), { label: t("billingOpsCredits"), align: "end" }, { label: "€", align: "end" }]}>
+              <DataTable caption={t("billingOpsDeferred")} headers={[t("billingOpsBucket"), { label: t("billingOpsCredits"), align: "end" }, { label: t("billingOpsAmount"), align: "end" }]}>
                 {BUCKETS.filter(bucket => data.purchasedCredits[bucket]).map(bucket => (
-                  <tr key={bucket}><RowTitle>{humanize(bucket)}</RowTitle><td className="p-num">{credits(data.purchasedCredits[bucket].credits)}</td><td className="p-num">{credits(data.purchasedCredits[bucket].eur)}</td></tr>
+                  <tr key={bucket}><RowTitle>{humanize(bucket)}</RowTitle><td className="p-num">{credits(data.purchasedCredits[bucket].credits)}</td><td className="p-num">{formatEuros(data.purchasedCredits[bucket].eur)}</td></tr>
                 ))}
               </DataTable>
             </section>

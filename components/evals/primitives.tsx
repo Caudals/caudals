@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { evaluationSignInPath, evaluationRecoveryPath } from "./auth-path";
+import { TabStrip } from "./tab-strip";
 import { getLocale, t } from "@/lib/evals/messages/runtime";
 import { hasPhrase, phrase, tr, type Phrase } from "@/lib/evals/messages/phrases";
 
@@ -201,10 +202,10 @@ export function Tabs<T extends string>({
   variant?: "underline" | "pill";
 }) {
   return (
-    <div
+    <TabStrip
       role="tablist"
       aria-label={label}
-      className="p-tabs"
+      current={value}
       {...(variant === "pill" ? { "data-variant": "pill" } : {})}
     >
       {options.map((option) => (
@@ -221,7 +222,7 @@ export function Tabs<T extends string>({
           {option.count != null && <span className="p-tab-count">{option.count}</span>}
         </button>
       ))}
-    </div>
+    </TabStrip>
   );
 }
 
@@ -230,13 +231,16 @@ export function TabLinks({
   current,
   options,
   label,
+  variant = "underline",
 }: {
   current: string;
   options: ReadonlyArray<{ href: string; label: string; id: string }>;
   label: string;
+  /** `pill` for a second row of tabs inside a tabbed page (the billing console's views). */
+  variant?: "underline" | "pill";
 }) {
   return (
-    <nav aria-label={label} className="p-tabs">
+    <TabStrip as="nav" aria-label={label} current={current} {...(variant === "pill" ? { "data-variant": "pill" } : {})}>
       {options.map((option) => (
         <Link
           key={option.id}
@@ -247,7 +251,7 @@ export function TabLinks({
           {option.label}
         </Link>
       ))}
-    </nav>
+    </TabStrip>
   );
 }
 
@@ -372,6 +376,18 @@ const STATUS: Record<string, { tone: Tone; label: Phrase }> = {
   active: { tone: "pass", label: phrase("Active") },
   quarantined: { tone: "fail", label: phrase("Quarantined") },
   released: { tone: "pass", label: phrase("Released") },
+  // ops (launch R4): expert review requests, price book, built-in packs, model health
+  requested: { tone: "warn", label: phrase("Requested") },
+  quoted: { tone: "info", label: phrase("Quoted") },
+  delivered: { tone: "pass", label: phrase("Delivered") },
+  declined: { tone: "neutral", label: phrase("Declined") },
+  scheduled: { tone: "info", label: phrase("Scheduled") },
+  effective: { tone: "pass", label: phrase("In effect") },
+  fixture: { tone: "neutral", label: phrase("Built in") },
+  malformed_output: { tone: "fail", label: phrase("Malformed output") },
+  service_unavailable: { tone: "fail", label: phrase("Service unavailable") },
+  model_missing: { tone: "fail", label: phrase("Model missing") },
+  network_unavailable: { tone: "warn", label: phrase("Network unavailable") },
 };
 
 export function humanize(value: string) {
@@ -381,7 +397,9 @@ export function humanize(value: string) {
   if (!words) return value;
   const label = words[0].toUpperCase() + words.slice(1);
   // A code with no Spanish label shows as the code itself, never as English words (launch L-23b).
-  return getLocale() === "es" && !hasPhrase(label) ? value : tr(label);
+  if (getLocale() === "es") return hasPhrase(label) ? tr(label) : value;
+  // English words keep their acronyms ("API question", not "Api question"; launch R4).
+  return label.replace(/\b(Api|Json|Qa|Id|Url|Http|Https|Pdf|Csv|Vat)\b/g, (word) => word.toUpperCase());
 }
 
 /**
@@ -845,18 +863,37 @@ function formatters() {
     : { relative: new Intl.RelativeTimeFormat("en", { numeric: "auto" }), absolute: new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }), day: new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }), justNow: "just now" });
 }
 
-/** Money as a person reads it: grouped, at most two decimals, with its currency. */
+/**
+ * Money (or a credit amount) as a person reads it in the interface language:
+ * grouped, at most two decimals, and with a currency its symbol where it has
+ * one ("€1,500.50" / "1500,50 €"; launch R4: Spanish read "1,000" as one).
+ */
 export function formatMoney(value: string | number | null | undefined, currency?: string) {
   if (value == null || value === "") return "—";
   const number = Number(value);
   if (!Number.isFinite(number)) return String(value);
-  const text = number.toLocaleString("en-GB", { minimumFractionDigits: number % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  const locale = getLocale() === "es" ? "es-ES" : "en-GB";
+  const digits = { minimumFractionDigits: number % 1 ? 2 : 0, maximumFractionDigits: 2 };
+  if (currency && /^[A-Z]{3}$/.test(currency)) {
+    try {
+      return new Intl.NumberFormat(locale, { style: "currency", currency, ...digits }).format(number);
+    } catch {
+      // An unknown code falls through to the plain form.
+    }
+  }
+  const text = number.toLocaleString(locale, digits);
   return currency ? `${text} ${currency}` : text;
+}
+
+/** Euros, the platform's billing currency. */
+export function formatEuros(value: string | number | null | undefined) {
+  return formatMoney(value, "EUR");
 }
 
 export function formatDate(value: string | Date | null | undefined, withTime = false) {
   if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
+  // A calendar day ("2026-10-01") is read at noon UTC, so it names the same day in every time zone.
+  const date = typeof value === "string" ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value) : value;
   if (Number.isNaN(date.getTime())) return "—";
   const f = formatters();
   return (withTime ? f.absolute : f.day).format(date);
@@ -892,12 +929,29 @@ export function EmptyState({
   icon,
   children,
   action,
+  compact = false,
 }: {
   title: string;
   icon?: ReactNode;
   children?: ReactNode;
   action?: ReactNode;
+  /** One line inside a section of a page (a table with no rows yet): icon and sentence side by side, no heading (launch R4). */
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div className="p-empty" data-size="compact">
+        <span className="p-empty-mark" aria-hidden="true">
+          {icon ?? <Inbox />}
+        </span>
+        <div>
+          <p className="p-empty-title">{title}</p>
+          {children}
+        </div>
+        {action && <div className="p-empty-action">{action}</div>}
+      </div>
+    );
+  }
   return (
     <section className="p-empty">
       <span className="p-empty-mark" aria-hidden="true">

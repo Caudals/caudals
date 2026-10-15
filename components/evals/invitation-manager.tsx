@@ -118,7 +118,7 @@ export function InvitationManager({ orgId, workspaceName }: { orgId: string; wor
       {items === null ? (
         <p className="p-cell-meta">{t("loading")}</p>
       ) : items.length ? (
-        <DataTable caption={t("members")} headers={[t("email"), t("role"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable caption={t("members")} headers={[t("email"), t("invitedAs"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
           {items.map((item) => {
             const state = invitationState(item);
             const revocable = !item.accepted_at && !item.revoked_at && state.label === t("pendingInvitation");

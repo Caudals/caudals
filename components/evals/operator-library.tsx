@@ -7,7 +7,20 @@ import { Badge, DataTable, DefinitionList, EmptyState, PageHeading, RowTitle, Se
 import { SidePanel } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { SectorPackLibrary } from "./sector-packs";
-import { t } from "@/lib/evals/messages/runtime";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
+import { tr } from "@/lib/evals/messages/phrases";
+
+/** Rights and task types in the interface language (launch R4: Spanish showed the codes). */
+const RIGHTS: Record<string, MessageKey> = {
+  customer_owned: "impRights_customer_owned", caudals_owned_synthetic: "impRights_caudals_owned_synthetic", caudals_owned: "impRights_caudals_owned",
+  licensed: "impRights_licensed", public_domain: "impRights_public_domain",
+};
+const TASKS: Record<string, MessageKey> = {
+  grounded_qa: "impKind_grounded_qa", corrected_response: "impKind_corrected_response", preference_pair: "impKind_preference_pair",
+  retrieval_content: "impKind_retrieval_content", numerical: "impKind_numerical",
+};
+const rightsLabel = (value: string) => (RIGHTS[value] ? t(RIGHTS[value]) : humanize(value));
+const taskLabel = (value: string) => (TASKS[value] ? t(TASKS[value]) : humanize(value));
 import type { DomainPack } from "@/lib/evals/generation/pack-registry";
 
 export type LibrarySection = "test-sets" | "sources" | "domain-packs" | "sector-packs" | "improvements";
@@ -83,7 +96,7 @@ function TestSets({ orgId }: { orgId: string }) {
                 <Time value={row.frozen_at} withTime={false} />
               </td>
               <td className="p-table-action">
-                <code className="p-code">{row.content_hash.slice(0, 12)}</code>
+                <code className="p-code" title={row.content_hash}>{row.content_hash.slice(0, 12)}</code>
               </td>
             </tr>
           ))}
@@ -118,7 +131,7 @@ function Sources({ orgId }: { orgId: string }) {
             <tr key={row.id}>
               <RowTitle meta={<>{row.project_title} · <Time value={row.created_at} withTime={false} />{row.extraction_version ? ` · ${row.extraction_version}` : ""}</>}>{row.title}</RowTitle>
               <td>
-                <Badge>{humanize(row.rights)}</Badge>
+                <Badge>{rightsLabel(row.rights)}</Badge>
               </td>
               <td className="p-num">{row.revisions}</td>
               <td className="p-num">{row.anchors ?? "—"}</td>
@@ -154,25 +167,25 @@ function Packs() {
             <th scope="row">
               <span className="p-table-primary">
                 <button type="button" className="p-row-link p-row-button" onClick={() => setOpenId(`${item.id}@${item.version}`)}>
-                  {item.title}
+                  {tr(item.title)}
                 </button>
-                <span className="p-cell-meta">{item.summary}</span>
+                <span className="p-cell-meta">{tr(item.summary)}</span>
               </span>
             </th>
-            <td className="p-cell-meta">{item.taskTypes.map(humanize).join(", ")}</td>
+            <td className="p-cell-meta">{item.taskTypes.map(taskLabel).join(", ")}</td>
             <td className="p-table-action">
               <StatusBadge value={item.status} />
             </td>
           </tr>
         ))}
       </DataTable>
-      <SidePanel open={!!pack} onOpenChange={(value) => !value && setOpenId(null)} title={pack?.title ?? t("domainPack")} description={pack && <code className="p-code">{pack.id}@{pack.version}</code>} wide>
+      <SidePanel open={!!pack} onOpenChange={(value) => !value && setOpenId(null)} title={pack ? tr(pack.title) : t("domainPack")} description={pack && <code className="p-code">{pack.id}@{pack.version}</code>} wide>
         {pack && (
           <>
-            <p>{pack.summary}</p>
+            <p>{tr(pack.summary)}</p>
             <DefinitionList
               items={[
-                { term: t("packTasks"), value: pack.taskTypes.map(humanize).join(", ") },
+                { term: t("packTasks"), value: pack.taskTypes.map(taskLabel).join(", ") },
                 { term: t("packEvaluators"), value: pack.deterministicEvaluators.join(", ") || "—" },
               ]}
             />

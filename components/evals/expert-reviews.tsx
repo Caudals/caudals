@@ -67,10 +67,10 @@ export function ReviewRequestList() {
     <DataTable caption={t("erRequestsCaption")} headers={[t("erColRequest"), t("erColScope"), t("erColStatus"), t("erColSla"), { label: "", align: "end" }]}>
       {rows.map((row) => (
         <tr key={row.id} data-review-request-row={row.status}>
-          <RowTitle meta={`${row.report_title ?? "—"} · ${formatDate(row.created_at, true)}`}>{row.workspace ?? "—"}</RowTitle>
+          <RowTitle href={`/ops/experts/reviews/${row.id}`} meta={`${row.report_title ?? "—"} · ${formatDate(row.created_at, true)}`}>{row.workspace ?? "—"}</RowTitle>
           <td>{t(SCOPE_LABEL[row.scope_kind])}<span className="p-cell-meta"> · {sectorLabel(row.sector)}</span></td>
           <td><StatusBadge value={row.status} label={t(STATUS_LABEL[row.status])} /></td>
-          <td>{requestSla(row) ?? (row.status === "delivered" ? <span className="p-cell-meta">{tv("erDeliveredBy", { count: row.reviewer_count ?? 0, date: formatDate(row.delivered_at) })}</span> : <span className="p-cell-meta">—</span>)}</td>
+          <td>{requestSla(row) ?? (row.status === "delivered" ? <span className="p-cell-meta">{tv(row.reviewer_count === 1 ? "erDeliveredByOne" : "erDeliveredBy", { count: row.reviewer_count ?? 0, date: formatDate(row.delivered_at) })}</span> : <span className="p-cell-meta">—</span>)}</td>
           <td className="p-table-action"><ActionLink size="sm" variant="secondary" href={`/ops/experts/reviews/${row.id}`}>{t("erOpen")}</ActionLink></td>
         </tr>
       ))}
@@ -136,7 +136,7 @@ export function ReviewRequestDetail({ requestId }: { requestId: string }) {
         meta={<><StatusBadge value={request.status} label={t(STATUS_LABEL[request.status])} />{requestSla(request)}</>}
         actions={<ActionLink variant="secondary" href={reportHref}>{t("erOpenReport")}</ActionLink>}
       >
-        {t("erDetailIntro")}
+        {open ? t("erDetailIntro") : null}
       </PageHeading>
       {error && <Status error>{error}</Status>}
       <div className="p-grid p-grid-2">
@@ -294,13 +294,13 @@ function OrderCard({ detail, pending, onPublish, onCancel }: { detail: Detail; p
         { term: t("erQuote"), value: `${formatMoney(order.quote_amount, order.quote_currency)} · ${order.quote_note}` },
         { term: t("erColStatus"), value: <StatusBadge value={order.status} label={t(order.status === "open" ? "erOrderOpen" : order.status === "delivered" ? "erStatusDelivered" : "erOrderCanceledLabel")} /> },
         { term: t("erReviewers"), value: tv("erReviewersOf", { reviewers, total: detail.progress.assignment_count }) },
-        ...(hours !== null ? [{ term: t("erTimeToReview"), value: tv("erHours", { hours }) }] : []),
+        ...(hours !== null ? [{ term: t("erTimeToReview"), value: hours < 1 ? t("erHoursUnderOne") : tv("erHours", { hours }) }] : []),
         ...(order.cancel_reason ? [{ term: t("erCloseReason"), value: order.cancel_reason }] : []),
       ]} />
       <DataTable caption={t("erAssignments")} headers={[t("expertColExpert"), t("expertColStatus"), t("erSubmitted"), t("erColDue")]}>
         {detail.assignments.map((item) => (
           <tr key={item.id}>
-            <RowTitle meta={tv("erRevisions", { count: item.revisions })}>{`${item.expert_user_id.slice(0, 12)}…`}</RowTitle>
+            <RowTitle meta={item.revisions === 1 ? t("erRevisionsOne") : tv("erRevisions", { count: item.revisions })}><code className="p-code" title={item.expert_user_id}>{item.expert_user_id.slice(0, 12)}</code></RowTitle>
             <td><StatusBadge value={item.status} /></td>
             <td>{item.submitted_at ? formatDate(item.submitted_at, true) : "—"}</td>
             <td>{formatDate(item.due_at)}</td>

@@ -778,12 +778,21 @@
   /* At least 10rem for the title: actions that leave less drop below it (narrow screens). */
   flex: 1 1 10rem;
 }
+/* On a phone the title and its description take the whole row and the
+   actions sit under them, instead of squeezing the text into a column
+   beside a button (launch R4). */
+@media (max-width: 639px) {
+  .p-head-text {
+    flex-basis: 100%;
+  }
+}
 .p-head h1 {
   font-size: var(--p-text-display);
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: var(--p-tracking-display);
-  overflow-wrap: anywhere;
+  /* Break between words; a single long name still breaks rather than overflow. */
+  overflow-wrap: break-word;
 }
 .p-head-meta {
   display: flex;
@@ -846,6 +855,11 @@
 .p-onboarding-stack:not(:empty) {
   margin-bottom: 16px;
 }
+/* A page heading inside a stack keeps the standard distance to what follows
+   (24px), not the stack gap on top of its own margin (launch R4). */
+.p-stack > .p-head {
+  margin-bottom: 8px;
+}
 .p-row {
   display: flex;
   flex-wrap: wrap;
@@ -868,6 +882,17 @@
 }
 .p-tabs::-webkit-scrollbar {
   display: none;
+}
+/* A row wider than the screen fades at the end that has more tabs
+   (`data-overflow`, set by TabStrip), so it reads as scrollable (launch R4). */
+.p-tabs[data-overflow="end"] {
+  mask-image: linear-gradient(to right, black calc(100% - 40px), transparent);
+}
+.p-tabs[data-overflow="start"] {
+  mask-image: linear-gradient(to left, black calc(100% - 40px), transparent);
+}
+.p-tabs[data-overflow="both"] {
+  mask-image: linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent);
 }
 .p-tab {
   position: relative;
@@ -941,11 +966,13 @@
   border-radius: var(--p-radius-xs); /* 10 track − 3 padding − 1 ring = 6 */
   font-size: var(--p-text-label);
 }
-.p-tabs[data-variant="pill"] .p-tab[aria-selected="true"] {
+.p-tabs[data-variant="pill"] .p-tab[aria-selected="true"],
+.p-tabs[data-variant="pill"] .p-tab[aria-current="page"] {
   background: var(--p-surface);
   box-shadow: var(--p-shadow-raise);
 }
-.p-tabs[data-variant="pill"] .p-tab[aria-selected="true"]::after {
+.p-tabs[data-variant="pill"] .p-tab[aria-selected="true"]::after,
+.p-tabs[data-variant="pill"] .p-tab[aria-current="page"]::after {
   display: none;
 }
 
@@ -957,6 +984,13 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 18px;
+}
+/* A short description at the start of a toolbar, with the toolbar's action beside it (launch R4). */
+.p-toolbar-note {
+  flex: 1 1 18rem;
+  max-width: 62ch;
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
 }
 .p-toolbar-label {
   font-size: var(--p-text-label);
@@ -1498,6 +1532,25 @@
   background: none;
   box-shadow: -1px 0 0 var(--p-border-hairline), 0 -1px 0 var(--p-border-hairline);
 }
+/* The rubric judge's calibration line in the run inspector (launch R4). */
+.p-judge-calibration {
+  margin-bottom: 16px;
+}
+/* Whatever follows a stat strip in the same section keeps its distance (launch R4). */
+.p-stats + :not(.p-section, section, .p-stats-note) {
+  margin-top: 16px;
+}
+/* One line of context under a stat strip (ops overview: why demos failed,
+   stuck runs). Never a figure of its own (launch R4). */
+.p-stats-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 10px;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+}
 .p-grid {
   display: grid;
   gap: 12px;
@@ -1784,6 +1837,21 @@
     content: attr(data-label) ": ";
   }
 }
+/* A row title that must stay readable when the table scrolls on a phone (launch R4). */
+.p-table th.p-cell-wide {
+  min-width: 14rem;
+}
+/* A short label that reads badly broken over two lines ("Managed by you"),
+   dates and ids keep their shape; the table scrolls sideways instead (launch R4). */
+.p-table .p-cell-nowrap,
+.p-table time,
+.p-table td .p-code {
+  white-space: nowrap;
+}
+/* An id in a table keeps its shape; the table scrolls instead (launch R4). */
+.p-table td .p-code {
+  overflow-wrap: normal;
+}
 .p-link {
   color: var(--p-text);
   font-weight: 500;
@@ -1810,6 +1878,10 @@
 
 /* --- Definition list -------------------------------------------------------- */
 
+.p-defs {
+  /* A value stays within reach of its label on a wide page (launch R4). */
+  max-width: 48rem;
+}
 .p-defs > div {
   display: flex;
   justify-content: space-between;
@@ -1827,6 +1899,7 @@
 }
 .p-defs dd {
   margin: 0;
+  min-width: 0;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -1836,6 +1909,18 @@
   gap: 4px;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+/* On a phone the term sits above its value: a two-column row squeezed both
+   into a few words per line (launch R4). */
+@media (max-width: 640px) {
+  .p-defs > div {
+    display: grid;
+    gap: 4px;
+  }
+  .p-defs dd {
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* --- Empty state ------------------------------------------------------------ */
@@ -1877,6 +1962,38 @@
 .p-empty > :where(a, button, .p-row),
 .p-empty-action {
   margin-top: 16px;
+}
+/* Compact: an empty table inside a section. Icon and sentence on one line,
+   no heading of its own (launch R4). */
+.p-empty[data-size="compact"] {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-items: start;
+  align-items: center;
+  column-gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+}
+.p-empty[data-size="compact"] .p-empty-mark {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0;
+  border-radius: var(--p-radius-md);
+}
+.p-empty[data-size="compact"] .p-empty-mark svg {
+  width: 16px;
+  height: 16px;
+}
+.p-empty[data-size="compact"] .p-empty-title {
+  font-size: var(--p-text-body);
+  font-weight: 500;
+  color: var(--p-text);
+}
+.p-empty[data-size="compact"] p {
+  max-width: 62ch;
+  font-size: var(--p-text-label);
+}
+.p-empty[data-size="compact"] .p-empty-action {
+  margin-top: 0;
 }
 
 /* --- Inline status ---------------------------------------------------------- */
@@ -3029,6 +3146,8 @@
   overflow-y: auto;
   padding: 20px 22px 28px;
   display: grid;
+  /* A wide table inside scrolls in its own container instead of widening the panel (launch R4). */
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 20px;
 }
@@ -3678,6 +3797,17 @@
 .p-inline-list li + li {
   margin-top: 6px;
 }
+/* A confirmation under a list of conditions keeps its distance (launch R4). */
+.p-bullets + .p-check {
+  margin-top: 16px;
+}
+/* An external link and its icon stay on one line (launch R4). */
+.p-link-external {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
 .p-inline-list {
   margin-top: 8px;
 }
@@ -4229,8 +4359,14 @@
 }
 
 /* --- Preparation: excerpts, scope, context questions, review ------------------ */
+/* As a row title it reads like any other row title (launch R4). */
+.p-table th .p-link-button {
+  font-size: var(--p-text-body);
+  color: var(--p-text);
+}
 .p-link-button {
   justify-self: start;
+  text-align: start;
   padding: 0;
   border: 0;
   background: none;

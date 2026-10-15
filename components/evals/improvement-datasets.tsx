@@ -5,6 +5,7 @@ import { DatabaseZap } from "lucide-react";
 import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
+import type { WorkspaceSummary } from "./workspace-data";
 import {
   Action, ActionLink, Card, DataTable, EmptyState, Field, PageHeading, RowTitle,
   Loading, SelectField, Stat, StatGrid, Status, StatusBadge, Tabs, TextArea,
@@ -52,6 +53,16 @@ export function ImprovementDatasets() {
   const [notice, setNotice] = useState(""); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [batchForm, setBatchForm] = useState({ projectId: "", title: "", objective: "" });
+  // The client's projects, from its evaluations, so a batch is created against a named project rather than a typed id (launch R4).
+  const [projects, setProjects] = useState<Array<{ id: string; title: string }> | null>(null);
+  useEffect(() => {
+    if (!orgId) return;
+    let live = true;
+    evalRequest<WorkspaceSummary>(`/workspace/summary?orgId=${encodeURIComponent(orgId)}`)
+      .then((summary) => { if (live) setProjects([...new Map(summary.evaluations.map((item) => [item.project_id, { id: item.project_id, title: item.project_title }])).values()]); })
+      .catch(() => { if (live) setProjects([]); });
+    return () => { live = false; };
+  }, [orgId]);
   const [taskForm, setTaskForm] = useState({ findingId: "", expertAssignmentId: "", kind: "corrected_response", familyId: "", split: "training", rightsBasis: "customer_owned" });
   const [promotion, setPromotion] = useState({ taskId: "", submissionRevisionId: "" });
   const [selectedItem, setSelectedItem] = useState("");
@@ -136,12 +147,19 @@ export function ImprovementDatasets() {
 
     {tab === "batches" && <div className="p-stack">
       <Card title={t("impNewBatch")}><div className="p-grid p-grid-2">
-        <Field id="improvement-project" label={t("impProjectId")} value={batchForm.projectId} onChange={(event) => setBatchForm({ ...batchForm, projectId: event.target.value })} />
+        {projects?.length ? (
+          <SelectField id="improvement-project" label={t("impProject")} value={batchForm.projectId} onChange={(event) => setBatchForm({ ...batchForm, projectId: event.target.value })}>
+            <option value="">{t("impChooseProject")}</option>
+            {projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
+          </SelectField>
+        ) : (
+          <Field id="improvement-project" label={t("impProjectId")} value={batchForm.projectId} onChange={(event) => setBatchForm({ ...batchForm, projectId: event.target.value })} />
+        )}
         <Field id="improvement-title" label={t("impBatchTitle")} value={batchForm.title} onChange={(event) => setBatchForm({ ...batchForm, title: event.target.value })} />
       </div><TextArea id="improvement-objective" label={t("impObjective")} value={batchForm.objective} onChange={(event) => setBatchForm({ ...batchForm, objective: event.target.value })} />
       <Action onClick={() => void createBatch()} disabled={busy || !batchForm.projectId || !batchForm.title}>{t("impCreateBatch")}</Action></Card>
-      {loading ? <Loading>{t("impLoading")}</Loading> : error ? <Action variant="secondary" onClick={() => void loadBatches()}>{t("retry")}</Action> : batches.length ? <DataTable caption={t("impBatches")} headers={[t("impColBatch"), t("impColTasks"), t("impColItems"), t("statusLabel"), { label: "", align: "end" }]}>
-        {batches.map((batch) => <tr key={batch.id}><RowTitle meta={batch.objective || t("impNoObjective")}>{batch.title}</RowTitle><td>{batch.task_count ?? 0}</td><td>{batch.item_count ?? 0}</td><td><StatusBadge value={batch.status} /></td><td className="p-table-action"><Action size="sm" variant="secondary" aria-label={tv("impOpenBatch", { title: batch.title })} onClick={() => void inspect(batch.id)}>{t("open")}</Action></td></tr>)}
+      {loading ? <Loading>{t("impLoading")}</Loading> : error ? <Action variant="secondary" onClick={() => void loadBatches()}>{t("retry")}</Action> : batches.length ? <DataTable caption={t("impBatches")} headers={[t("impColBatch"), { label: t("impColTasks"), align: "end" }, { label: t("impColItems"), align: "end" }, t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
+        {batches.map((batch) => <tr key={batch.id}><RowTitle meta={batch.objective || t("impNoObjective")}>{batch.title}</RowTitle><td className="p-num">{batch.task_count ?? 0}</td><td className="p-num">{batch.item_count ?? 0}</td><td><StatusBadge value={batch.status} /></td><td className="p-table-action"><Action size="sm" variant="secondary" aria-label={tv("impOpenBatch", { title: batch.title })} onClick={() => void inspect(batch.id)}>{t("open")}</Action></td></tr>)}
       </DataTable> : <EmptyState title={t("impEmptyTitle")} icon={<DatabaseZap />}><p>{t("impEmptyBody")}</p></EmptyState>}
     </div>}
 

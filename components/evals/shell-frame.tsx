@@ -147,6 +147,7 @@ const SECTION = (): Record<string, string> => ({
   experts: t("expertWork"),
   sources: t("sources"),
   "domain-packs": t("domainPacks"),
+  "sector-packs": t("sectorPacks"),
   improvements: t("improvementDatasets"),
   inference: t("inference"),
   usage: t("usageBudgets"),
@@ -190,6 +191,7 @@ function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb 
   if (s[0] === "partner") return [{ label: partnerCopy(getLocale()).t("navDashboard") }];
   if (s[0] === "review") {
     if (s.length === 1) return [{ label: t("assignedWork") }];
+    if (s[1] === "sector-packs") return [{ label: t("assignedWork"), href: "/review" }, { label: t("sectorPacks") }];
     return [{ label: t("assignedWork"), href: "/review" }, { label: detail ?? t("assignment") }];
   }
   return [];

@@ -10,11 +10,11 @@
  * audited on the server; above 10,000 credits (€100) a second admin approves.
  */
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { ShieldCheck, Snowflake } from "lucide-react";
+import { ChevronLeft, ShieldCheck, Snowflake } from "lucide-react";
 import { evalRequest } from "./api";
 import {
   Action, Badge, Check, DataTable, EmptyState, Field, FilterChips, RowTitle, SearchInput, SectionHeading, SelectField, Stat, StatGrid, Status,
-  StatusBadge, TabLinks, TableSkeleton, Time, Toolbar, humanize,
+  StatusBadge, TabLinks, TableSkeleton, Time, Toolbar, formatDate, humanize,
 } from "./primitives";
 import { ActionMenu, Modal } from "./overlays";
 import { FraudQueue, MonthlyExport, ManualInvoices, PriceBook, Reconciliation } from "./ops-billing-reports";
@@ -23,6 +23,16 @@ import { credits, euros, newKey, outcomeMessage, planLabel, short, useOpsAction,
 import { BILLING_VIEWS, type BillingView } from "./ops-billing-views";
 import { t, tv } from "@/lib/evals/messages/runtime";
 
+/** Plan and billing mode, once when they say the same ("Free", not "Free · Free"). */
+const modeLabel = (plan: string | null, mode: string) => [...new Set([planLabel(plan), humanize(mode)])].join(" · ");
+/** Credit enforcement for a workspace override. */
+const enforcementLabel = (value: string) => (value === "inherit" ? t("billingOpsInherit") : humanize(value));
+/** System-written ledger reasons in the interface language; an operator's own reason is shown as written. */
+const ledgerReason = (reason: string) => {
+  const allowance = reason.match(/^Monthly allowance (\d{4}-\d{2})$/);
+  return allowance ? tv("billingOpsAllowanceReason", { month: allowance[1] }) : reason;
+};
+
 export type { BillingView } from "./ops-billing-views";
 
 export function OpsBilling({ view, admin, userId, initialOrgId }: { view: BillingView; admin: boolean; userId: string; initialOrgId?: string | null }) {
@@ -30,7 +40,7 @@ export function OpsBilling({ view, admin, userId, initialOrgId }: { view: Billin
   return (
     <>
       <div className="p-section-tight">
-        <TabLinks label={t("billingOpsSections")} current={view}
+        <TabLinks label={t("billingOpsSections")} current={view} variant="pill"
           options={BILLING_VIEWS.map(item => ({ id: item.id, href: `/ops/platform/billing?view=${item.id}`, label: t(item.label) }))} />
       </div>
       {view === "accounts" ? <Accounts userId={userId} initialOrgId={initialOrgId ?? null} />
@@ -69,7 +79,7 @@ function Accounts({ userId, initialOrgId }: { userId: string; initialOrgId: stri
       <SectionHeading title={t("billingOpsAccounts")}>{t("billingOpsAccountsHelp")}</SectionHeading>
       <Toolbar><SearchInput value={query} onChange={setQuery} label={t("billingOpsSearchAccounts")} /></Toolbar>
       {error && <Status error>{error}</Status>}
-      {!rows ? <TableSkeleton columns={4} /> : !rows.length ? <p className="p-cell-meta">{t("billingOpsNoAccounts")}</p> : (
+      {!rows ? <TableSkeleton columns={4} /> : !rows.length ? <EmptyState compact title={t("billingOpsNoAccounts")} /> : (
         <DataTable caption={t("billingOpsAccounts")} headers={[t("workspace"), t("billingOpsMode"), { label: t("billingOpsAvailable"), align: "end" }, { label: t("billingOpsHeld"), align: "end" }, { label: t("billingOpsLastEntry"), align: "end" }]}>
           {rows.map(row => (
             <tr key={row.orgId}>
@@ -77,7 +87,7 @@ function Accounts({ userId, initialOrgId }: { userId: string; initialOrgId: stri
                 <button type="button" className="p-link-button" onClick={() => setSelected(row.orgId)}>{row.workspace}</button>
                 {row.frozenReason && <> <Badge tone="warn" dot>{t("billingOpsFrozen")}</Badge></>}
               </RowTitle>
-              <td className="p-cell-meta">{planLabel(row.plan)} · {humanize(row.billingMode)}</td>
+              <td className="p-cell-meta">{modeLabel(row.plan, row.billingMode)}</td>
               <td className="p-num">{credits(row.available)}</td>
               <td className="p-num">{credits(row.held)}</td>
               <td className="p-table-action p-cell-meta"><Time value={row.lastEntryAt} /></td>
@@ -112,6 +122,8 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
   const [older, setOlder] = useState<Ledger[]>([]);
   const [error, setError] = useState("");
   const [dialog, setDialog] = useState<Dialog>(null);
+  // The amount typed in Grant or Adjust, restated on the confirm button (launch R4).
+  const [amount, setAmount] = useState("");
   const { run, pending, messages, clear } = useOpsAction();
   const load = useCallback(async () => {
     try {
@@ -123,7 +135,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
   if (error) return <><Action variant="ghost" onClick={onBack}>{t("billingOpsBackToAccounts")}</Action><Status error>{error}</Status></>;
   if (!data) return <TableSkeleton columns={4} />;
-  const close = () => { setDialog(null); clear(); };
+  const close = () => { setDialog(null); setAmount(""); clear(); };
   const submit = (path: string, body: Record<string, unknown>, done: string) => async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const key = newKey();
@@ -139,7 +151,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
   return (
     <>
       <div className="p-row p-section-tight">
-        <Action variant="ghost" onClick={onBack}>{t("billingOpsBackToAccounts")}</Action>
+        <Action variant="ghost" onClick={onBack}><ChevronLeft aria-hidden="true" />{t("billingOpsBackToAccounts")}</Action>
       </div>
       <SectionHeading title={a.workspace ?? short(a.orgId)} actions={
         <span className="p-row">
@@ -151,7 +163,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
           ]} />
         </span>
       }>
-        {planLabel(a.plan)} · {humanize(a.billingMode)} · <code className="p-code">{a.orgId}</code>
+        {modeLabel(a.plan, a.billingMode)} · <code className="p-code">{a.orgId}</code>
       </SectionHeading>
       {dialog === null && messages}
       {a.frozenReason && <Status tone="warn">{tv("billingOpsFrozenBecause", { reason: a.frozenReason })}</Status>}
@@ -159,8 +171,8 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
       <StatGrid>
         <Stat label={t("billingOpsAvailable")} value={credits(a.available)} meta={euros(Math.ceil(Number(a.available)))} />
         <Stat label={t("billingOpsHeld")} value={credits(a.held)} meta={tv("billingOpsOpenHolds", { count: data.holds.filter(hold => hold.state === "held").length })} />
-        <Stat label={t("billingOpsInvariants")} value={a.issues.length ? t("billingOpsDrift") : t("billingOpsConsistent")} meta={t("billingOpsInvariantsHelp")} />
-        <Stat label={t("billingOpsOverride")} value={data.override ? humanize(data.override.enforcement) : t("billingOpsInherit")}
+        <Stat label={t("billingOpsInvariants")} value={<Badge tone={a.issues.length ? "fail" : "pass"} dot>{a.issues.length ? t("billingOpsDrift") : t("billingOpsConsistent")}</Badge>} meta={t("billingOpsInvariantsHelp")} />
+        <Stat label={t("billingOpsOverride")} value={data.override ? enforcementLabel(data.override.enforcement) : t("billingOpsInherit")}
           meta={data.override ? [data.override.livePayments && t("billingOpsLivePayments"), data.override.plansV2 && t("billingOpsPlansV2")].filter(Boolean).join(" · ") || "—" : "—"} />
       </StatGrid>
 
@@ -173,14 +185,14 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
 
       <section className="p-section">
         <SectionHeading title={t("billingOpsLedger")}>{t("billingOpsLedgerHelp")}</SectionHeading>
-        {!ledger.length ? <p className="p-cell-meta">{t("billingOpsNoEntries")}</p> : (
+        {!ledger.length ? <EmptyState compact title={t("billingOpsNoEntries")} /> : (
           <DataTable caption={t("billingOpsLedger")} headers={[t("billingOpsEntry"), { label: t("billingOpsCredits"), align: "end" }, { label: t("billingOpsAvailableAfter"), align: "end" }, t("billingOpsActorReason"), { label: t("createdAt"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
             {ledger.map(entry => {
               const items = [
                 ...(REVERSIBLE.has(entry.type) && !entry.reversed && Number(entry.credits) !== 0 && !(entry.type === "refund" && Number(entry.credits) < 0)
-                  ? [{ label: t("billingOpsReverse"), onSelect: () => setDialog({ kind: "reverse", entry }) }] : []),
+                  ? [{ label: t("billingOpsReverse"), tone: "danger" as const, onSelect: () => setDialog({ kind: "reverse", entry }) }] : []),
                 ...(entry.runId && (entry.type === "capture" || entry.type === "action") && !entry.reversed
-                  ? [{ label: t("billingOpsRefundRun"), onSelect: () => setDialog({ kind: "run", runId: entry.runId! }) }] : []),
+                  ? [{ label: t("billingOpsRefundRun"), tone: "danger" as const, onSelect: () => setDialog({ kind: "run", runId: entry.runId! }) }] : []),
               ];
               return (
                 <tr key={entry.id}>
@@ -189,7 +201,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
                   </RowTitle>
                   <td className="p-num">{Number(entry.credits) > 0 ? "+" : ""}{credits(entry.credits)}</td>
                   <td className="p-num p-cell-meta">{credits(entry.availableAfter)}</td>
-                  <td className="p-cell-meta">{humanize(entry.actorKind)}{entry.reason ? ` · ${entry.reason}` : ""}</td>
+                  <td className="p-cell-meta">{humanize(entry.actorKind)}{entry.reason ? ` · ${ledgerReason(entry.reason)}` : ""}</td>
                   <td className="p-table-action p-cell-meta"><Time value={entry.createdAt} /></td>
                   <td className="p-table-action">{items.length > 0 && <ActionMenu label={`${t("actions")}: ${humanize(entry.type)}`} items={items} />}</td>
                 </tr>
@@ -207,11 +219,11 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
       <div className="p-split p-section">
         <section>
           <SectionHeading title={t("billingOpsLots")}>{t("billingOpsLotsHelp")}</SectionHeading>
-          {!data.lots.length ? <p className="p-cell-meta">{t("billingOpsNoLots")}</p> : (
+          {!data.lots.length ? <EmptyState compact title={t("billingOpsNoLots")} /> : (
             <DataTable caption={t("billingOpsLots")} headers={[t("billingOpsSource"), { label: t("billingOpsRemaining"), align: "end" }, { label: t("billingOpsExpires"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
               {data.lots.map(lot => (
                 <tr key={lot.id}>
-                  <RowTitle meta={[lot.campaign, lot.orderId && `${t("billingOpsOrder")} ${short(lot.orderId)}`].filter(Boolean).join(" · ") || undefined}>{humanize(lot.source)}</RowTitle>
+                  <RowTitle meta={[lot.campaign && humanize(lot.campaign), lot.orderId && `${t("billingOpsOrder")} ${short(lot.orderId)}`].filter(Boolean).join(" · ") || undefined}>{humanize(lot.source)}</RowTitle>
                   <td className="p-num">{credits(lot.remaining)} / {credits(lot.granted)}</td>
                   <td className="p-table-action p-cell-meta"><Time value={lot.expiresAt} withTime={false} /></td>
                   <td className="p-table-action">
@@ -226,7 +238,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
         </section>
         <section>
           <SectionHeading title={t("billingOpsHolds")}>{t("billingOpsHoldsHelp")}</SectionHeading>
-          {!data.holds.length ? <p className="p-cell-meta">{t("billingOpsNoHolds")}</p> : (
+          {!data.holds.length ? <EmptyState compact title={t("billingOpsNoHolds")} /> : (
             <DataTable caption={t("billingOpsHolds")} headers={[t("billingOpsHold"), { label: t("billingOpsCredits"), align: "end" }, { label: t("createdAt"), align: "end" }]}>
               {data.holds.map(hold => (
                 <tr key={hold.id}>
@@ -242,7 +254,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
 
       <section className="p-section">
         <SectionHeading title={t("billingOpsOrders")}>{t("billingOpsOrdersHelp")}</SectionHeading>
-        {!data.orders.length ? <p className="p-cell-meta">{t("billingOpsNoOrders")}</p> : (
+        {!data.orders.length ? <EmptyState compact title={t("billingOpsNoOrders")} /> : (
           <DataTable caption={t("billingOpsOrders")} headers={[t("billingOpsOrder"), t("statusLabel"), { label: t("billingOpsGross"), align: "end" }, { label: t("billingOpsPaid"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
             {data.orders.map(order => (
               <tr key={order.id}>
@@ -262,7 +274,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
       <div className="p-split p-section">
         <section>
           <SectionHeading title={t("billingOpsInvoices")} />
-          {!data.documents.length ? <p className="p-cell-meta">{t("billingOpsNoDocuments")}</p> : (
+          {!data.documents.length ? <EmptyState compact title={t("billingOpsNoDocuments")} /> : (
             <DataTable caption={t("billingOpsInvoices")} headers={[t("billingOpsDocument"), t("statusLabel"), { label: t("billingOpsGross"), align: "end" }]}>
               {data.documents.map(document => (
                 <tr key={document.id}>
@@ -276,7 +288,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
         </section>
         <section>
           <SectionHeading title={t("billingOpsAlerts")} />
-          {!data.alerts.length ? <p className="p-cell-meta">{t("billingOpsNoAlerts")}</p> : (
+          {!data.alerts.length ? <EmptyState compact title={t("billingOpsNoAlerts")} /> : (
             <DataTable caption={t("billingOpsAlerts")} headers={[t("billingOpsAlert"), { label: t("billingOpsSent"), align: "end" }]}>
               {data.alerts.map(alert => (
                 <tr key={`${alert.kind}-${alert.period}`}>
@@ -290,12 +302,12 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
       </div>
 
       <Modal alert={messages} open={dialog?.kind === "grant"} onOpenChange={value => !value && close()} title={t("billingOpsGrant")} description={tv("billingOpsGrantHelp", { credits: credits(data.thresholdCredits) })}
-        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-grant" disabled={pending}>{t("billingOpsGrant")}</Action></>}>
+        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-grant" disabled={pending}>{Number(amount) > 0 ? tv("billingOpsGrantAmount", { credits: credits(Number(amount)), euros: euros(Number(amount)) }) : t("billingOpsGrant")}</Action></>}>
         <form id="ob-grant" className="p-stack" onSubmit={event => { const f = form(event); return void submit("/billing/admin/grants", {
           credits: Number(f.get("credits")), source: f.get("source"), reason: f.get("reason"), expiresAt: dateValue(f.get("expiresAt")),
           campaign: String(f.get("campaign") ?? "").trim() || undefined }, t("billingOpsGranted"))(event); }}>
           <div className="p-grid-2 p-form-grid">
-            <Field id="ob-grant-credits" name="credits" type="number" min={1} max={10_000_000} step={1} label={t("billingOpsCredits")} required />
+            <Field id="ob-grant-credits" name="credits" type="number" min={1} max={10_000_000} step={1} label={t("billingOpsCredits")} required onChange={event => setAmount(event.target.value)} />
             <SelectField id="ob-grant-source" name="source" label={t("billingOpsSource")} defaultValue="grant">
               <option value="grant">{t("billingOpsSourceGrant")}</option>
               <option value="promo">{t("billingOpsSourcePromo")}</option>
@@ -308,11 +320,11 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
       </Modal>
 
       <Modal alert={messages} open={dialog?.kind === "adjust"} onOpenChange={value => !value && close()} title={t("billingOpsAdjust")} description={tv("billingOpsAdjustHelp", { credits: credits(data.thresholdCredits) })}
-        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-adjust" disabled={pending}>{t("billingOpsAdjust")}</Action></>}>
+        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-adjust" variant={Number(amount) < 0 ? "danger" : undefined} disabled={pending}>{Number(amount) > 0 ? tv("billingOpsAddAmount", { credits: credits(Number(amount)), euros: euros(Number(amount)) }) : Number(amount) < 0 ? tv("billingOpsRemoveAmount", { credits: credits(-Number(amount)), euros: euros(-Number(amount)) }) : t("billingOpsAdjust")}</Action></>}>
         <form id="ob-adjust" className="p-stack" onSubmit={event => { const f = form(event); return void submit("/billing/admin/adjustments", {
           credits: Number(f.get("credits")), reason: f.get("reason"), expiresAt: Number(f.get("credits")) > 0 ? dateValue(f.get("expiresAt")) : undefined }, t("billingOpsAdjusted"))(event); }}>
           <div className="p-grid-2 p-form-grid">
-            <Field id="ob-adjust-credits" name="credits" type="number" min={-10_000_000} max={10_000_000} step={1} label={t("billingOpsCreditsSigned")} required />
+            <Field id="ob-adjust-credits" name="credits" type="number" min={-10_000_000} max={10_000_000} step={1} label={t("billingOpsCreditsSigned")} required onChange={event => setAmount(event.target.value)} />
             <Field id="ob-adjust-expiry" name="expiresAt" type="date" label={t("billingOpsExpiry")} hint={t("billingOpsAdjustExpiryHint")} />
           </div>
           <Field id="ob-adjust-reason" name="reason" label={t("billingOpsReason")} required minLength={3} maxLength={2000} />
@@ -341,7 +353,7 @@ function AccountDetail({ orgId, userId, onBack }: { orgId: string; userId: strin
 
       <Modal alert={messages} open={dialog?.kind === "reverse" || dialog?.kind === "run"} onOpenChange={value => !value && close()} size="sm"
         title={dialog?.kind === "run" ? t("billingOpsRefundRun") : t("billingOpsReverse")} description={dialog?.kind === "run" ? t("billingOpsRefundRunHelp") : t("billingOpsReverseHelp")}
-        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-credit-refund" disabled={pending}>{dialog?.kind === "run" ? t("billingOpsRefundRun") : t("billingOpsReverse")}</Action></>}>
+        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-credit-refund" variant="danger" disabled={pending}>{dialog?.kind === "run" ? t("billingOpsRefundRun") : t("billingOpsReverse")}</Action></>}>
         {(dialog?.kind === "reverse" || dialog?.kind === "run") && (
           <form id="ob-credit-refund" className="p-stack" onSubmit={event => { const f = form(event); return void submit("/billing/admin/credit-refunds",
             dialog.kind === "run" ? { runId: dialog.runId, reason: f.get("reason") } : { entryId: dialog.entry.id, reason: f.get("reason") },
@@ -376,8 +388,8 @@ function payloadSummary(item: Approval) {
   if (typeof p.credits === "number") parts.push(`${p.credits > 0 ? "+" : ""}${credits(p.credits)} ${t("billingOpsCreditsLower")}`);
   else if (item.netCents != null) parts.push(euros(item.netCents));
   else parts.push(`${credits(item.credits)} ${t("billingOpsCreditsLower")}`);
-  if (typeof p.expiresAt === "string") parts.push(tv("billingOpsUntil", { date: p.expiresAt.slice(0, 10) }));
-  if (typeof p.campaign === "string") parts.push(p.campaign);
+  if (typeof p.expiresAt === "string") parts.push(tv("billingOpsUntil", { date: formatDate(p.expiresAt) }));
+  if (typeof p.campaign === "string") parts.push(humanize(p.campaign));
   return parts.join(" · ");
 }
 
@@ -394,7 +406,7 @@ export function ApprovalTable({ rows, userId, onChanged }: { rows: Approval[]; u
           <tr key={item.id}>
             <RowTitle meta={item.reason}>{payloadSummary(item)}</RowTitle>
             <td>{item.workspace ?? short(item.orgId)}</td>
-            <td className="p-cell-meta">{mine(item) ? t("billingOpsYou") : short(item.requestedBy)}</td>
+            <td className="p-cell-meta">{mine(item) ? t("billingOpsYou") : <code className="p-code" title={item.requestedBy}>{short(item.requestedBy)}</code>}</td>
             <td><StatusBadge value={item.status} /></td>
             <td className="p-table-action p-cell-meta"><Time value={item.expiresAt} /></td>
             <td className="p-table-action">
@@ -426,7 +438,7 @@ export function ApprovalTable({ rows, userId, onChanged }: { rows: Approval[]; u
       </Modal>
       <Modal alert={messages} open={dialog?.kind === "close"} onOpenChange={value => !value && close()} size="sm"
         title={dialog && mine(dialog.item) ? t("billingOpsCancelRequest") : t("billingOpsReject")} description={t("billingOpsCloseHelp")}
-        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-close" disabled={pending}>{dialog && mine(dialog.item) ? t("billingOpsCancelRequest") : t("billingOpsReject")}</Action></>}>
+        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-close" variant={dialog && !mine(dialog.item) ? "danger" : undefined} disabled={pending}>{dialog && mine(dialog.item) ? t("billingOpsCancelRequest") : t("billingOpsReject")}</Action></>}>
         <form id="ob-close" className="p-stack" onSubmit={event => {
           event.preventDefault();
           if (!dialog) return;
@@ -459,8 +471,8 @@ function Approvals({ userId }: { userId: string }) {
       </SectionHeading>
       <div className="p-toolbar">
         <FilterChips value={status} onChange={setStatus} label={t("filterStatus")} options={[
-          { value: "open", label: t("billingOpsOpen") }, { value: "executed", label: humanize("executed") }, { value: "rejected", label: humanize("rejected") },
-          { value: "cancelled", label: humanize("cancelled") }, { value: "expired", label: humanize("expired") },
+          { value: "open", label: t("billingOpsOpen") }, { value: "executed", label: t("billingOpsChipExecuted") }, { value: "rejected", label: t("billingOpsChipRejected") },
+          { value: "cancelled", label: t("billingOpsChipCancelled") }, { value: "expired", label: t("billingOpsChipExpired") },
         ]} />
       </div>
       {error && <Status error>{error}</Status>}
@@ -516,12 +528,12 @@ function Overrides() {
     <section>
       <SectionHeading title={t("billingOpsOverrides")}>{t("billingOpsOverridesHelp")}</SectionHeading>
       {error && <Status error>{error}</Status>}
-      {!rows ? <TableSkeleton columns={4} /> : !rows.length ? <p className="p-cell-meta">{t("billingOpsNoOverrides")}</p> : (
+      {!rows ? <TableSkeleton columns={4} /> : !rows.length ? <EmptyState compact title={t("billingOpsNoOverrides")} /> : (
         <DataTable caption={t("billingOpsOverrides")} headers={[t("workspace"), t("billingOpsEnforcement"), t("billingOpsOverrideFlags"), { label: t("billingOpsUpdated"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
           {rows.map(row => (
             <tr key={row.orgId}>
               <RowTitle meta={row.reason}>{row.workspace ?? short(row.orgId)}</RowTitle>
-              <td>{humanize(row.enforcement)}</td>
+              <td><Badge>{enforcementLabel(row.enforcement)}</Badge></td>
               <td className="p-cell-meta">{flags(row)}</td>
               <td className="p-table-action p-cell-meta"><Time value={row.updatedAt} /></td>
               <td className="p-table-action"><Action variant="ghost" size="sm" onClick={() => setEditing(row)}>{t("billingOpsEdit")}</Action></td>

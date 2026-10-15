@@ -174,20 +174,20 @@ The content measure is wide on purpose: these are evidence tables with four to s
 | `PageHeading` | `.p-head` | `title`, optional `actions` (top-right), description as children |
 | `SectionHeading` | `.p-section-head` | Same shape, one level down |
 | `Card` | `.p-card` | Optional `title` + `actions` |
-| `Tabs` | `.p-tabs` | `variant` underline (default) or pill |
+| `Tabs` / `TabLinks` | `.p-tabs` | `variant` underline (default) or pill. Both render through `TabStrip` (`tab-strip.tsx`): on a narrow screen the current tab is scrolled into view and the end with more tabs fades (`data-overflow`). A second row of tabs inside a tabbed page (the billing console's views) is the pill variant, so the two rows read as levels |
 | `Toolbar` | `.p-toolbar` | Filter row under the heading |
 | `Badge` | `.p-badge` | `tone`, `dot`, `live` |
 | `StatusBadge` | `.p-badge` | **Use for every domain status.** See §8 |
 | `Status` | `.p-status` | Inline banner, `tone` error·success·warn·info. With an `action`, the action drops to its own line (end-aligned) before the sentence is squeezed below 12rem |
 | `Loading` | `.p-status` + spinner | Indeterminate wait, reads as a sentence |
 | `Progress` | `.p-progress` | Determinate, needs `label` |
-| `Stat` / `StatGrid` | `.p-stat` | `label`, `value`, `meta`, `hero` |
+| `Stat` / `StatGrid` | `.p-stat` | `label`, `value`, `meta`, `hero`. One line of context under a strip is `.p-stats-note` (micro, secondary); anything else that follows a strip keeps 16px from it. Two strips are two `Section`s, each with its heading |
 | `DayBars` (charts) | `.p-daybars` | One value per day, one series: ≤ 24px columns from a hairline baseline, only the peak labelled, every value in the tooltip and the table beneath (L-15) |
 | `DefinitionList` | `.p-defs` | Term/value rows |
 | `Field` / `TextArea` / `SelectField` | `.p-field` | Label always present, `hint` optional |
-| `InlineSelect` | `.p-toolbar-label` + `.p-field` | Toolbar-width select |
-| `DataTable` / `RowTitle` | `.p-table` | Header may be `{ label, align: "end" }`. `stack` (list tables: Evaluations, Systems, Test sets, Reports): under 640px each row is a block — the title first with the `data-cell="menu"` cell beside it (`data-actions="wide"` when the actions are more than a menu), the other cells wrapping under it named by `data-label` where a bare value is ambiguous, `data-cell="wide"` last on its own line, and a `data-empty` cell (a lone dash) hidden. Evidence tables keep scrolling sideways |
-| `EmptyState` | `.p-empty` | Icon in a rounded mark, title, copy, one CTA |
+| `InlineSelect` | `.p-toolbar-label` + `.p-field` | Toolbar-width select. A toolbar may open with a short description, `.p-toolbar-note` (62ch), with its action at the end |
+| `DataTable` / `RowTitle` | `.p-table` | Header may be `{ label, align: "end" }`. `stack` (list tables: Evaluations, Systems, Test sets, Reports): under 640px each row is a block — the title first with the `data-cell="menu"` cell beside it (`data-actions="wide"` when the actions are more than a menu), the other cells wrapping under it named by `data-label` where a bare value is ambiguous, `data-cell="wide"` last on its own line, and a `data-empty` cell (a lone dash) hidden. Evidence tables keep scrolling sideways. numeric cells are `p-num` under an end-aligned header. Dates and `.p-code` ids never wrap in a cell; `.p-cell-nowrap` keeps a short label on one line and `th.p-cell-wide` keeps a row title readable (14rem) when the table scrolls on a phone |
+| `EmptyState` | `.p-empty` | Icon in a rounded mark, title, copy, one CTA. `compact` for an empty table inside a section: 32px mark and one sentence side by side, no heading of its own — never a bare grey sentence |
 | `SessionRecovery` | — | Sign-in + recovery pair |
 | `CodeBlock` (overlays) | `.p-code-block` | Labelled multi-line code with a copy button; lines scroll sideways instead of wrapping |
 | `HelpLink` (help) | `.p-help-link` | The contextual "?" beside a step: a 26px round ghost icon (`CircleHelp`, stroke 1.5) with an `aria-label` naming the topic; opens the article in the help panel |
@@ -238,6 +238,8 @@ The evaluation detail page exposes **AI models** in a compact, keyboard-accessib
 - `ActionMenu` for secondary actions. The primary action stays a visible button.
 - `notify()` for outcomes that need no decision. Toasts use the `platform` toaster id so the document's global toaster never duplicates them.
 - `CopyField` for a value shown once (invitation links, share links, pairing codes, tokens).
+
+**Ops screens** (launch R4) — dense tools, the same kit. A code an operator reads (run events, judge and review reasons, roles, data policy, growth sources, demo failure reasons) has a label in both languages: `humanize()` looks the words up in the phrase table, and English keeps its acronyms ("API question"). Money goes through `formatMoney(value, currency)` / `formatEuros()`, which format in the interface language with the currency symbol ("€1,500.50" / "1500,50 €"). A destructive or money action says what it does: the confirm button restates the amount ("Grant 15,000 credits (€150)"), removing credits, reversing an entry, refunding a run, rejecting an approval and voiding a document are `danger`, and a destructive row action sits in the row's `ActionMenu` rather than beside the primary one. Ids in a table are a short `.p-code` with the full value on hover. Page headings: on a phone the title and description take the whole row and the actions drop below; a definition list stacks term over value.
 
 **Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab; each crumb is one line ending in an ellipsis, parents capped at 16rem, and under 640px only the parent and the current page show), and `⌘K` for the command palette. On phones the sidebar is a drawer with its own close button. A page inside the app that is not found (`notFound()`) stays in the shell: "Page not found" with one way back to Home (`app/(evaluation)/(authenticated)/not-found.tsx`). Help (how an evaluation works, what each result label means, data handling, contact) is a `SidePanel` opened from the account menu and `⌘K`; the top bar carries no help button. There are no in-page back links: breadcrumbs carry the hierarchy.
 
@@ -371,6 +373,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-15 | Ops polish (R4): `TabStrip` (current tab in view, fade at the end with more tabs) behind `Tabs`/`TabLinks`, pill `TabLinks` for the billing views; `EmptyState compact`; `.p-stats-note`, `.p-toolbar-note`, `.p-cell-nowrap`, `th.p-cell-wide`, `.p-link-external`; dates and ids never wrap in tables; definition lists stack on phones and cap at 48rem; page-heading actions drop below the text on phones; side-panel body columns `minmax(0, 1fr)`; locale-aware `formatMoney` with currency symbols and `formatEuros`; STATUS tones for review requests, price-book revisions, built-in packs and model-health failures. |
 | 2026-10-15 | UI review R1: one-line breadcrumbs (parent and page on phones), the unread count on the bell's shoulder, `DataTable stack` for list tables on phones, `Status` actions wrap, the drawer's close button, the in-shell "Page not found", draft badges neutral. |
 | 2026-10-15 | Billing gaps (G2): the run pipeline's stages not reached yet use `--p-text-secondary` like finished ones (tertiary failed AA on the paused run's panel and is 3.7:1 under the authored dark theme); the current stage stands out by full-strength 500-weight text, its count and its bar. The billing contracts no longer exclude `.p-pipeline` from axe. Ops console: a *Provider-price check* panel under the price book and a *Tax reviews* view, both from the kit (badge, table, definition list in a `Modal`, radio `p-check` choices with descriptions). Limits and alerts: the low-balance threshold is a select (default or own) plus a credits field, like the caps above it. |
 | 2026-10-14 | "Send to my vendor" (P-54): the Paper fix-list page for vendors (`.vf`) in §13, and the owner's "Send to my vendor" button and dialog from the kit. |

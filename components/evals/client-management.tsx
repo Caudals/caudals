@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import { t } from "@/lib/evals/messages/runtime";
-import { Action, ActionLink, Badge, DataTable, DefinitionList, EmptyState, Field, FilterChips, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
+import { Action, ActionLink, DataTable, DefinitionList, EmptyState, Field, FilterChips, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
 import type { ClientDetail } from "@/lib/analytics/ops-kpis";
 import { ActionMenu, Modal, SidePanel, notify } from "./overlays";
 import { RenameDialog } from "./item-actions";
@@ -19,7 +19,7 @@ import { evalRequest } from "./api";
 
 type Workspace = { id: string; name: string };
 type KindFilter = "all" | "client" | "payg" | "partner" | "free" | "snapshot";
-const credits = (value: number | null | undefined) => (value === null || value === undefined ? "—" : value.toLocaleString("en-GB", { maximumFractionDigits: 2 }));
+const credits = (value: number | null | undefined) => (value === null || value === undefined ? "—" : formatMoney(value));
 
 export function ClientManagement() {
   const router = useRouter();
@@ -132,7 +132,7 @@ export function ClientManagement() {
           </Toolbar>
           <div className="p-toolbar">
             <FilterChips value={kind} onChange={setKind} label={t("filterClients")} options={[
-              { value: "all", label: t("all"), count: counts.all },
+              { value: "all", label: t("allClients"), count: counts.all },
               { value: "client", label: t("clientPlanManaged"), count: counts.client },
               { value: "payg", label: t("clientPlanPayg"), count: counts.payg },
               ...(counts.partner ? [{ value: "partner" as const, label: t("clientPlanPartner"), count: counts.partner }] : []),
@@ -152,7 +152,7 @@ export function ClientManagement() {
                     {client.error && <span className="p-cell-meta">{t("summaryUnavailable")}</span>}
                   </span>
                 </th>
-                <td>{details.get(client.id)?.kind === "snapshot" ? <Badge tone="info">{planLabel(client.id)}</Badge> : planLabel(client.id)}</td>
+                <td>{planLabel(client.id)}</td>
                 <td className="p-num">{credits(details.get(client.id)?.credits)}{details.get(client.id)?.creditsBought != null && <span className="p-cell-meta"> · {credits(details.get(client.id)?.creditsBought)} {t("clientBought")}</span>}</td>
                 <td className="p-num">{client.summary?.evaluations.length ?? "—"}</td>
                 <td className="p-num">{client.summary?.reports.length ?? "—"}</td>

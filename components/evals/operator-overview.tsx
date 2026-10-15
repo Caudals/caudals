@@ -20,7 +20,7 @@ import {
   PageHeading,
   RowTitle,
   SearchInput,
-  SectionHeading,
+  Section,
   Stat,
   StatGrid,
   Status,
@@ -29,26 +29,26 @@ import {
   Toolbar,
 } from "./primitives";
 import { useWorkspace } from "./workspace-context";
+import { demoReason } from "./demo-reasons";
+import { percent } from "./ops-labels";
 import type { WorkspaceSummary } from "./workspace-data";
-import { evaluationStage, type StageKey } from "./evaluation-stage";
+import { evaluationStage, nextStepHint, type StageKey } from "./evaluation-stage";
 import { t, tv } from "@/lib/evals/messages/runtime";
-import { tr, type Phrase } from "@/lib/evals/messages/phrases";
+import { tr } from "@/lib/evals/messages/phrases";
 import type { OpsKpis } from "@/lib/analytics/ops-kpis";
 
-const NEXT_STEP: Record<StageKey, Phrase> = {
-  setup: "Waiting for reference material",
-  preparing: "Preparing tests",
-  needs_input: "Answer context questions",
-  review_tests: "Approve the test set",
-  ready: "Start the run",
-  queued: "Queued",
-  running: "Running",
-  paused: "Resume or reduce scope",
-  finalizing: "Score and publish the report",
-  results: "Report published",
-  failed: "Inspect the failure",
-  canceled: "Cancelled",
-};
+/**
+ * The operator's next move: the customer's own next step where the status
+ * badge does not already name it (`nextStepHint`, as on Evaluations),
+ * scoring and publishing once a run has finished, and nothing for work in
+ * flight or done, which the status already says (launch R4: the column
+ * contradicted or repeated the status).
+ */
+function operatorStep(evaluation: Parameters<typeof nextStepHint>[0], stage: ReturnType<typeof evaluationStage>): string | null {
+  const key = nextStepHint(evaluation, stage);
+  if (key) return t(key);
+  return stage.key === "finalizing" ? tr("Score and publish the report") : null;
+}
 const PRIORITY: StageKey[] = ["failed", "paused", "needs_input", "review_tests", "finalizing", "ready", "running", "queued", "preparing", "setup", "results", "canceled"];
 
 export type ClientSummary = { id: string; name: string; summary: WorkspaceSummary | null; error: boolean; message?: string };
@@ -83,37 +83,42 @@ export function useClientSummaries() {
 
 type Filter = "action" | "live" | "all";
 
-const pct = (value: number | null) => (value === null ? "—" : `${Math.round(value * 100)} %`);
-const seconds = (value: number | null) => (value === null ? "—" : value >= 60 ? `${Math.floor(value / 60)} min ${Math.round(value % 60)} s` : `${Math.round(value)} s`);
+const pct = (value: number | null) => (value === null ? "—" : percent(value));
+const seconds = (value: number | null) => {
+  if (value === null) return "—";
+  if (value < 60) return `${Math.round(value)} s`;
+  const rest = Math.round(value % 60);
+  return rest ? `${Math.floor(value / 60)} min ${rest} s` : `${Math.floor(value / 60)} min`;
+};
 
 /** Last seven days against the §7.11 targets, and demo health now (launch L-21). */
 function GrowthKpis({ kpis, growth }: { kpis: OpsKpis; growth: boolean }) {
   const demo = kpis.demo;
   const routes = demo.primaryDown ? (demo.fallbackDown ? t("kpiRoutesDown") : t("kpiPrimaryDown")) : t("kpiRoutesOk");
   return (
-    <div className="p-section" data-testid="ops-kpis">
-      <SectionHeading title={t("kpiTitle")} actions={growth ? <ActionLink variant="secondary" size="sm" href="/ops/growth">{t("growth")}</ActionLink> : undefined}>
-        {t("kpiHelp")}
-      </SectionHeading>
-      <StatGrid>
-        <Stat label={t("kpiSignups")} value={kpis.signups} meta={tv("kpiTarget", { target: kpis.targets.newAccounts })} />
-        <Stat label={t("kpiActivation")} value={pct(kpis.activation.rate)} meta={`${tv("kpiOf", { part: kpis.activation.activated, whole: kpis.activation.cohort })} · ${tv("kpiTarget", { target: pct(kpis.targets.activation) })}`} />
-        <Stat label={t("kpiPaying")} value={kpis.payingCustomers ?? "—"} meta={kpis.payingCustomers === null ? t("kpiNoPurchases") : tv("kpiTarget", { target: kpis.targets.payingCustomers })} />
-        <Stat label={t("kpiSnapshots")} value={kpis.snapshotsShared} meta={tv("kpiTarget", { target: kpis.targets.snapshotsShared })} />
-      </StatGrid>
-      <SectionHeading title={t("kpiDemoTitle")} />
-      <StatGrid>
-        <Stat label={t("kpiDemoStarts")} value={demo.starts} meta={tv("kpiTarget", { target: kpis.targets.demoStarts })} />
-        <Stat label={t("kpiDemoSuccess")} value={pct(demo.successRate)} meta={`${tv("kpiOf", { part: demo.succeeded, whole: demo.finished })} · ${tv("kpiTarget", { target: `≥ ${pct(kpis.targets.demoSuccess)}` })}`} />
-        <Stat label={t("kpiDemoP50")} value={seconds(demo.p50Seconds)} meta={tv("kpiTarget", { target: `≤ ${seconds(kpis.targets.demoP50Seconds)}` })} />
-        <Stat label={t("kpiDemoQueue")} value={demo.queue} meta={routes} />
-      </StatGrid>
-      {(demo.failures.length > 0 || kpis.stuckRuns > 0) && (
-        <p className="p-cell-meta">
-          {demo.failures.length > 0 && <>{t("kpiFailures")}: {demo.failures.map((item) => `${item.reason} ${item.count}`).join(", ")}. </>}
-          {kpis.stuckRuns > 0 && <Badge tone="warn" dot>{tv("kpiStuck", { count: kpis.stuckRuns })}</Badge>}
-        </p>
-      )}
+    <div data-testid="ops-kpis">
+      <Section title={t("kpiTitle")} description={t("kpiHelp")} actions={growth ? <ActionLink variant="secondary" size="sm" href="/ops/growth">{t("growth")}</ActionLink> : undefined}>
+        <StatGrid>
+          <Stat label={t("kpiSignups")} value={kpis.signups} meta={tv("kpiTarget", { target: kpis.targets.newAccounts })} />
+          <Stat label={t("kpiActivation")} value={pct(kpis.activation.rate)} meta={`${tv("kpiOf", { part: kpis.activation.activated, whole: kpis.activation.cohort })} · ${tv("kpiTarget", { target: pct(kpis.targets.activation) })}`} />
+          <Stat label={t("kpiPaying")} value={kpis.payingCustomers ?? "—"} meta={kpis.payingCustomers === null ? t("kpiNoPurchases") : tv("kpiTarget", { target: kpis.targets.payingCustomers })} />
+          <Stat label={t("kpiSnapshots")} value={kpis.snapshotsShared} meta={tv("kpiTarget", { target: kpis.targets.snapshotsShared })} />
+        </StatGrid>
+      </Section>
+      <Section title={t("kpiDemoTitle")}>
+        <StatGrid>
+          <Stat label={t("kpiDemoStarts")} value={demo.starts} meta={tv("kpiTarget", { target: kpis.targets.demoStarts })} />
+          <Stat label={t("kpiDemoSuccess")} value={pct(demo.successRate)} meta={`${tv("kpiOf", { part: demo.succeeded, whole: demo.finished })} · ${tv("kpiTarget", { target: `≥ ${pct(kpis.targets.demoSuccess)}` })}`} />
+          <Stat label={t("kpiDemoP50")} value={seconds(demo.p50Seconds)} meta={tv("kpiTarget", { target: `≤ ${seconds(kpis.targets.demoP50Seconds)}` })} />
+          <Stat label={t("kpiDemoQueue")} value={demo.queue} meta={routes} />
+        </StatGrid>
+        {(demo.failures.length > 0 || kpis.stuckRuns > 0) && (
+          <p className="p-stats-note">
+            {demo.failures.length > 0 && <span>{t("kpiFailures")}: {demo.failures.map((item) => `${demoReason(item.reason)} (${item.count})`).join(", ")}</span>}
+            {kpis.stuckRuns > 0 && <Badge tone="warn" dot>{kpis.stuckRuns === 1 ? t("kpiStuckOne") : tv("kpiStuck", { count: kpis.stuckRuns })}</Badge>}
+          </p>
+        )}
+      </Section>
     </div>
   );
 }
@@ -183,7 +188,7 @@ export function OperatorOverview({ kpis = null, growth = false }: { kpis?: OpsKp
           <p>{t("noClientsBody")}</p>
         </EmptyState>
       ) : (
-        <>
+        <Section title={t("kpiWorkTitle")}>
           <StatGrid>
             <Stat label={t("clients")} value={clients.length} />
             <Stat label={t("needsAction")} value={counts.action} />
@@ -218,16 +223,17 @@ export function OperatorOverview({ kpis = null, growth = false }: { kpis?: OpsKp
                         {stage.label}
                       </Badge>
                     </td>
-                    <td className="p-cell-meta">
-                      {tr(NEXT_STEP[stage.key])}
+                    <td className="p-cell-meta p-cell-nowrap">
+                      {operatorStep(evaluation, stage)}
                       {evaluation.latest_run_id && (
                         <>
-                          {" · "}
+                          {operatorStep(evaluation, stage) && " · "}
                           <Link className="p-link" href={`/ops/runs/${evaluation.latest_run_id}?orgId=${client.id}`}>
                             {t("inspectRun")}
                           </Link>
                         </>
                       )}
+                      {!operatorStep(evaluation, stage) && !evaluation.latest_run_id && "—"}
                     </td>
                     <td className="p-table-action p-cell-meta">
                       <Time value={evaluation.updated_at ?? null} />
@@ -244,7 +250,7 @@ export function OperatorOverview({ kpis = null, growth = false }: { kpis?: OpsKp
               </EmptyState>
             )}
           </div>
-        </>
+        </Section>
       )}
     </>
   );

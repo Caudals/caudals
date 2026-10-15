@@ -15,6 +15,7 @@ import { SidePanel, notify } from "./overlays";
 import { useClientSummaries } from "./operator-overview";
 import { useWorkspace } from "./workspace-context";
 import { t, tv } from "@/lib/evals/messages/runtime";
+import { engineText } from "@/lib/evals/messages/phrases";
 import type { ResultLabel } from "@/lib/evals/reports/contracts";
 import { ResultBadge, labelOf } from "./result-labels";
 
@@ -274,7 +275,7 @@ export function ReviewQueue() {
             ))}
           </DataTable>
         ) : (
-          <p className="p-cell-meta">{approvals.length ? t("reviewFilterNone") : t("noTestSetsAwaiting")}</p>
+          <EmptyState compact icon={<ClipboardCheck />} title={approvals.length ? t("reviewFilterNone") : t("noTestSetsAwaiting")} />
         )}
       </section>
 
@@ -292,11 +293,11 @@ export function ReviewQueue() {
             </form>
           )}
           <div className="p-toolbar"><Check label={t("bulkSelectAll")} checked={allSelected} onChange={() => setSelected(allSelected ? [] : visibleItems.map(keyOf))} /></div>
-          <DataTable caption={t("resultReview")} headers={[{ label: t("bulkSelect"), hidden: true }, t("test"), t("severity"), t("outcome"), t("slaWaiting"), t("reviewAssignee"), { label: t("reason"), align: "end" }]}>
+          <DataTable caption={t("resultReview")} headers={[{ label: t("bulkSelect"), hidden: true }, t("test"), t("severity"), t("outcome"), t("slaWaiting"), t("reviewAssignee"), t("reason")]}>
             {visibleItems.map((item) => (
               <tr key={`${item.orgId}-${item.assessment_id}`}>
                 <td><input type="checkbox" aria-label={`${t("bulkSelect")}: ${item.question ?? item.case_title}`} checked={selected.includes(keyOf(item))} onChange={() => toggle(keyOf(item))} /></td>
-                <th scope="row">
+                <th scope="row" className="p-cell-wide">
                   <span className="p-table-primary">
                     <button type="button" className="p-row-link p-row-button p-clamp-2" onClick={() => open(item)}>
                       {item.question ?? item.case_title}
@@ -317,13 +318,13 @@ export function ReviewQueue() {
                   <Assignee assignment={assignee(item.orgId, "assessment", item.assessment_id)} title={item.question ?? item.case_title} busy={assigning === assignmentKey(item.orgId, "assessment", item.assessment_id)}
                     onChange={(action, takeOver) => void changeAssignment(item.orgId, "assessment", item.assessment_id, action, takeOver)} />
                 </td>
-                <td className="p-table-action p-cell-meta">{reviewReason(item)}</td>
+                <td className="p-cell-meta">{reviewReason(item)}</td>
               </tr>
             ))}
           </DataTable>
           </>
         ) : items.length ? (
-          <p className="p-cell-meta">{t("reviewFilterNone")}</p>
+          <EmptyState compact icon={<ClipboardCheck />} title={t("reviewFilterNone")} />
         ) : (
           <EmptyState title={t("noResultsToReview")} icon={<ClipboardCheck />}>
             <p>{t("noResultsToReviewHelp")}</p>
@@ -395,7 +396,7 @@ export function ReviewQueue() {
             )}
             <section>
               <SectionHeading title={t("judgeRationale")} />
-              <p className="p-evidence-text">{current.rationale}</p>
+              <p className="p-evidence-text">{engineText(current.rationale)}</p>
               {current.criteria.length > 0 && (
                 <DefinitionList
                   items={current.criteria.map((criterion) => ({
@@ -403,7 +404,7 @@ export function ReviewQueue() {
                     value: (
                       <>
                         <strong>{criterion.score == null ? t("notScored") : criterion.score}</strong>
-                        {criterion.rationale && <span className="p-cell-meta"> · {criterion.rationale}</span>}
+                        {criterion.rationale && <span className="p-cell-meta"> · {engineText(criterion.rationale)}</span>}
                       </>
                     ),
                   }))}

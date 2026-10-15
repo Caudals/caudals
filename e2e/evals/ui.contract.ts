@@ -2562,7 +2562,7 @@ test("growth dashboard shows weekly counts, sources and cohorts at desktop and m
   await page.goto("/ops/growth");
   await expect(page.getByRole("heading",{name:"Growth",exact:true})).toBeVisible();
   await expect(page.getByRole("region",{name:"Eight-week cohorts"}).getByRole("row")).toHaveCount(9);
-  await expect(page.getByRole("table",{name:"Acquisition sources · last eight weeks"})).toContainText("newsletter");
+  await expect(page.getByRole("table",{name:"Acquisition sources · last eight weeks"})).toContainText("Newsletter");
   await page.getByLabel("Week",{exact:true}).selectOption("2026-09-01");
   await expect(page.getByRole("table",{name:"Weekly funnel"})).toContainText("40");
   await page.screenshot({path:"/tmp/caudals-l02-growth-desktop.png",fullPage:true});
@@ -2941,11 +2941,14 @@ test("overview shows growth KPIs against targets and demo health", async ({ page
   const kpis = page.getByTestId("ops-kpis");
   await expect(kpis.getByRole("heading", { name: "Growth · last 7 days" })).toBeVisible();
   await expect(kpis.locator(".p-stat").filter({ hasText: "Sign-ups" })).toContainText("2target 3");
-  await expect(kpis.locator(".p-stat").filter({ hasText: "Activation" })).toContainText("50 %1 of 2 · target 30 %");
+  await expect(kpis.locator(".p-stat").filter({ hasText: "Activation" })).toContainText("50%1 of 2 · target 30%");
   await expect(kpis.locator(".p-stat").filter({ hasText: "Paying customers" })).toContainText("—No purchases recorded yet");
-  await expect(kpis.locator(".p-stat").filter({ hasText: "Demo success" })).toContainText("78 %7 of 9 · target ≥ 85 %");
+  await expect(kpis.locator(".p-stat").filter({ hasText: "Demo success" })).toContainText("78%7 of 9 · target ≥ 85%");
   await expect(kpis.locator(".p-stat").filter({ hasText: "In the queue now" })).toContainText("1Model routes up");
-  await expect(kpis).toContainText("1 stuck runs");
+  await expect(kpis).toContainText("1 stuck run");
+  await expect(kpis).not.toContainText("1 stuck runs");
+  // Failure reasons read as words, never as codes (launch R4).
+  await expect(kpis.locator(".p-stats-note")).toContainText("Failed demos by reason: Too little text (2)");
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await noOverflow(page)).toBe(true);
@@ -2968,10 +2971,10 @@ test("growth accounts show company, system, activity, score and credits, and dra
   await expect(row.locator("td").nth(4)).toHaveText("Check it before launch");
   await expect(accounts.getByRole("columnheader")).toHaveText(["Company", "Created", "Source", "Stage", "System type", "Goal", "Last activity", "Latest score", "Credits bought", "Actions"]);
   // No welcome answer and nothing connected: dashes, never a guess.
-  const quiet = accounts.getByRole("row", { name: /00000000/ });
+  const quiet = accounts.getByRole("row", { name: /Unnamed account/ });
   await expect(quiet.locator("td").nth(3)).toHaveText("—");
   await expect(quiet.locator("td").nth(4)).toHaveText("—");
-  await expect(row).toContainText("63 % · 8");
+  await expect(row).toContainText("63% · 8");
   await expect(row.locator("td").nth(7)).toHaveText("—");
   expect(drafts).toHaveLength(0);
   await row.getByRole("button", { name: "Create CRM draft" }).click();
@@ -3254,7 +3257,7 @@ test("onboarding: ops growth shows the welcome answers, the 30-minute activation
     await expect(page.getByRole("cell", { name: "A chat on our website" })).toBeVisible();
     await expect(page.getByRole("cell", { name: "Check it before launch" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Demo sign-ups reaching a test set within 30 minutes" })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "3 (60 %)" }).first()).toBeVisible();
+    await expect(page.getByRole("cell", { name: "3 (60%)" }).first()).toBeVisible();
     expect(await noOverflow(page)).toBe(true);
   }
   const help = page.getByRole("region", { name: "Help requests" });
