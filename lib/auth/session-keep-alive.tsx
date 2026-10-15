@@ -37,7 +37,10 @@ export function SessionKeepAlive() {
       } catch {
         /* best-effort */
       }
-      void fetch(`${betterAuthBasePath}/get-session`, { credentials: "same-origin", cache: "no-store" }).catch(() => undefined);
+      // Read the body: an undrained response stays open in the browser's network layer.
+      void fetch(`${betterAuthBasePath}/get-session`, { credentials: "same-origin", cache: "no-store" })
+        .then((response) => response.text())
+        .catch(() => undefined);
     };
     renew();
     const timer = window.setInterval(renew, INTERVAL_MS);
