@@ -460,4 +460,6 @@ test("top-up return: paid order refreshes the shell's balance and offers the way
   await expect(page.getByTestId("billing-pill").first()).toContainText("2,000 credits");
   await expect(page.getByRole("link", { name: "Back to where you were" })).toHaveAttribute("href", `/workspace/evaluations/${evaluationId}?orgId=${id}`);
   await expect(page.getByText("Runs paused for credits continue on their own.")).toBeVisible();
+  // The Billing crumb opens Settings → Billing and usage: there is no /workspace/billing page (R3).
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Billing" })).toHaveAttribute("href", /^\/workspace\/settings\?tab=billing/);
 });

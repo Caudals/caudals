@@ -174,7 +174,8 @@ function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb 
     if (section === "example") return [{ label: name("evaluations"), href: "/workspace/evaluations" }, { label: t("exampleEvaluationTitle") }];
     // A system open on Systems (`?system=`) names itself: Systems › <system>.
     if (s.length <= 2) return detail && section === "systems" ? [{ label: name(section), href: `/workspace/${section}` }, { label: detail }] : [{ label: name(section) }];
-    const base = { label: name(section), href: `/workspace/${section}` };
+    // `/workspace/billing` has no page of its own (Buy credits and the top-up return live under it): its crumb opens Settings → Billing and usage (R3).
+    const base = { label: name(section), href: section === "billing" ? "/workspace/settings?tab=billing" : `/workspace/${section}` };
     if (s[2] === "new") return [base, { label: t("newEvaluationAction") }];
     return [base, ...(parent ? [parent] : []), { label: detail ?? DETAIL()[section] ?? t("details") }];
   }
