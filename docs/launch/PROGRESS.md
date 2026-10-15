@@ -147,6 +147,19 @@ Things only the founder can do. Agents add to this list; they never do these the
 - [ ] Send the Gemini 3.8 Flash price-increase notice **by 2026-12-02 00:00 UTC** (L-10/L-16). Revision 2 (Gemini 3.8 Flash 100 → 195 credits per 1M input tokens, 485 → 970 output) is scheduled for 2027-01-01 and held until its notice; without it, revision 1 stays in effect and revision 2 must be cancelled and rescheduled 30+ days after a new notice. `/ops/platform/billing` → Price book → revision 2 → Notice: Send test (internal address), then `scripts/launch/set-app-flag.sh BILLING_PRICE_NOTICES owners` (needed to record the notice even with 0 recipients; 0 workspaces used the model on 2026-10-15) and Send notice; set it back to `internal` afterwards if owner sends should stay off.
 - [ ] Supervised production run of L-16's write paths, when you choose (the founder stopped them on 2026-10-14; they are verified on the disposable database only). With both platform admins signed in within 15 minutes, on an internal workspace: grant 100 credits and reverse the entry; then as admin A grant 10,001 credits (→ Approvals), check A's own approve is refused, approve as admin B (it runs as B), and reverse it the same way. Afterwards `billing.verify_account` must show zero drift and the next reconciliation stay clean (L-16.md → Founder actions).
 - [x] Install L-16's host alerts (`billing_reconciliation`, `price_notice_due`; deferred by the stop): `sudo install -m 0755 scripts/evals/health-alerts.sh /usr/local/sbin/caudals-evals-health` from an up-to-date `main`, after **2026-10-16 05:00 UTC** (when the 2026-10-15 reconciliation is stored). The installed copy is L-13's (2026-10-13). L-16b did not install it; since its fix the latest 2026-10-14 report is clean, so it would no longer alert at once. **Done 2026-10-15 09:31 UTC** (installed early: the latest 2026-10-14 report re-ran clean after L-16b, and a dry run opened no new alert).
+- [ ] **QA login exists; platform role to remove after the UI review** (2026-10-15, founder-authorised).
+  - **Account:** a production login for the UI review, user `au_01M4ZGDCKKEB1DP289TAHRXWDT`, a `+qa` plus-address of the internal ops mailbox. Credentials are only in `~/.config/caudals-launch/qa-login.env` on atlantic (mode 600). It was created through the direct sign-up functions (`request_self_serve_signup` with the domain rule off, as an ops exception does, then `POST /api/evals/v1/signup`; no email sent). No TOTP and no expert profile, because `POST /experts` is not audited.
+  - **Memberships:**
+    - owner of the new internal workspace "Caudals QA" (`7741c71f…`, free, billing override `plansV2: true` v1, audited; the scheduler granted its 1,000-credit October allowance);
+    - editor of `workspace_agents` (audited invitation, accepted 10:13 UTC).
+  - **Platform role:** `platform_admin`, audited as `platform_role.granted` / `revoked`:
+    - granted 10:06:48 UTC for the setup calls, revoked 10:13:36;
+    - **re-granted 10:55:15 UTC for the ops screens and the founder's review.**
+  - **When the founder's review is finished:**
+    - remove the role with a `platform_role.revoked` audit row;
+    - delete the account's sessions;
+    - optionally remove the `plansV2` override, or delete "Caudals QA" through the deletion workflow.
+  - **Screenshots and notes:** `~/.cache/caudals-qa/` on atlantic (`inventory.md`, `manifest.md`, `functional-issues.md`).
 
 ## 6. Session log
 
