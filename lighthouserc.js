@@ -11,9 +11,11 @@
  * cannot fail the gate. The spec's targets are LCP < 2.5 s, CLS < 0.1 and
  * TBT < 200 ms on mobile. CLS is enforced at the target everywhere, and LCP
  * and TBT for sign-up and on desktop. On mobile the landing misses LCP and TBT
- * and the demo misses LCP (their shared site weight, docs/launch/L-24.md), so
- * those are a warning at the target plus an error at a regression ceiling
- * until the public-site weight follow-up lands.
+ * and the demo misses LCP, so those are a warning at the target plus an error
+ * at a regression ceiling. L-24b (docs/launch/L-24b.md) cut them from
+ * 5.2–6.4 s to ~3.4–4.3 s and tightened the ceilings; what is left on the
+ * simulated path is the framework's script, the stylesheet, Geist and the
+ * italic Newsreader that below-the-fold text pulls in at the first layout.
  */
 const port = Number(process.env.LHCI_PORT ?? 4173);
 const local = `http://localhost:${port}`;
@@ -23,9 +25,15 @@ const desktop = process.env.LHCI_FORM_FACTOR === "desktop";
 
 /** Spec P-47 targets (milliseconds; CLS unitless). */
 const TARGET = { lcp: 2500, cls: 0.1, tbt: 200 };
-/** Regression ceilings on mobile: the production medians after L-24 (L-24.md: landing LCP 5.8–6.4 s and TBT 220–256 ms, demo LCP 5.2–5.9 s) plus a margin. */
-const LCP_CEILING_MOBILE = { landing: 7500, demo: 7000 };
-const TBT_CEILING_MOBILE_LANDING = 350;
+/**
+ * Regression ceilings on mobile: the production medians after L-24b, two sets
+ * (L-24b.md: landing LCP 3.43 s and 3.35 s, runs 2.83–4.24 s, TBT 212 ms and
+ * 172 ms; demo LCP 3.54 s and 4.25 s, runs 3.06–4.25 s) plus a margin for the
+ * swing the shared host's load causes between sets. L-24's were 7.5 s, 7.0 s
+ * and 350 ms.
+ */
+const LCP_CEILING_MOBILE = { landing: 4500, demo: 5000 };
+const TBT_CEILING_MOBILE_LANDING = 300;
 
 const urls = {
   landing: `${baseURL}/en`,
