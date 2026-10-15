@@ -443,7 +443,10 @@ Install caveat:
   `lib/observability/sentry-config.ts`; server runtime DSN resolution lives in
   `lib/observability/sentry-server-config.ts`.
 - Sentry stays disabled unless `SENTRY_DSN` or the server-only
-  `SENTRY_DSN_FILE` Docker secret fallback is set. Keep `sendDefaultPii=false`
+  `SENTRY_DSN_FILE` Docker secret fallback is set. The browser SDK loads only
+  when the image build sets `NEXT_PUBLIC_SENTRY_DSN` (it does not today, so
+  browsers send nothing, as before); without it no Sentry code reaches the
+  page (launch L-24b). Keep `sendDefaultPii=false`
   unless a privacy review explicitly approves a change.
 - `.env.sentry-build-plugin` is ignored and is only for Sentry source-map
   upload auth. It does not enable runtime error delivery; rotate exposed auth

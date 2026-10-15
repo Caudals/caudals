@@ -5,6 +5,7 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { ContactForm } from "@/components/contact/contact-form";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { useFrontDoor } from "@/components/public/front-door";
+import { Toaster } from "sonner";
 import { useTranslations } from "@/lib/i18n/context";
 import type {
   EvaluationRequestOffer,
@@ -63,6 +64,8 @@ export function ContactPageContent({ requestedOffer, requestedSector }: ContactP
         </section>
       </main>
       <MarketingFooter />
+      {/* The form's toasts. The public document has no toast host, so the other public pages do not load one (launch L-24b). */}
+      <Toaster richColors position="top-right" closeButton={false} />
     </div>
   );
 }

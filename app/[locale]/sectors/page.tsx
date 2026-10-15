@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { SectorsHubClient } from "@/components/sectors/sectors-hub-client";
+import { SectorsHub } from "@/components/sectors/sectors-hub";
+import { demoPublicEnabled } from "@/lib/public/front-door";
 import { localeHtmlLang, locales, type Locale } from "@/lib/i18n/config";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
@@ -82,7 +83,7 @@ export default async function SectorsHubPage({ params }: SectorsHubProps) {
 
   return (
     <>
-      <SectorsHubClient sectors={sectors} />
+      <SectorsHub locale={locale} demoPublic={demoPublicEnabled()} sectors={sectors} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(buildStructuredData(locale)) }}

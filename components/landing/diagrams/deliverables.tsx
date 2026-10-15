@@ -1,6 +1,5 @@
-"use client";
-
-import { useTranslations } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
 
 /** A sheet of paper with a soft shadow: the base of every deliverable. */
 function Sheet({ x, y, w, h, r = 2 }: { x: number; y: number; w: number; h: number; r?: number }) {
@@ -106,8 +105,8 @@ function Alerts({ tag, text }: { tag: string; text: string }) {
 const ITEMS = ["report", "exam", "readout", "alerts"] as const;
 
 /** Step 4: the report, the exam, the walkthrough and the monthly alerts. */
-export function Deliverables() {
-  const t = useTranslations("steps.deliver");
+export function Deliverables({ locale }: { locale: Locale }) {
+  const t = createScopedTranslator(locale, "steps.deliver");
 
   const art = {
     report: <Report tag={t("reportTag")} score={t("reportScore")} />,

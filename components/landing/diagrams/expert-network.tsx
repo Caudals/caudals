@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import {
   Calculator,
@@ -10,7 +8,8 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import { useTranslations } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
 import type { DatasetKind } from "@/lib/sectors/content";
 
 /** Who in the network writes, each with the tool of their trade. */
@@ -86,6 +85,7 @@ const DATA: readonly { id: DataId; icon: ReactNode }[] = [
 const DATA_ICONS = Object.fromEntries(DATA.map(({ id, icon }) => [id, icon])) as Record<DataId, ReactNode>;
 
 type ExpertNetworkProps = {
+  locale: Locale;
   /** A sector page's own roles, each with its icon already resolved. */
   roles?: readonly { label: string; icon: LucideIcon }[];
   /** A sector page's own datasets, drawn with the shared glyphs. */
@@ -96,8 +96,8 @@ type ExpertNetworkProps = {
  * Step 3: who in our network writes, and the data they build from what the
  * exam finds. The landing shows the whole network; a sector page its own part.
  */
-export function ExpertNetwork({ roles, datasets }: ExpertNetworkProps = {}) {
-  const t = useTranslations("steps.experts");
+export function ExpertNetwork({ locale, roles, datasets }: ExpertNetworkProps) {
+  const t = createScopedTranslator(locale, "steps.experts");
   const roleItems =
     roles ?? ROLES.map(({ id, icon }) => ({ label: t(`roles.${id}`), icon }));
   const dataItems =

@@ -1,15 +1,15 @@
-"use client";
-
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { HeroChat } from "@/components/landing/hero-chat";
-import { splitMarked } from "@/components/landing/marks";
-import { useFrontDoor } from "@/components/public/front-door";
-import { useTranslations } from "@/lib/i18n/context";
+import { heroChatMessages } from "@/components/landing/hero-chat-data";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
+import { splitMarked } from "@/lib/marked-text";
 
-export function HeroSection() {
-  const t = useTranslations("hero");
-  const { demoPublic } = useFrontDoor();
+/** The landing hero, rendered on the server; only the checked conversations hydrate (launch L-24b). */
+export function HeroSection({ locale, demoPublic }: { locale: Locale; demoPublic: boolean }) {
+  const t = createScopedTranslator(locale, "hero");
   // Each locale marks its own serif-italic word with asterisks.
   const headline = splitMarked(t("headline"));
 
@@ -41,7 +41,9 @@ export function HeroSection() {
         </div>
       </div>
       <div className="lp-rise" style={{ ["--d" as string]: 0.24 }}>
-        <HeroChat />
+        <ClientMessages locale={locale} groups={heroChatMessages()}>
+          <HeroChat />
+        </ClientMessages>
       </div>
     </section>
   );

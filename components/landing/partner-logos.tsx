@@ -1,6 +1,5 @@
-"use client";
-
-import { useTranslations } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
 
 /**
  * Institutions that back Caudals, flattened to one ink. Heights are set per
@@ -20,8 +19,8 @@ const ROWS = [
   ],
 ] as const;
 
-export function PartnerLogos() {
-  const t = useTranslations("partners");
+export function PartnerLogos({ locale }: { locale: Locale }) {
+  const t = createScopedTranslator(locale, "partners");
 
   return (
     <div className="lp-wrap">

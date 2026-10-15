@@ -4,6 +4,7 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { Header } from "@/components/ui/header";
 import { NewsletterBlockView } from "@/components/newsletter/blocks";
 import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { getPublishedIssue, getPublishedIssues } from "@/lib/newsletter/client";
 import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
 import { localeHtmlLang, locales } from "@/lib/i18n/config";
@@ -160,7 +161,9 @@ export default async function NewsletterIssuePage({
           <p className="mb-4 text-sm text-slate-600">
             {t("getNext")}
           </p>
-          <NewsletterSignupForm source="archive_issue" compact />
+          <ClientMessages locale={locale} groups={["newsletterForm", "validation"]}>
+            <NewsletterSignupForm source="archive_issue" compact />
+          </ClientMessages>
         </section>
       </main>
 

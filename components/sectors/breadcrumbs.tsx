@@ -1,14 +1,13 @@
-"use client";
-
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
-import { useTranslations } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
 
 /**
  * Visible breadcrumb trail. It mirrors the page's `BreadcrumbList` structured
  * data, so search results and the page show the same path.
  */
-export function Breadcrumbs({ items }: { items: readonly { label: string; href?: string }[] }) {
-  const t = useTranslations("sectors");
+export function Breadcrumbs({ locale, items }: { locale: Locale; items: readonly { label: string; href?: string }[] }) {
+  const t = createScopedTranslator(locale, "sectors");
 
   return (
     <nav className="lp-wrap lp-crumbs" aria-label={t("breadcrumbLabel")}>

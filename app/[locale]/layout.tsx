@@ -4,7 +4,10 @@ import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import { FrontDoorProvider } from "@/components/public/front-door";
 import { localeHtmlLang, locales, type Locale } from "@/lib/i18n/config";
 import { LocaleProvider } from "@/lib/i18n/context";
-import { RootDocument, rootMetadata } from "@/components/document/root-document";
+import { PUBLIC_SHELL_MESSAGES } from "@/lib/i18n/client-messages";
+import { pickMessages } from "@/lib/i18n/messages";
+import { PublicDocument } from "@/components/document/public-document";
+import { rootMetadata } from "@/components/document/root-metadata";
 import { buildAlternates } from "@/lib/i18n/metadata";
 import { resolveLocale } from "@/lib/i18n/server";
 import { frontDoor } from "@/lib/public/front-door";
@@ -18,14 +21,21 @@ import {
 
 // The marketing type system: Geist for text, Newsreader for display and
 // Geist Mono for labels. Loaded here so only the public site downloads them.
+// Only Geist is preloaded: it sets the largest paint on every public page (the
+// hero standfirst and headline). Newsreader (the hero's italic word, the
+// problem statement, step numbers; 279 KB with its optical-size axis, kept by
+// founder decision) and Geist Mono (figure labels) load when the page first
+// lays text out in them and swap in as before, instead of competing with the
+// stylesheet and the page's script before the first paint (launch L-24b).
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap", preload: false });
 const newsreader = Newsreader({
   subsets: ["latin"],
   style: ["normal", "italic"],
   axes: ["opsz"],
   variable: "--font-newsreader",
   display: "swap",
+  preload: false,
 });
 
 /**
@@ -88,8 +98,8 @@ export default async function LocaleLayout({
   const locale: Locale = resolveLocale(rawLocale);
 
   return (
-    <RootDocument lang={localeHtmlLang[locale]} session={false}>
-      <LocaleProvider locale={locale}>
+    <PublicDocument lang={localeHtmlLang[locale]}>
+      <LocaleProvider locale={locale} messages={pickMessages(locale, PUBLIC_SHELL_MESSAGES)}>
         <FrontDoorProvider value={frontDoor()}>
           {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. */}
           <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-mk-sans contents`}>
@@ -98,6 +108,6 @@ export default async function LocaleLayout({
           </div>
         </FrontDoorProvider>
       </LocaleProvider>
-    </RootDocument>
+    </PublicDocument>
   );
 }

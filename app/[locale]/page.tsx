@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { HomePageClient } from "@/components/landing/home-page-client";
+import { HomePage as HomePageContent } from "@/components/landing/home-page";
 import { CAUDALS_AUTHORS } from "@/lib/authors";
 import { locales, localeHtmlLang, type Locale } from "@/lib/i18n/config";
 import { localizePathname } from "@/lib/i18n/routing";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/seo";
 import { homeFaqItems } from "@/lib/public/home-faq";
 import { faqPage, jsonLd } from "@/lib/structured-data";
+import { demoPublicEnabled } from "@/lib/public/front-door";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -166,7 +167,7 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <>
-      <HomePageClient />
+      <HomePageContent locale={locale} demoPublic={demoPublicEnabled()} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(homePageStructuredData) }}

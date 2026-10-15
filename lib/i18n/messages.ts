@@ -1,34 +1,45 @@
 /**
- * Type-safe message access.
+ * The message catalogues and type-safe access to them.
  *
- * `en.json` is the single source of truth for the shape of the dictionary: its
- * nested structure generates `MessageKey`, a union of every valid dotted path
- * (`"hero.headline"`, `"contact.submit"`, …). `es.json` is checked against that
- * same shape at compile time, so a key that exists in one locale and not the
- * other is a type error rather than a silent English fallback at runtime.
+ * This module imports both `en.json` and `es.json`, so it is for the server
+ * and for server-rendered components. Client components read messages through
+ * `lib/i18n/context.tsx`, which holds only what the page sent them
+ * (`pickMessages`, launch L-24b); importing this module from a client component
+ * would put both catalogues back in every public page's script.
  *
- * Interpolation uses single braces — `"© {year} Caudals."` — and missing values
- * are left as-is rather than blanked, which makes an unfilled slot visible in
- * review instead of shipping an empty string.
+ * `es.json` is checked against the shape of `en.json` at compile time, so a key
+ * that exists in one locale and not the other is a type error rather than a
+ * silent English fallback at runtime.
  */
 
 import en from "./messages/en.json";
 import es from "./messages/es.json";
 import { defaultLocale, type Locale } from "./config";
+import {
+  mergeMessages,
+  resolveGroup,
+  scopeTranslator,
+  translatorFrom,
+  type MessagePath,
+  type Messages,
+  type PartialMessages,
+  type ScopedTranslator,
+  type Translator,
+} from "./translate";
 
-/** The canonical dictionary shape, derived from the English messages. */
-export type Messages = typeof en;
-
-/** Recursively builds the union of dotted paths that resolve to a string. */
-type DottedKeys<T, Prefix extends string = ""> = {
-  [K in keyof T & string]: T[K] extends string
-    ? `${Prefix}${K}`
-    : DottedKeys<T[K], `${Prefix}${K}.`>;
-}[keyof T & string];
-
-export type MessageKey = DottedKeys<Messages>;
-
-export type TranslationValues = Record<string, string | number>;
+export {
+  scopeTranslator,
+  type MessageGroup,
+  type MessageKey,
+  type MessagePath,
+  type Messages,
+  type Namespace,
+  type NamespaceKeys,
+  type PartialMessages,
+  type ScopedTranslator,
+  type TranslationValues,
+  type Translator,
+} from "./translate";
 
 /**
  * Every locale must supply exactly the English key set. `es.json` is typed
@@ -44,61 +55,40 @@ export function getMessages(locale: Locale): Messages {
   return dictionaries[locale] ?? dictionaries[defaultLocale];
 }
 
-const INTERPOLATION = /\{(\w+)\}/g;
-
-function interpolate(template: string, values?: TranslationValues): string {
-  if (!values) return template;
-  return template.replace(INTERPOLATION, (match, name: string) => {
-    const value = values[name];
-    return value === undefined ? match : String(value);
-  });
-}
-
-function resolve(messages: Messages, key: string): string | undefined {
-  let current: unknown = messages;
-  for (const segment of key.split(".")) {
-    if (typeof current !== "object" || current === null) return undefined;
-    current = (current as Record<string, unknown>)[segment];
-  }
-  return typeof current === "string" ? current : undefined;
-}
-
-export type Translator = (key: MessageKey, values?: TranslationValues) => string;
-
 /**
  * Builds a translator bound to one locale. A key missing from the requested
  * locale falls back to English, and a key missing everywhere returns the key
  * itself so the gap is obvious on screen rather than rendering blank.
  */
 export function createTranslator(locale: Locale): Translator {
-  const messages = getMessages(locale);
-  const fallback = dictionaries[defaultLocale];
-
-  return (key, values) => {
-    const template = resolve(messages, key) ?? resolve(fallback, key);
-    return template === undefined ? key : interpolate(template, values);
-  };
+  return translatorFrom(getMessages(locale), dictionaries[defaultLocale]);
 }
 
 /**
- * Narrows a translator to one namespace, so a component reads
- * `t("headline")` instead of repeating `"hero."` at every call site.
+ * A translator narrowed to one namespace or group, for components that render
+ * on the server and in the UI harness alike (`lib/i18n/server.ts` holds the
+ * request-cached server-only version).
  */
-export type NamespaceKeys<N extends string> = MessageKey extends infer K
-  ? K extends `${N}.${infer Rest}`
-    ? Rest
-    : never
-  : never;
+export function createScopedTranslator<N extends string>(locale: Locale, namespace: N): ScopedTranslator<N> {
+  return scopeTranslator(createTranslator(locale), namespace);
+}
 
-export type ScopedTranslator<N extends string> = (
-  key: NamespaceKeys<N>,
-  values?: TranslationValues,
-) => string;
-
-export function scopeTranslator<N extends string>(
-  translate: Translator,
-  namespace: N,
-): ScopedTranslator<N> {
-  return (key, values) =>
-    translate(`${namespace}.${key}` as MessageKey, values);
+/**
+ * The part of one locale's catalogue that some client components read: whole
+ * namespaces (`"demo"`) or groups inside them (`"steps.exam"`). Passed to
+ * `LocaleProvider` or `ClientMessages`, it travels in the page's RSC payload
+ * instead of both catalogues travelling in its script.
+ */
+export function pickMessages(locale: Locale, groups: readonly MessagePath[]): PartialMessages {
+  const source = getMessages(locale);
+  let picked: PartialMessages = {};
+  for (const group of groups) {
+    const segments = group.split(".");
+    const value = resolveGroup(source, segments);
+    if (value === undefined) continue;
+    // `{ steps: { exam: … } }` for "steps.exam"; merging copies, so the catalogue is never mutated.
+    const nested = segments.reduceRight<unknown>((inner, segment) => ({ [segment]: inner }), value);
+    picked = mergeMessages(picked, nested as PartialMessages);
+  }
+  return picked;
 }

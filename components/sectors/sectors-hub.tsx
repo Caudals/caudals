@@ -1,28 +1,36 @@
-"use client";
-
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { CTASection } from "@/components/landing/cta";
 import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { HeroChat } from "@/components/landing/hero-chat";
+import { heroChatMessages } from "@/components/landing/hero-chat-data";
 import { LandingShell } from "@/components/landing/landing-shell";
-import { splitMarked } from "@/components/landing/marks";
 import { Breadcrumbs } from "@/components/sectors/breadcrumbs";
-import { useFrontDoor } from "@/components/public/front-door";
-import type { RelatedSector } from "@/components/sectors/sector-page-client";
-import { useTranslations } from "@/lib/i18n/context";
+import type { RelatedSector } from "@/components/sectors/sector-page";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
+import { splitMarked } from "@/lib/marked-text";
 
 type HubSector = RelatedSector & { audience: string };
 
-/** The sectors hub: one line per sector and a way into each page. */
-export function SectorsHubClient({ sectors }: { sectors: readonly HubSector[] }) {
-  const t = useTranslations("sectors");
-  const tHero = useTranslations("hero");
-  const { demoPublic } = useFrontDoor();
+/** The sectors hub: one line per sector and a way into each page. Rendered on the server (launch L-24b). */
+export function SectorsHub({
+  locale,
+  demoPublic,
+  sectors,
+}: {
+  locale: Locale;
+  /** `DEMO_PUBLIC` (`lib/public/front-door.ts`), read by the page on the server. */
+  demoPublic: boolean;
+  sectors: readonly HubSector[];
+}) {
+  const t = createScopedTranslator(locale, "sectors");
+  const tHero = createScopedTranslator(locale, "hero");
   const headline = splitMarked(t("hubHeadline"));
 
   return (
     <LandingShell>
-      <Breadcrumbs items={[{ label: t("home"), href: "/" }, { label: t("hub") }]} />
+      <Breadcrumbs locale={locale} items={[{ label: t("home"), href: "/" }, { label: t("hub") }]} />
 
       <section className="lp-wrap lp-hero sx-hero">
         <div>
@@ -48,7 +56,9 @@ export function SectorsHubClient({ sectors }: { sectors: readonly HubSector[] })
           </div>
         </div>
         <div className="lp-rise" style={{ ["--d" as string]: 0.24 }}>
-          <HeroChat sectors={sectors.map((sector) => sector.id)} />
+          <ClientMessages locale={locale} groups={heroChatMessages(sectors.map((sector) => sector.id))}>
+            <HeroChat sectors={sectors.map((sector) => sector.id)} />
+          </ClientMessages>
         </div>
       </section>
 
@@ -72,7 +82,7 @@ export function SectorsHubClient({ sectors }: { sectors: readonly HubSector[] })
         </ul>
       </section>
 
-      <CTASection title={t("ctaTitle")} subtitle={t("ctaSubtitle")} />
+      <CTASection locale={locale} demoPublic={demoPublic} title={t("ctaTitle")} subtitle={t("ctaSubtitle")} />
     </LandingShell>
   );
 }

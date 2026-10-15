@@ -1,12 +1,13 @@
-"use client";
-
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { DemoCtaButton } from "@/components/landing/demo-cta";
-import { useFrontDoor } from "@/components/public/front-door";
-import { useTranslations } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
 import { PILOT_REQUEST_PATH } from "@/lib/public/pilot-request";
 
 type CTASectionProps = {
+  locale: Locale;
+  /** `DEMO_PUBLIC` (`lib/public/front-door.ts`), read by the page on the server. */
+  demoPublic: boolean;
   /** Overrides for a page with its own closing line, such as a sector page. */
   title?: string;
   /** Describes the manual diagnostic, so it gives way to the free test's line once the demo is public. */
@@ -26,14 +27,15 @@ type CTASectionProps = {
  * L-04, L-30).
  */
 export function CTASection({
+  locale,
+  demoPublic,
   title,
   subtitle,
   diagnosticHref = "/contact?offer=reality-check",
   pilotHref = PILOT_REQUEST_PATH,
   pilotPrompt,
-}: CTASectionProps = {}) {
-  const t = useTranslations("cta");
-  const { demoPublic } = useFrontDoor();
+}: CTASectionProps) {
+  const t = createScopedTranslator(locale, "cta");
 
   return (
     <section className="lp-wrap lp-cta" aria-labelledby="cta-title">

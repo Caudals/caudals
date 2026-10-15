@@ -205,6 +205,29 @@ test("dialogs take focus, keep it inside and give it back on Escape", async ({ p
   await expect(trigger).toBeFocused();
 });
 
+test("the public menu on a phone loads on first use, keeps focus inside and gives it back on Escape", async ({ page }) => {
+  // Launch L-24b: the sheet behind the header's menu button is loaded when the button is first used.
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const [locale, name, sectors] of [["en", "Toggle menu", "Sectors"], ["es", "Abrir menú", "Sectores"]] as const) {
+    await page.goto(`/${locale}`);
+    const button = page.getByRole("button", { name });
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await button.focus();
+    await page.keyboard.press("Enter");
+    const menu = page.getByRole("dialog", { name: "Caudals" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("link", { name: sectors })).toBeVisible();
+    // The open dialog hides the rest of the page from assistive technology, the button included.
+    await expect(page.getByRole("button", { name, includeHidden: true })).toHaveAttribute("aria-expanded", "true");
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest("[role=dialog]"))), "focus moves into the menu").toBe(true);
+    await expectAxeClean(page, `mobile menu ${locale}`);
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(button).toBeFocused();
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+  }
+});
+
 test("progress is announced: the demo's live steps and the evaluation's run", async ({ page }) => {
   await routeDemo(page, { phase: "asking" });
   await page.goto(`/en/demo#r=${runId}.${runToken}`);

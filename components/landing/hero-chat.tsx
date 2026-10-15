@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "@/lib/i18n/context";
 import type { SectorId } from "@/lib/public/sectors";
+import { CONVERSATIONS, LANDING_SECTORS } from "@/components/landing/hero-chat-data";
 import {
   splitMarked,
   useAutoAdvance,
@@ -11,31 +12,13 @@ import {
   VerdictMark,
 } from "@/components/landing/marks";
 
-type Verdict = "correct" | "invented" | "outdated" | "wrongSource" | "gap" | "outOfScope";
-
-/**
- * One short conversation with an assistant per sector. The copy lives in
- * `heroChat.sectors.*`; this table holds only the verdict our check gives each
- * answer. The landing cycles through `LANDING_SECTORS`; each sector page shows
- * its own conversation.
- */
-const CONVERSATIONS = {
-  telecom: [["t1", "outdated"], ["t2", "correct"], ["t3", "invented"]],
-  legal: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]],
-  banking: [["t1", "gap"], ["t2", "correct"], ["t3", "outOfScope"]],
-  energy: [["t1", "correct"], ["t2", "wrongSource"], ["t3", "outOfScope"]],
-  insurance: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]],
-  industrial: [["t1", "wrongSource"], ["t2", "correct"], ["t3", "outOfScope"]],
-  healthcare: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]],
-  travel: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]],
-} as const satisfies Record<SectorId, readonly (readonly ["t1" | "t2" | "t3", Verdict])[]>;
-
-/** The landing's rotation, in order. */
-const LANDING_SECTORS: readonly SectorId[] = ["telecom", "legal", "banking", "energy", "insurance"];
-
 /** How long one sector stays on screen before the next one plays. */
 const SECTOR_SECONDS = 10;
 
+/**
+ * The hero's checked conversations. Its parent sends the messages it reads
+ * with `ClientMessages` and `heroChatMessages(sectors)` (launch L-24b).
+ */
 export function HeroChat({ sectors = LANDING_SECTORS }: { sectors?: readonly SectorId[] }) {
   const SECTORS = sectors.map((id) => ({ id, turns: CONVERSATIONS[id] }));
   // A single conversation is a static figure, not a carousel.

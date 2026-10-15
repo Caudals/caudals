@@ -3,6 +3,7 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { Header } from "@/components/ui/header";
 import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
 import { locales, type Locale } from "@/lib/i18n/config";
@@ -71,7 +72,9 @@ export default async function NewsletterPage({ params }: NewsletterIndexProps) {
         </header>
 
         <section className="mb-16 rounded-2xl border border-black/[0.08] bg-background p-6 sm:p-8 shadow-xs">
-          <NewsletterSignupForm source="archive" />
+          <ClientMessages locale={locale} groups={["newsletterForm", "validation"]}>
+            <NewsletterSignupForm source="archive" />
+          </ClientMessages>
         </section>
 
         <section className="flex flex-col divide-y divide-gray-200">

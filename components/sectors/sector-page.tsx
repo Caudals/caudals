@@ -1,24 +1,27 @@
-"use client";
-
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { CTASection } from "@/components/landing/cta";
 import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { ExpertNetwork } from "@/components/landing/diagrams/expert-network";
 import { FailureModes } from "@/components/landing/diagrams/failure-modes";
 import { HeroChat } from "@/components/landing/hero-chat";
+import { heroChatMessages } from "@/components/landing/hero-chat-data";
 import { LandingShell } from "@/components/landing/landing-shell";
-import { splitMarked } from "@/components/landing/marks";
 import { Breadcrumbs } from "@/components/sectors/breadcrumbs";
 import { EXPERT_ROLE_ICONS } from "@/components/sectors/expert-icons";
-import { useFrontDoor } from "@/components/public/front-door";
-import { useTranslations } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/config";
+import { createScopedTranslator } from "@/lib/i18n/messages";
+import { splitMarked } from "@/lib/marked-text";
 import { sectorPilotRequestPath } from "@/lib/public/pilot-request";
 import { SECTORS_HUB_PATH, type SectorId } from "@/lib/public/sectors";
 import type { SectorCopy } from "@/lib/sectors/content";
 
 export type RelatedSector = { id: SectorId; name: string; summary: string; href: string };
 
-type SectorPageClientProps = {
+type SectorPageContentProps = {
+  locale: Locale;
+  /** `DEMO_PUBLIC` (`lib/public/front-door.ts`), read by the page on the server. */
+  demoPublic: boolean;
   sectorId: SectorId;
   copy: SectorCopy;
   related: readonly RelatedSector[];
@@ -30,12 +33,13 @@ type SectorPageClientProps = {
  * wrong, who writes the answer key, questions buyers ask, and the way out:
  * the free test once the demo is public (launch L-04), with a pilot request
  * for the sector as the secondary action (launch L-30); otherwise the free
- * diagnostic with the sector already chosen on the form.
+ * diagnostic with the sector already chosen on the form. Rendered on the
+ * server; the header, the conversation and the failure modes hydrate (launch
+ * L-24b).
  */
-export function SectorPageClient({ sectorId, copy, related }: SectorPageClientProps) {
-  const t = useTranslations("sectors");
-  const tHero = useTranslations("hero");
-  const { demoPublic } = useFrontDoor();
+export function SectorPageContent({ locale, demoPublic, sectorId, copy, related }: SectorPageContentProps) {
+  const t = createScopedTranslator(locale, "sectors");
+  const tHero = createScopedTranslator(locale, "hero");
   const headline = splitMarked(copy.headline);
   const diagnosticHref = `/contact?offer=reality-check&sector=${sectorId}`;
   const pilotHref = sectorPilotRequestPath(sectorId);
@@ -70,7 +74,11 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
       id: "failures",
       title: copy.failures.title,
       description: copy.failures.description,
-      figure: <FailureModes examples={copy.failures.examples} />,
+      figure: (
+        <ClientMessages locale={locale} groups={["steps.exam"]}>
+          <FailureModes examples={copy.failures.examples} />
+        </ClientMessages>
+      ),
     },
     {
       id: "experts",
@@ -78,6 +86,7 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
       description: copy.experts.description,
       figure: (
         <ExpertNetwork
+          locale={locale}
           roles={copy.experts.roles.map(({ label, icon }) => ({
             label,
             icon: EXPERT_ROLE_ICONS[icon],
@@ -91,6 +100,7 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
   return (
     <LandingShell>
       <Breadcrumbs
+        locale={locale}
         items={[
           { label: t("home"), href: "/" },
           { label: t("hub"), href: SECTORS_HUB_PATH },
@@ -132,7 +142,9 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
           </div>
         </div>
         <div className="lp-rise" style={{ ["--d" as string]: 0.24 }}>
-          <HeroChat sectors={[sectorId]} />
+          <ClientMessages locale={locale} groups={heroChatMessages([sectorId])}>
+            <HeroChat sectors={[sectorId]} />
+          </ClientMessages>
         </div>
       </section>
 
@@ -194,6 +206,8 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
       </section>
 
       <CTASection
+        locale={locale}
+        demoPublic={demoPublic}
         title={t("ctaTitle")}
         subtitle={t("ctaSubtitle")}
         diagnosticHref={diagnosticHref}

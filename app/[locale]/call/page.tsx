@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CallPageContent } from "@/components/call/call-page-content";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
 import { buildPublicMetadata } from "@/lib/seo";
 
@@ -26,10 +27,15 @@ export async function generateMetadata({
   });
 }
 
-export default function CallPage() {
+export default async function CallPage({ params }: { params: Promise<{ locale: string }> }) {
+  const locale = resolveLocale((await params).locale);
   const calLink =
     (process.env.CALCOM_LINK ?? process.env.NEXT_PUBLIC_CALCOM_LINK)?.trim() ||
     DEFAULT_CAL_LINK;
 
-  return <CallPageContent calLink={calLink} />;
+  return (
+    <ClientMessages locale={locale} groups={["call"]}>
+      <CallPageContent calLink={calLink} />
+    </ClientMessages>
+  );
 }

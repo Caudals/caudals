@@ -37,8 +37,9 @@ import { WorkspaceHome } from "../../components/evals/workspace-home";
 import { WorkspaceSystems } from "../../components/evals/workspace-systems";
 import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
-import { HomePageClient } from "../../components/landing/home-page-client";
+import { HomePage } from "../../components/landing/home-page";
 import { LocaleProvider } from "../../lib/i18n/context";
+import { getMessages } from "../../lib/i18n/messages";
 import { FrontDoorProvider } from "../../components/public/front-door";
 import { ExampleEvaluation } from "../../components/evals/example-evaluation";
 import { SampleReportPage } from "../../components/sample-report/sample-report-page";
@@ -231,20 +232,20 @@ const content =
     return <HelpArticlePage article={article} related={related} />;
   })() :
   resultsPage || sectorIndexPage ? (
-    <LocaleProvider locale={sampleLocale}>
+    <LocaleProvider locale={sampleLocale} messages={getMessages(sampleLocale)}>
       <FrontDoorProvider value={{ demoPublic: true, signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
         {resultsPage ? <PublicResultsPage locale={sampleLocale} page={publicResultFixture} /> : <SectorIndexPage locale={sampleLocale} index={sectorIndexFixture} />}
       </FrontDoorProvider>
     </LocaleProvider>
   ) :
   methodologyPage ? (
-    <LocaleProvider locale={sampleLocale}>
+    <LocaleProvider locale={sampleLocale} messages={getMessages(sampleLocale)}>
       <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
         <MethodologyPage locale={sampleLocale} />
       </FrontDoorProvider>
     </LocaleProvider>
   ) : sampleReportPage ? (
-    <LocaleProvider locale={sampleLocale}>
+    <LocaleProvider locale={sampleLocale} messages={getMessages(sampleLocale)}>
       <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
         <SampleReportPage locale={sampleLocale} view={exampleView(sampleLocale)} />
       </FrontDoorProvider>
@@ -252,15 +253,19 @@ const content =
   ) : location.pathname === "/workspace/example" ? (
     <ExampleEvaluation view={exampleView(getLocale())} pdfHref={samplePdfHref(getLocale())} readoutMode={readoutMode} />
   ) : landingPage ? (
-    <LocaleProvider locale={localizedPublic!}>
+    // The landing's sections render on the server in production (launch L-24b); here they render in the browser with the whole catalogue.
+    <LocaleProvider locale={localizedPublic!} messages={getMessages(localizedPublic!)}>
       <FrontDoorProvider value={{ demoPublic: true, signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
-        <HomePageClient />
+        <HomePage locale={localizedPublic!} demoPublic />
       </FrontDoorProvider>
     </LocaleProvider>
   ) : demoPage ? (
     // The public demo, in the landing's Paper frame (its API is routed by each test).
     // `?public` renders it as the public front door (DEMO_PUBLIC, launch L-04).
-    <LocaleProvider locale={localizedPublic ?? (params.get("locale") === "es" ? "es" : "en")}>
+    <LocaleProvider
+      locale={localizedPublic ?? (params.get("locale") === "es" ? "es" : "en")}
+      messages={getMessages(localizedPublic ?? (params.get("locale") === "es" ? "es" : "en"))}
+    >
       <FrontDoorProvider value={{ demoPublic: Boolean(localizedPublic) || params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
         <div className="lp min-h-screen"><main><DemoPage /></main></div>
       </FrontDoorProvider>

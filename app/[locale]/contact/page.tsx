@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ContactPageContent } from "@/components/contact/contact-page-content";
+import { ClientMessages } from "@/components/i18n/client-messages";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
 import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
@@ -50,10 +51,12 @@ export default async function ContactPage({ params, searchParams }: ContactPageP
 
   return (
     <>
-      <ContactPageContent
-        requestedOffer={parseRequestedOffer(firstSearchParam(query.offer))}
-        requestedSector={parseRequestedSector(firstSearchParam(query.sector))}
-      />
+      <ClientMessages locale={locale} groups={["contact", "validation"]}>
+        <ContactPageContent
+          requestedOffer={parseRequestedOffer(firstSearchParam(query.offer))}
+          requestedSector={parseRequestedSector(firstSearchParam(query.sector))}
+        />
+      </ClientMessages>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(contactStructuredData) }}

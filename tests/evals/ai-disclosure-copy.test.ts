@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { DemoDisclosure } from "@/components/demo/disclosure";
 import { AiDisclosureEvidence } from "@/components/evals/ai-disclosure-evidence";
 import { LocaleProvider } from "@/lib/i18n/context";
+import { getMessages, type PartialMessages } from "@/lib/i18n/messages";
 import enPublic from "@/lib/i18n/messages/en.json";
 import esPublic from "@/lib/i18n/messages/es.json";
 import { messages as enApp, setLocale } from "@/lib/evals/messages/en";
@@ -50,7 +51,7 @@ const COMBINATIONS: Array<[DisclosureStatus, DisclosureResult["reason"]]> = [
   ["unclear", "conflicting"], ["unclear", "no_signal"], ["unclear", "not_captured"], ["unclear", "judge"],
 ];
 
-const Provider = LocaleProvider as FunctionComponent<{ locale: "en" | "es"; children?: ReactNode }>;
+const Provider = LocaleProvider as FunctionComponent<{ locale: "en" | "es"; messages: PartialMessages; children?: ReactNode }>;
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 describe("AI-disclosure copy, rendered in both languages", () => {
@@ -59,7 +60,7 @@ describe("AI-disclosure copy, rendered in both languages", () => {
   for (const language of ["en", "es"] as const) {
     it(`never claims compliance or certification on the demo report (${language})`, () => {
       for (const [status, reason] of COMBINATIONS) {
-        const html = renderToStaticMarkup(createElement(Provider, { locale: language }, createElement(DemoDisclosure, { result: result(status, reason, language) })));
+        const html = renderToStaticMarkup(createElement(Provider, { locale: language, messages: getMessages(language) }, createElement(DemoDisclosure, { result: result(status, reason, language) })));
         const copy = text(html);
         expect(copy, `${status}/${reason}`).not.toMatch(FORBIDDEN);
         expect(copy).toContain(EVIDENCE_LINE[language]);

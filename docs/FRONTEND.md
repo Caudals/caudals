@@ -138,6 +138,24 @@ routes remain English-only; `/admin` is removed and returns 404.
 - Read messages with `useTranslations("namespace")` in client components and
   `getScopedTranslator(locale, "namespace")` on the server. Keys are typed;
   an unknown key does not compile.
+- Client components see only the messages the page sends them, in one
+  language (launch L-24b): the public layout sends `PUBLIC_SHELL_MESSAGES`
+  (`lib/i18n/client-messages.ts`: header, footer, cookie notice, 404 view) and
+  a page sends the rest with `<ClientMessages locale groups={[…]}>`
+  (`components/i18n/client-messages.tsx`) right around the client component
+  that reads them (`"demo"`, `"steps.exam"`, `heroChatMessages(sectors)`). A
+  missing group renders the key and logs `Missing message` in development;
+  `tests/i18n/public-client-messages.test.ts` renders the landing, demo,
+  sector pages, hub and 404 with exactly these subsets and fails on one. Never
+  import `lib/i18n/messages` from a client component: it carries both
+  catalogues (`lib/i18n/context.tsx` uses `lib/i18n/translate.ts`, which does
+  not).
+- Public components that render on the server and in the UI harness alike
+  (landing sections, sector pages, hub, breadcrumbs) take `locale` (and
+  `demoPublic`, read by the page with `demoPublicEnabled()`) as props and
+  translate with `createScopedTranslator(locale, …)` from `lib/i18n/messages`;
+  they must not import `server-only` modules, React hooks or `marks.tsx`
+  (use `lib/marked-text`).
 - Long-form prose (blog, legal) is content, not UI copy: it lives in
   `content/blog/{locale}/` and `content/legal/{locale}.json`.
 - Zod schemas emit message *keys*, not sentences — they run where no locale is
@@ -287,7 +305,7 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`
 
 - **Accessibility gate (P-46).** `e2e/evals/a11y.contract.ts` (in `ui.config.ts`) runs axe (`e2e/evals/axe.ts`: WCAG 2.0–2.2 A/AA plus best practices, serious and critical only, colours checked at rest) on the core screens: landing (EN/ES), demo start, live and report, sign-up from the demo, direct sign-up, sign-in, evaluations list, new evaluation, the evaluation page (running and paused for credits), the report's overview and results, billing, top up and the estimate and top-up dialogs. It also checks that dialogs take, keep and return focus, that progress is announced (`aria-live`, `progressbar` values), that nothing moves under reduced motion, and that the funnel (landing → demo → report → sign-up) can be completed with the keyboard alone, with a visible focus indicator on every stop. `e2e/a11y-public.spec.ts` runs the same axe pass on served pages (a production build in CI, or production with `PLAYWRIGHT_BASE_URL`/`PLAYWRIGHT_APP_URL`). The harness serves the landing at `/en` and `/es` and the demo at `/en/demo` and `/es/demo` with the front door on.
 - **Performance budgets (P-47).** `lighthouserc.js`: the landing (`/en`), the demo (`/en/demo`) and direct sign-up (`/workspace/start`), mobile (default) and desktop (`LHCI_FORM_FACTOR=desktop`), three runs, median asserted. CLS < 0.1 is an error everywhere; LCP < 2.5 s and TBT < 200 ms are errors for sign-up and on desktop; on mobile the landing (LCP and TBT) and the demo (LCP) miss the targets, so those are warnings at the target plus errors at regression ceilings until the public-site weight follow-up (L-24.md). CI's `budgets` job builds the app and runs both, only when files that reach those pages change.
-- **Public pages stay light.** Everything on the public site is paid for on a phone's first visit: no animation or motion library (CSS keyframes, as the cookie notice), no session client (`RootDocument session={false}` in the public layout: nothing public depends on who is signed in), and the largest text renders on the server at full opacity (`.lp-lift` for the hero headline and standfirst; the demo's start view is server-rendered, and a run's private link hides it before the first paint).
+- **Public pages stay light.** Everything on the public site is paid for on a phone's first visit: no animation or motion library (CSS keyframes, as the cookie notice), and the largest text renders on the server at full opacity (`.lp-lift` for the hero headline and standfirst; the demo's start view is server-rendered, and a run's private link hides it before the first paint). Launch L-24b: a layout loads the script of every client component its server modules import, rendered or not, so the public layout uses `PublicDocument` (no session client, Better Auth or toast host; the contact form mounts its own `Toaster`) and imports `rootMetadata` from `components/document/root-metadata.ts`; the 404 view (`app/[locale]/not-found.tsx`) is part of every public page's script, so it stays small. The landing, sector pages, hub and demo frame render on the server (`LandingShell` is not a client component; `MomentumScroll` is its effect); only the header, footer, cookie notice, hero chat, animated figures and the demo hydrate. The header's mobile sheet (`components/ui/mobile-menu-sheet.tsx`) loads on first use. Only Geist is preloaded (the largest paint); Newsreader and Geist Mono load when first used and swap in. The browser Sentry SDK loads only with a build-time `NEXT_PUBLIC_SENTRY_DSN` (none in production, so it never reached Sentry anyway).
 - **The demo's proof of work** runs in a Blob worker built from `powKernel`'s source and read back by property name (`components/demo/pow.ts`), so minification cannot break it; it starts when the visitor engages with the form, and the main-thread fallback works in slices of at most 8 ms. `lib/demo/demo.test.ts` runs the worker source from an esbuild-minified bundle.
 
 ### Partner dashboard (launch L-28)

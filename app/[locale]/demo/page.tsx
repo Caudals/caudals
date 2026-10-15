@@ -30,6 +30,7 @@ export async function generateMetadata({
 }
 
 /** The free test. A run's private link carries its token in the fragment, never in the request. */
-export default function DemoRoute() {
-  return <DemoShell />;
+export default async function DemoRoute({ params }: { params: Promise<{ locale: string }> }) {
+  const locale = resolveLocale((await params).locale);
+  return <DemoShell locale={locale} />;
 }
