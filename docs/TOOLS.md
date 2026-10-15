@@ -22,7 +22,8 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Warmbly CLI + `warmbly-cli` skill: outreach and CRM product operations
 - `warmbly-apollo` / `warmbly-rocketreach` CLIs, MCPs and skills: prospect search/enrichment and direct Warmbly imports
 - Cloudflare CLI (`cf`, alias `cloudflare`): DNS and edge/API inspection
-- Hermes: strategic-prospecting host/service diagnostics; behaviour belongs to `../leads`
+- Hermes: strategic-prospecting host/service diagnostics; behaviour belongs to `../leads`. Its gateway also serves the founders' Slack (see Slack below)
+- Slack CLI + `scripts/slack/`: the Caudals workspace layout, canvases and bot posts ([infra/slack/README.md](../infra/slack/README.md))
 - `caudals-evals`: private customer-side evaluation runner; the older `caudals` CLI remains frozen
 - Artifact skills, document/media utilities and connected app tools: see the inventory below
 - Stripe CLI/MCP: billing, payment and webhook work; the MCP is disabled in the inspected local configuration
@@ -46,6 +47,7 @@ Checked **2026-10-09** against local executable/package metadata, installed skil
 | `psql` | `atlantic`; also available in database containers | SQL inspection. Not on the inspected local default `PATH`; use a configured client or container |
 | `gh`, Git, Node/npm, Python, `uv`/`uvx`, `rg`, `jq` | Local developer tools; host availability varies | CI, build, scripts, search and JSON. Use the repo lockfile/runtime requirements |
 | `hermes` | Local and `atlantic` `~/.local/bin/hermes` | Existing prospecting agent/service diagnostics; `hermes --help` |
+| `slack` 4.10.0 | Local Homebrew cask `slack-cli` | Slack CLI for the Caudals workspace apps; `slack auth list`, `slack app list` from `infra/slack/apps/<app>` |
 | `codex`, `claude`, `cursor-agent`, `agy` | Local agent/editor launchers; Codex/Claude also observed on `atlantic` | Agent/editor sessions |
 | `ntn` | Local `~/.local/bin/ntn` | Notion CLI (beta): `ntn --help`, `ntn doctor`; authentication/resource access is separate |
 | `ffmpeg`, `ffprobe`, `magick`, `pdftoppm` | Local Homebrew tools | Media encoding/inspection, ImageMagick and PDF page rendering; inspect command help |
@@ -176,7 +178,8 @@ Authentication prefers protected `CLOUDFLARE_API_TOKEN`, then the selected OAuth
 ## Other Available Tools and Skills
 
 - **Private access:** `tailscale status` / `tailscale ping HOST` diagnose reachability; use `ssh -o BatchMode=yes caudals@atlantic` or `caudals@arctic`. Inspect `sudo -n docker service ls` and `service ps`; do not dump service secret/env values. `cloudflared` tunnel changes are separate from this connectivity path and require a scoped task.
-- **Hermes:** `hermes --help` and host/user-service status diagnose existing prospecting infrastructure. Read `../leads/docs/STRATEGIC_PROSPECTING.md` and `../leads/docs/OPERATIONS.md` before editing jobs, configuration or schedules. Do not launch another agent or messaging gateway to delegate work from this repo.
+- **Hermes:** `hermes --help` and host/user-service status diagnose existing prospecting infrastructure. Read `../leads/docs/STRATEGIC_PROSPECTING.md` and `../leads/docs/OPERATIONS.md` before editing jobs, configuration or schedules. Since 2026-10-15 the existing atlantic gateway also connects to the Caudals Slack (founder decision); its Slack settings and briefs are in [infra/slack/README.md](../infra/slack/README.md). Do not launch another agent or messaging gateway.
+- **Slack:** `slack auth list` confirms the CLI login (workspace `caudalsespacio`). `node scripts/slack/configure-workspace.mjs --dry-run` shows drift from `infra/slack/workspace.json`; `node scripts/slack/notify.mjs <channel> "text"` posts as the caudals bot. Tokens live in `~/.config/caudals/slack/*.env` and must never be printed. Publishing to Slack is internal to the two founders; customer documents and personal data stay out of it.
 - **Private evaluation CLI:** [packages/evals-runner/README.md](../packages/evals-runner/README.md) documents `caudals-evals pair`, `doctor`, `fetch`, `run`, `upload` and `logout`. Install a reviewed package on the authorized customer machine; keep credentials in the local adapter and preserve signed/idempotent results.
 - **Artifacts:** use the session's document/PDF/spreadsheet/presentation skills and Codex workspace dependency loader before creating files. `pdftoppm` renders PDF QA images; `ffprobe` inspects media, `ffmpeg` encodes it and `magick` handles image utilities. Image generation, Remotion, Blender and `nano-pdf` serve authorized content/artifact tasks and do not extend the frozen evaluation modalities. AI-backed CLI operations can consume provider credits.
 - **Connected editing:** live Word MCP and Google Drive tools use their own access/session checks; use the corresponding skill for the requested document operation. The local Notion CLI offers `ntn doctor`, `whoami`, `pages`, `datasources`, `files` and `api`; inspect `ntn COMMAND --help` and confirm access before writes. An installed CLI is not a connected Notion plugin.

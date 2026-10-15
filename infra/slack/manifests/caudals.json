@@ -1,0 +1,61 @@
+{
+  "_metadata": { "major_version": 2, "minor_version": 1 },
+  "display_information": {
+    "name": "Caudals",
+    "description": "Caudals systems in Slack: funnel, Ops, infra and agent notifications.",
+    "long_description": "Internal app for the Caudals workspace. It posts notifications from caudals.com, Caudals Ops, infrastructure monitoring, CI/deploys and scheduled agent jobs into the right channel, and lets workspace automation scripts keep channels, canvases and bookmarks in sync. It has no inbound endpoints.",
+    "background_color": "#141414"
+  },
+  "features": {
+    "bot_user": { "display_name": "caudals", "always_online": true }
+  },
+  "oauth_config": {
+    "redirect_urls": ["https://localhost:3999/slack/oauth"],
+    "scopes": {
+      "bot": [
+        "bookmarks:read",
+        "bookmarks:write",
+        "canvases:read",
+        "canvases:write",
+        "channels:history",
+        "channels:join",
+        "channels:manage",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "chat:write.public",
+        "files:write",
+        "groups:read",
+        "pins:read",
+        "pins:write",
+        "reactions:read",
+        "reactions:write",
+        "team:read",
+        "users:read",
+        "users:read.email"
+      ],
+      "user": [
+        "bookmarks:write",
+        "canvases:read",
+        "canvases:write",
+        "channels:history",
+        "channels:read",
+        "channels:write",
+        "chat:write",
+        "groups:history",
+        "groups:read",
+        "groups:write",
+        "pins:write",
+        "reminders:write",
+        "search:read",
+        "team:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

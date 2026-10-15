@@ -161,6 +161,13 @@ Hermes lives under `~/dgx-spark/hermes`, outside Swarm. User services
 loopback plus Tailscale Serve, not public ingress. The enabled strategic
 prospecting cron ticks each minute and uses a cheap API wake gate before a
 model call. Configured model: `bluehawana/deepseek-v4-flash:iq2_m` via Ollama.
+The user service `hermes-gateway-220a4d0e` ticks that cron. Since 2026-10-15 it
+also holds a Socket Mode connection to the founders' Slack: no public ingress,
+two allowed users, and research-only tools from Slack. It runs the weekday
+morning radar, the Friday review and a five-minute LLM-free infra watchdog that
+posts to `#alerts` (`scripts/caudals_infra_watchdog.py`). See
+`infra/slack/README.md`; the pre-change `.env` and `config.yaml` are kept as
+`*.bak-before-slack-*`.
 
 The DGX is reached through a manual WireGuard split tunnel. It does not join
 Swarm or replace the VPS default route. Ollama catalogue/process reads

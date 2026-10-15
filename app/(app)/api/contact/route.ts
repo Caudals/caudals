@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getResendClient } from "@/lib/resend/client";
 import { evaluationRequestFormSchema } from "@/lib/validators/evaluation-request";
 import { ContactInquiryEmail } from "@/emails/contact-inquiry";
@@ -18,6 +18,10 @@ import {
   getClientIpFromHeaders,
 } from "@/lib/security/rate-limit";
 import { logError, logWarn } from "@/lib/security/structured-logger";
+import {
+  buildEvaluationRequestSlackMessage,
+  notifySlack,
+} from "@/lib/notifications/slack";
 
 const CONTACT_IP_RATE_LIMIT = {
   limit: 6,
@@ -164,6 +168,20 @@ export async function POST(request: NextRequest) {
       ipRateHeaders
     );
   }
+
+  // The request is recorded: tell #customers once the response is sent.
+  after(() =>
+    notifySlack(
+      "customers",
+      buildEvaluationRequestSlackMessage(data, {
+        evaluationRequestId:
+          evaluationRequestRouting?.status === "routed"
+            ? evaluationRequestRouting.evaluationRequestId
+            : undefined,
+        opsUrl: `${(process.env.EVALS_APP_URL ?? "https://app.caudals.com").replace(/\/$/, "")}/ops/clients`,
+      }),
+    ),
+  );
 
   if (contactAudienceId) {
     try {
