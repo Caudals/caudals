@@ -24,6 +24,13 @@ acceptance: `services/connect/README.md`. Its Traefik dynamic file is
   it retains content, newsletter/blog, Hermes prospecting and DGX operations.
 - Host: Hetzner `atlantic` (renamed from `caudals-1`, same Tailscale IP
   `100.118.70.90`); operations use `caudals@atlantic` through Tailscale.
+- Tailnet: `caudals.com`, owned by `mario@caudals.com`, MagicDNS suffix
+  `tail745bd1.ts.net`. Moved on 2026-10-15 from the founder's personal tailnet
+  (`tail80fb2c.ts.net`) with every device name and IPv4 kept, so the relays and
+  dashboard listeners below did not change. Both hosts are `tag:ssh-all` with
+  key expiry disabled; GitHub Actions joins as `tag:ci` through an OAuth client
+  limited to auth keys. Use the short names (`atlantic`, `arctic`) or the
+  IPs, never a full `*.ts.net` name.
 - Ingress: Cloudflare and retained `dokploy-traefik`; repository deploy scripts
   manage Swarm, not a presumed running Dokploy control plane.
 - Private state: shared PostgreSQL, separate databases/roles, object storage and
@@ -158,7 +165,11 @@ secret env files, plugin sources, data) and `~/warmbly-install`
 
 Hermes lives under `~/dgx-spark/hermes`, outside Swarm. User services
 `hermes-dashboard` and `hermes-tailnet-proxy` are active. Its dashboard uses
-loopback plus Tailscale Serve, not public ingress. The enabled strategic
+loopback plus Tailscale Serve, not public ingress: `http://atlantic:9119`
+proxies to `127.0.0.1:9120`. Serve rules are keyed to the node's full MagicDNS
+name, so re-apply them (`sudo tailscale serve --bg --http=9119
+http://127.0.0.1:9120`) after a rename or tailnet move; the rule left under the
+old `caudals-1` name answered 404 until 2026-10-15. The enabled strategic
 prospecting cron ticks each minute and uses a cheap API wake gate before a
 model call. Configured model: `bluehawana/deepseek-v4-flash:iq2_m` via Ollama.
 
