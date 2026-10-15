@@ -5,6 +5,7 @@ import { publicNavigationLinks } from "@/lib/navigation/public-links";
 import { useTranslations } from "@/lib/i18n/context";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { useFrontDoor } from "@/components/public/front-door";
+import { EmailLink } from "@/components/public/email-link";
 import { SECTOR_IDS, sectorPath } from "@/lib/public/sectors";
 import { LEGAL_DOCUMENT_IDS, LEGAL_DOCUMENT_PATHS, type LegalDocumentId } from "@/lib/legal/versions";
 
@@ -89,12 +90,10 @@ export function MarketingFooter() {
               <Image src="/caudals_logo_black.svg" alt={tNav("logoAlt")} width={28} height={28} className="h-7 w-7" />
             </Link>
             <p className="mt-5 text-sm leading-relaxed text-[#6b6a63]">{t("tagline")}</p>
-            <Link
-              href="mailto:hello@caudals.com"
+            <EmailLink
+              email="hello@caudals.com"
               className="mt-3 inline-block text-sm font-medium text-[#141413] underline decoration-[#dcdad3] underline-offset-4 transition-colors hover:decoration-[#141413]"
-            >
-              hello@caudals.com
-            </Link>
+            />
           </div>
           <div>
             <p className="mb-4 text-sm font-medium text-[#141413]">

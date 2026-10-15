@@ -65,9 +65,18 @@ function kindOf(value: string): "website" | "openai" | "curl" | null {
 /**
  * Set before the first paint when the address is a run's private link, so the
  * start view (rendered on the server for every visitor, launch L-24) stays
- * hidden until the run view replaces it. Inline: it must run before React.
+ * hidden until the run view replaces it. It must run before React.
+ *
+ * An async script with `blocking="render"` (React hoists it into the head):
+ * the browser runs it before the first paint without stopping the HTML
+ * parser. As an inline script in the body it waited for the stylesheets and
+ * held the parser in front of the headline, so the first paint showed only
+ * the header and the headline (the largest paint) came after the page's
+ * scripts had run (launch L-24d).
  */
-const RUN_LINK_SCRIPT = `if(/^#r=/.test(location.hash))document.documentElement.setAttribute("data-demo-run","")`;
+const RUN_LINK_SCRIPT_SRC = `data:text/javascript,${encodeURIComponent(
+  `if(/^#r=/.test(location.hash))document.documentElement.setAttribute("data-demo-run","")`,
+)}`;
 
 export function DemoPage() {
   const t = useTranslations("demo");
@@ -95,12 +104,12 @@ export function DemoPage() {
   // (largest contentful paint) and nothing shifts when the page hydrates.
   return (
     <div className="lp-wrap">
+      <script async blocking="render" src={RUN_LINK_SCRIPT_SRC} />
       <div className="dm">
         {handle ? (
           <RunView handle={handle} onReset={() => open(null)} />
         ) : (
           <div className="dm-start">
-            <script dangerouslySetInnerHTML={{ __html: RUN_LINK_SCRIPT }} />
             <h1 className="dm-h1 lp-lift">
               {headline.before}
               {headline.marked ? <em>{headline.marked}</em> : null}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
+import { EmailLink } from "@/components/public/email-link";
 import { Button } from "@/components/ui/button";
 import { BookingEmbed, type BookingConfirmation } from "@/components/call/booking-embed";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
@@ -93,12 +94,10 @@ export function CallPageContent({ calLink }: CallPageContentProps) {
               {t("describeSystem")}
             </Link>{" "}
             {t("orEmail")}{" "}
-            <a
-              href="mailto:hello@caudals.com"
+            <EmailLink
+              email="hello@caudals.com"
               className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
-            >
-              hello@caudals.com
-            </a>
+            />
             .
           </p>
         </section>
