@@ -10,10 +10,13 @@ import { PATHNAME_HEADER } from "@/lib/i18n/routing";
 import { notFoundLocale } from "@/lib/public/not-found-locale";
 import { getAppSiteOrigin, getMarketingSiteOrigin } from "@/lib/seo";
 
-// The public site's type system, declared as in `app/[locale]/layout.tsx`
-// (this page has no layout above it): only Geist is preloaded; Newsreader
-// keeps its optical-size axis (founder decision).
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+// The public site's type system, as in `app/[locale]/layout.tsx` (this page
+// has no layout above it); Newsreader keeps its optical-size axis (founder
+// decision). Nothing is preloaded: Next puts this module at the root of every
+// route, so a preload here became a `Link` header on every app page and put
+// Geist on sign-up's LCP path (L-24c). The 404 swaps its fonts in when it
+// first lays text out.
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap", preload: false });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap", preload: false });
 const newsreader = Newsreader({
   subsets: ["latin"],
