@@ -282,6 +282,14 @@ export const en = {
     scopeSchedule: "per-schedule",
     action: "Review limits",
   },
+  unusualSpend: {
+    subject: "Unusual credit spend in {workspace}",
+    preview: "{credits} credits used on {date}, over three times a usual day.",
+    heading: "Unusual spend",
+    body: "{workspace} used {credits} credits on {date}, more than three times its daily average of the last four weeks ({average} credits). If you expected it, there is nothing to do.",
+    next: "Usage shows which runs used them. A monthly or per-run limit puts a ceiling on spend.",
+    action: "Review usage",
+  },
   scheduleSkipped: {
     subjectCredits: "A scheduled Caudals run was skipped: not enough credits",
     subjectCap: "A scheduled Caudals run was skipped: credit limit reached",
@@ -622,6 +630,14 @@ export const es: EmailCopy = {
     scopeRun: "por ejecución",
     scopeSchedule: "por programación",
     action: "Revisar límites",
+  },
+  unusualSpend: {
+    subject: "Gasto de créditos inusual en {workspace}",
+    preview: "{credits} créditos usados el {date}, más del triple de un día normal.",
+    heading: "Gasto inusual",
+    body: "{workspace} usó {credits} créditos el {date}, más del triple de su media diaria de las últimas cuatro semanas ({average} créditos). Si lo esperabas, no tienes que hacer nada.",
+    next: "En Uso ves qué ejecuciones los usaron. Un límite mensual o por ejecución pone un tope al gasto.",
+    action: "Revisar el uso",
   },
   scheduleSkipped: {
     subjectCredits: "Se ha omitido una ejecución programada de Caudals: no hay créditos suficientes",

@@ -5630,11 +5630,16 @@
   gap: 8px;
   font-size: var(--p-text-label);
 }
-.p-pipeline li[data-state="upcoming"] .p-pipeline-head {
-  color: var(--p-text-tertiary);
-}
+/* Stages not yet reached read in secondary grey, like finished ones: the
+   current stage is set apart by full-strength text, its count and its bar,
+   not by a paler grey. Tertiary failed AA on the paused run's panel (launch
+   G2; 3.7:1 under the authored dark theme). */
+.p-pipeline li[data-state="upcoming"] .p-pipeline-head,
 .p-pipeline li[data-state="done"] .p-pipeline-head {
   color: var(--p-text-secondary);
+}
+.p-pipeline li[data-state="current"] .p-pipeline-head > span:not(.p-pipeline-count) {
+  font-weight: 500;
 }
 .p-pipeline-count {
   margin-left: auto;

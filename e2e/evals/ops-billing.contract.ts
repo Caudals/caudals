@@ -5,8 +5,11 @@
  * approvals (no approving your own request, the reviewed payload hash is
  * sent); the price book's increase notice; the operator's read-only state;
  * credits per attempt in the run inspector; the Clients PAYG filter; the €0
- * warning's link to the price book; credits by workspace in Usage.
+ * warning's link to the price book; credits by workspace in Usage. Launch G2:
+ * the provider-price check panel and its acknowledgement, and the tax-review
+ * queue with the treatments each review allows.
  */
+import { join } from "node:path";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -14,11 +17,23 @@ const OTHER = "00000000-0000-4000-8000-000000000002";
 const REV1 = "6a1f0c4e-8b2d-4f37-9c51-2e7d1a0b3c88";
 const REV2 = "9d3e5b70-1c4a-4e2b-8f6d-7a2c9e1b4d05";
 const RUN = "00000000-0000-4000-8000-000000000901";
+const CHECK = "00000000-0000-4000-8000-000000000e01";
 const now = new Date().toISOString();
 const ago = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
 const ahead = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 const spanish = (page: Page) => page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+const axePath = join(process.cwd(), "node_modules/axe-core/axe.min.js");
+/** axe-core on one region: no serious or critical violation. */
+async function axe(page: Page, selector: string) {
+  await page.addScriptTag({ path: axePath });
+  const violations = await page.evaluate(async (target) => {
+    type Axe = { run: (context: unknown, options: unknown) => Promise<{ violations: Array<{ id: string; impact: string | null; nodes: Array<{ target: string[] }> }> }> };
+    const result = await (window as unknown as { axe: Axe }).axe.run({ include: [target] }, { resultTypes: ["violations"] });
+    return result.violations.filter(item => item.impact === "serious" || item.impact === "critical").map(item => `${item.id}: ${item.nodes.map(node => node.target.join(" ")).join(", ")}`);
+  }, selector);
+  expect(violations, `axe on ${selector}`).toEqual([]);
+}
 
 const approval = (id: string, requestedBy: string, credits = "15000") => ({
   id, orgId: ORG, workspace: "Example client", action: "grant", credits, netCents: null, payload: { action: "grant", credits: Number(credits), source: "promo", expiresAt: ahead(90), campaign: "founding-pilot", reason: "Founding pilot re-runs" },
@@ -59,7 +74,17 @@ const fixtures: Record<string, (url: URL, route: Route) => unknown> = {
   [`/billing/admin/accounts/${ORG}`]: () => account,
   "/billing/admin/approvals": () => ({ approvals: [approval("00000000-0000-4000-8000-000000000c01", "another-admin"), approval("00000000-0000-4000-8000-000000000c02", "test-user", "12000")], thresholdCredits: "10000", thresholdNetCents: 10000 }),
   "/billing/admin/price-book/revisions": () => ({ effectiveRevisionId: REV1, revisions: [revision(REV2, 2, "scheduled", ahead(80), true), revision(REV1, 1, "active", ago(3), false)], routes: [],
-    latestFx: { usdPerEur: "1.1206", date: "2026-10-09", source: "ECB" }, latestCheck: { checkedAt: ago(2), changed: 1, unavailable: 0, changes: [{ label: "DeepSeek V4 Pro", provider: "deepseek", modelId: "deepseek-v4-pro", minInputTokens: 0, status: "changed", input: { listed: "0.955" }, output: { listed: "1.911" } }] } }),
+    latestFx: { usdPerEur: "1.1206", date: "2026-10-09", source: "ECB" }, latestCheck: { id: CHECK, checkedAt: ago(2), changed: 1, unavailable: 0, alerting: 2, open: true, acknowledgement: null, changes: [
+      { label: "DeepSeek V4 Pro", provider: "deepseek", modelId: "deepseek-v4-pro", minInputTokens: 0, status: "changed", recompute: true, input: { book: "1.32", listed: "0.955" }, output: { book: "3.96", listed: "1.911" } },
+      { label: "Gemini 3.1 Pro preview, > 200K", provider: "google", modelId: "gemini-3.1-pro-preview", minInputTokens: 200001, status: "unavailable", recompute: true }] } }),
+  "/billing/admin/tax-reviews": () => ({ reviews: [
+    { orgId: ORG, workspace: "Example client", legalName: "Acme Canarias SL", country: "ES", taxId: "B35000000", taxIdKind: "es_nif", viesStatus: "not_required", viesCheckedAt: null,
+      reviewReason: "es_special_territory", postalCode: "35001", city: "Las Palmas de Gran Canaria", region: "Las Palmas", billingEmail: "billing@acme.es", version: 3, since: ago(2),
+      allowed: ["non_eu_not_subject", "es_vat"], blocked: [{ source: "checkout", netCents: 5000, at: ago(1) }], openOrders: [] },
+    { orgId: OTHER, workspace: "Second client", legalName: "Beta Italia Srl", country: "IT", taxId: "IT12345678901", taxIdKind: "eu_vat", viesStatus: "unavailable", viesCheckedAt: ago(1),
+      reviewReason: "vies_unavailable", postalCode: "00100", city: "Roma", region: null, billingEmail: "billing@beta.it", version: 1, since: ago(1),
+      allowed: ["eu_reverse_charge", "es_vat"], blocked: [{ source: "auto_recharge", netCents: 2000, at: ago(1) }], openOrders: [] },
+  ] }),
   [`/billing/admin/price-book/revisions/${REV1}`]: () => revisionView(REV1, 1, ["100", "485", 17]),
   [`/billing/admin/price-book/revisions/${REV2}`]: () => revisionView(REV2, 2, ["195", "970", 34]),
   [`/billing/admin/price-book/revisions/${REV2}/notice`]: () => ({ revisionId: REV2, revision: 2, status: "scheduled", raisesPrices: true, effectiveAt: ahead(80), noticeSentAt: null, deadline: ahead(50), noticeOk: false, canSend: true, mode: "internal", state: "due",
@@ -113,7 +138,7 @@ async function routes(page: Page, posts: Array<{ path: string; body: unknown; ke
 const VIEWS: Array<{ view: string; en: string; es: string }> = [
   { view: "accounts", en: "Accounts", es: "Cuentas" }, { view: "approvals", en: "Approvals", es: "Aprobaciones" }, { view: "price-book", en: "Price book", es: "Tarifas" },
   { view: "reconciliation", en: "Reconciliation", es: "Conciliación" }, { view: "invoices", en: "Invoices", es: "Facturas" }, { view: "export", en: "Monthly export", es: "Exportación mensual" },
-  { view: "fraud", en: "Fraud queue", es: "Cola de fraude" }, { view: "overrides", en: "Overrides", es: "Excepciones" },
+  { view: "fraud", en: "Fraud queue", es: "Cola de fraude" }, { view: "tax-review", en: "Tax reviews", es: "Revisiones fiscales" }, { view: "overrides", en: "Overrides", es: "Excepciones" },
 ];
 
 for (const locale of ["en", "es"] as const)
@@ -226,4 +251,71 @@ test("the €0 warning links to the price book (L-16)", async ({ page }) => {
   });
   await page.goto("/ops/platform?admin");
   await expect(page.getByRole("link", { name: "Open the price book" })).toHaveAttribute("href", "/ops/platform/billing?view=price-book");
+});
+
+test("price book: the provider-price check needs a decision; acknowledging it sends the note (G2)", async ({ page }) => {
+  const posts: Array<{ path: string; body: unknown; key: string | null }> = [];
+  await routes(page, posts);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/ops/platform/billing?admin&view=price-book");
+    const panel = page.getByRole("region", { name: "Provider-price check" });
+    await expect(panel.getByText("Needs a decision")).toBeVisible();
+    const table = panel.getByRole("table", { name: "Provider-price check" });
+    await expect(table.getByRole("row", { name: /DeepSeek V4 Pro/ })).toContainText("1.32 → 0.955");
+    await expect(table.getByRole("row", { name: /Gemini 3.1 Pro preview/ })).toContainText("Not listed; cost moved with FX");
+    expect(await noOverflow(page), `price check at ${width}px`).toBe(true);
+  }
+  await axe(page, "[aria-labelledby=ob-price-check]");
+  await page.getByRole("button", { name: "Acknowledge" }).click();
+  const dialog = page.getByRole("dialog", { name: "Acknowledge the price check" });
+  await dialog.getByLabel("What you decided").fill("Draft revision 3 with DeepSeek's lower list price");
+  await dialog.getByRole("button", { name: "Acknowledge" }).click();
+  await expect(page.getByText("Price check acknowledged.")).toBeVisible();
+  expect(posts.at(-1)).toMatchObject({ path: `/billing/admin/price-book/checks/${CHECK}/acknowledge`, body: { note: "Draft revision 3 with DeepSeek's lower list price" } });
+  expect(posts.at(-1)?.key).toBeTruthy();
+});
+
+test("tax reviews: the queue, the treatments each review allows, and the reviewed version sent (G2, §6.14)", async ({ page }) => {
+  const posts: Array<{ path: string; body: unknown; key: string | null }> = [];
+  await routes(page, posts);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/ops/platform/billing?admin&view=tax-review");
+  const table = page.getByRole("table", { name: "Tax reviews" });
+  await expect(table.getByRole("row", { name: /Example client/ })).toContainText("Canary Islands, Ceuta or Melilla");
+  await expect(table.getByRole("row", { name: /Example client/ })).toContainText("35001");
+  await expect(table.getByRole("row", { name: /Second client/ })).toContainText("VIES unavailable");
+  await axe(page, "#p-main");
+  // Canary Islands: not subject or 21 % IVA; never a reverse charge.
+  await table.getByRole("row", { name: /Example client/ }).getByRole("button", { name: "Review" }).click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("radio")).toHaveCount(2);
+  await expect(dialog.getByRole("radio", { name: /reverse charge/i })).toHaveCount(0);
+  await dialog.getByRole("radio", { name: /Not subject to Spanish IVA/ }).check();
+  await dialog.getByLabel("Reason").fill("Established in Las Palmas; IGIC applies");
+  await dialog.getByRole("button", { name: "Set treatment" }).click();
+  await expect(page.getByText("Tax treatment set: Not subject to Spanish IVA.", { exact: false })).toBeVisible();
+  expect(posts.at(-1)).toEqual({ path: `/billing/admin/tax-reviews/${ORG}`, body: { version: 3, treatment: "non_eu_not_subject", viesConsultation: null, reason: "Established in Las Palmas; IGIC applies" }, key: expect.any(String) });
+  // VIES unavailable: the reverse charge asks for the VIES consultation number.
+  await table.getByRole("row", { name: /Second client/ }).getByRole("button", { name: "Review" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByRole("radio", { name: /reverse charge/i }).check();
+  await dialog.getByLabel("VIES consultation number").fill("WAPIAAAAZ1aBcD9");
+  await dialog.getByLabel("Reason").fill("Valid in VIES today");
+  await axe(page, "[role=dialog]");
+  await dialog.getByRole("button", { name: "Set treatment" }).click();
+  await expect.poll(() => posts.length).toBe(2);
+  expect(posts.at(-1)?.body).toEqual({ version: 1, treatment: "eu_reverse_charge", viesConsultation: "WAPIAAAAZ1aBcD9", reason: "Valid in VIES today" });
+});
+
+test("tax reviews in Spanish at 390 px (G2)", async ({ page }) => {
+  await spanish(page);
+  await routes(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("/ops/platform/billing?admin&view=tax-review");
+  await expect(page.getByRole("table", { name: "Revisiones fiscales" }).getByRole("row", { name: /Example client/ })).toContainText("Canarias, Ceuta o Melilla");
+  await page.getByRole("table", { name: "Revisiones fiscales" }).getByRole("row", { name: /Example client/ }).getByRole("button", { name: "Revisar" }).click();
+  await expect(page.getByRole("dialog").getByRole("radio", { name: /No sujeta al IVA español/ })).toBeVisible();
+  expect(await noOverflow(page)).toBe(true);
+  await axe(page, "[role=dialog]");
 });

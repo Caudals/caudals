@@ -17,6 +17,7 @@ import { billingUiEligible } from "./billing-ui";
 import { billingEstimatesMode } from "./config";
 import { engineBillingMode, workspaceEngineMode } from "./engine";
 import { autoRechargeCover } from "./limits";
+import { priceCheckStatus } from "./price-check-ack";
 import { creditsToUcr } from "./units";
 import { EstimateError, estimateEvaluationRun, estimateRequestSchema } from "./estimate";
 import {
@@ -127,12 +128,15 @@ export async function listRevisionsForAdmin(identity: EvalIdentity, orgId: strin
     const routes = await routePriceIssues(db);
     // The inputs of a new draft (L-16): the latest ECB rate and the weekly provider-price check.
     const fx = (await db.query("SELECT per_eur::text AS per_eur, to_char(rate_date,'YYYY-MM-DD') AS rate_date, source FROM billing.fx_rate WHERE currency='USD' ORDER BY rate_date DESC LIMIT 1")).rows[0];
-    const check = (await db.query("SELECT checked_at, revision_id, changed, unavailable, changes FROM billing.price_check ORDER BY checked_at DESC LIMIT 1")).rows[0];
+    const check = (await db.query("SELECT id, checked_at, revision_id, changed, unavailable, changes FROM billing.price_check ORDER BY checked_at DESC, id DESC LIMIT 1")).rows[0];
+    // Whether its findings were acknowledged (launch G2; the health check's price_check_changes).
+    const status = check ? await priceCheckStatus(db) : null;
     return {
       effectiveRevisionId: effective?.revision.id ?? null, revisions, routes,
       latestFx: fx ? { usdPerEur: String(fx.per_eur), date: String(fx.rate_date), source: String(fx.source) } : null,
-      latestCheck: check ? { checkedAt: new Date(check.checked_at).toISOString(), revisionId: String(check.revision_id), changed: Number(check.changed),
-        unavailable: Number(check.unavailable), changes: (check.changes ?? []) as unknown[] } : null,
+      latestCheck: check ? { id: String(check.id), checkedAt: new Date(check.checked_at).toISOString(), revisionId: String(check.revision_id), changed: Number(check.changed),
+        unavailable: Number(check.unavailable), changes: (check.changes ?? []) as unknown[],
+        alerting: status?.alerting ?? 0, acknowledgement: status?.acknowledgement ?? null, open: status?.open ?? false } : null,
     };
   }).catch(billingApiError);
 }

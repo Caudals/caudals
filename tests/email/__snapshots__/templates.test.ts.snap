@@ -1462,6 +1462,54 @@ Caudals · caudals.com
 
 exports[`email templates > test_set_ready renders in es 2`] = `"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html lang="es" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="color-scheme" content="light"/><title>Tu conjunto de pruebas de Caudals está listo para revisar</title></head><body style="margin:0;padding:0;background-color:#fafaf8"><div style="display:none;overflow:hidden;max-height:0;opacity:0;font-size:1px;line-height:1;color:#fafaf8">Revisa las preguntas y apruébalas para ejecutar la evaluación.</div><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="background-color:#fafaf8;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Helvetica, Arial, sans-serif;color:#141413"><tbody><tr><td style="padding:32px 12px"><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:14px;border:1px solid #dcdad3"><tbody><tr><td style="padding:32px 32px 28px"><p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#141413">Caudals</p><h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.02em;color:#141413">Tu conjunto de pruebas está listo</h1><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">Caudals ha preparado un conjunto de pruebas a partir de tu material. Revisa las preguntas y apruébalo para ejecutar la evaluación.</p><table cellPadding="0" cellSpacing="0" role="presentation" style="margin:8px 0 20px"><tbody><tr><td style="background-color:#141413;border-radius:999px"><a href="https://app.caudals.com/workspace/evaluations/e1?orgId=00000000-0000-4000-8000-000000000001" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:999px">Revisar el conjunto de pruebas</a></td></tr></tbody></table><p style="margin:8px 0 0;font-size:15px;color:#141413">El equipo de Caudals</p></td></tr></tbody></table><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto"><tbody><tr><td style="padding:16px 8px 0;font-size:12px;line-height:1.5;color:#6b6a63;text-align:center"><p style="margin:0 0 6px">Recibes este aviso porque el correo para este tipo de novedades está activado en los ajustes de tu espacio de trabajo.</p><p style="margin:0 0 6px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=notifications" style="color:#6b6a63;text-decoration:underline">Cambiar ajustes de correo</a></p><p style="margin:0">Caudals · caudals.com</p></td></tr></tbody></table></td></tr></tbody></table></body></html>"`;
 
+exports[`email templates > unusual_spend renders in en 1`] = `
+{
+  "subject": "Unusual credit spend in Acme",
+  "text": "Unusual spend
+
+Acme used 1,240 credits on 14 October 2026, more than three times its daily average of the last four weeks (210 credits). If you expected it, there is nothing to do.
+
+Usage shows which runs used them. A monthly or per-run limit puts a ceiling on spend.
+
+Review usage:
+https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&tab=billing&view=usage
+
+The Caudals team
+
+--
+Billing email for the workspace Acme. Owners receive it unless they switch it off.
+Change email settings: https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&tab=notifications
+Caudals · caudals.com
+",
+}
+`;
+
+exports[`email templates > unusual_spend renders in en 2`] = `"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html lang="en" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="color-scheme" content="light"/><title>Unusual credit spend in Acme</title></head><body style="margin:0;padding:0;background-color:#fafaf8"><div style="display:none;overflow:hidden;max-height:0;opacity:0;font-size:1px;line-height:1;color:#fafaf8">1,240 credits used on 14 October 2026, over three times a usual day.</div><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="background-color:#fafaf8;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Helvetica, Arial, sans-serif;color:#141413"><tbody><tr><td style="padding:32px 12px"><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:14px;border:1px solid #dcdad3"><tbody><tr><td style="padding:32px 32px 28px"><p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#141413">Caudals</p><h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.02em;color:#141413">Unusual spend</h1><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">Acme used 1,240 credits on 14 October 2026, more than three times its daily average of the last four weeks (210 credits). If you expected it, there is nothing to do.</p><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">Usage shows which runs used them. A monthly or per-run limit puts a ceiling on spend.</p><table cellPadding="0" cellSpacing="0" role="presentation" style="margin:8px 0 20px"><tbody><tr><td style="background-color:#141413;border-radius:999px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=billing&amp;view=usage" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:999px">Review usage</a></td></tr></tbody></table><p style="margin:8px 0 0;font-size:15px;color:#141413">The Caudals team</p></td></tr></tbody></table><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto"><tbody><tr><td style="padding:16px 8px 0;font-size:12px;line-height:1.5;color:#6b6a63;text-align:center"><p style="margin:0 0 6px">Billing email for the workspace Acme. Owners receive it unless they switch it off.</p><p style="margin:0 0 6px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=notifications" style="color:#6b6a63;text-decoration:underline">Change email settings</a></p><p style="margin:0">Caudals · caudals.com</p></td></tr></tbody></table></td></tr></tbody></table></body></html>"`;
+
+exports[`email templates > unusual_spend renders in es 1`] = `
+{
+  "subject": "Gasto de créditos inusual en Acme",
+  "text": "Gasto inusual
+
+Acme usó 1240 créditos el 14 de octubre de 2026, más del triple de su media diaria de las últimas cuatro semanas (210 créditos). Si lo esperabas, no tienes que hacer nada.
+
+En Uso ves qué ejecuciones los usaron. Un límite mensual o por ejecución pone un tope al gasto.
+
+Revisar el uso:
+https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&tab=billing&view=usage
+
+El equipo de Caudals
+
+--
+Correo de facturación del espacio de trabajo Acme. Lo reciben sus propietarios, salvo que lo desactiven.
+Cambiar ajustes de correo: https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&tab=notifications
+Caudals · caudals.com
+",
+}
+`;
+
+exports[`email templates > unusual_spend renders in es 2`] = `"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html lang="es" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="color-scheme" content="light"/><title>Gasto de créditos inusual en Acme</title></head><body style="margin:0;padding:0;background-color:#fafaf8"><div style="display:none;overflow:hidden;max-height:0;opacity:0;font-size:1px;line-height:1;color:#fafaf8">1240 créditos usados el 14 de octubre de 2026, más del triple de un día normal.</div><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="background-color:#fafaf8;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Helvetica, Arial, sans-serif;color:#141413"><tbody><tr><td style="padding:32px 12px"><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:14px;border:1px solid #dcdad3"><tbody><tr><td style="padding:32px 32px 28px"><p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#141413">Caudals</p><h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.02em;color:#141413">Gasto inusual</h1><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">Acme usó 1240 créditos el 14 de octubre de 2026, más del triple de su media diaria de las últimas cuatro semanas (210 créditos). Si lo esperabas, no tienes que hacer nada.</p><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">En Uso ves qué ejecuciones los usaron. Un límite mensual o por ejecución pone un tope al gasto.</p><table cellPadding="0" cellSpacing="0" role="presentation" style="margin:8px 0 20px"><tbody><tr><td style="background-color:#141413;border-radius:999px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=billing&amp;view=usage" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:999px">Revisar el uso</a></td></tr></tbody></table><p style="margin:8px 0 0;font-size:15px;color:#141413">El equipo de Caudals</p></td></tr></tbody></table><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto"><tbody><tr><td style="padding:16px 8px 0;font-size:12px;line-height:1.5;color:#6b6a63;text-align:center"><p style="margin:0 0 6px">Correo de facturación del espacio de trabajo Acme. Lo reciben sus propietarios, salvo que lo desactiven.</p><p style="margin:0 0 6px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=notifications" style="color:#6b6a63;text-decoration:underline">Cambiar ajustes de correo</a></p><p style="margin:0">Caudals · caudals.com</p></td></tr></tbody></table></td></tr></tbody></table></body></html>"`;
+
 exports[`email templates > website_failed renders in en 1`] = `
 {
   "subject": "Caudals could not read a website",

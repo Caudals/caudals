@@ -71,6 +71,12 @@ export const capsInput = z.strictObject({
     z.strictObject({ mode: z.literal("multiplier"), multiplier: z.number().min(1).max(10).multipleOf(0.5) }),
     z.strictObject({ mode: z.literal("fixed"), credits: z.number().int().min(10).max(1_000_000) }),
   ]),
+  /**
+   * The low-balance alert threshold in credits (§6.10, §6.12; migration 112);
+   * null returns to the default (500 credits, or 20 % of the last pack).
+   * Omitted: unchanged.
+   */
+  lowBalanceThresholdCredits: z.number().int().min(1).max(10_000_000).nullable().optional(),
 });
 export type CapsInput = z.infer<typeof capsInput>;
 
@@ -88,6 +94,16 @@ export async function saveSpendCaps(db: PoolClient, input: CapsInput, requestId:
     throw error;
   }
   return readSpendCaps(db, input.orgId);
+}
+
+/** Saves the low-balance threshold through billing.set_low_balance_threshold (owner check and audit in the database). */
+export async function saveLowBalanceThreshold(db: PoolClient, orgId: string, credits: number | null, requestId: string): Promise<void> {
+  try {
+    await db.query("SELECT billing.set_low_balance_threshold($1,$2,$3)", [orgId, credits === null ? null : (BigInt(credits) * UCR_PER_CREDIT).toString(), requestId]);
+  } catch (error) {
+    if (error instanceof Error && error.message === "SCOPE_DENIED") throw new EvalError("SCOPE_DENIED", 404);
+    throw error;
+  }
 }
 
 /** The cap for one run: the fixed cap, else the multiplier × its p90 estimate. */

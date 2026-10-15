@@ -127,7 +127,7 @@ export function csv(header: string[], rows: unknown[][]) {
 const eur = (cents: number | null | undefined) => (cents === null || cents === undefined ? "" : (cents / 100).toFixed(2));
 
 const TREATMENT_LABEL: Record<string, string> = {
-  es_vat: "Spain, IVA 21 %", eu_reverse_charge: "EU business, reverse charge", non_eu_not_subject: "Outside the EU, not subject",
+  es_vat: "Spain, IVA 21 %", eu_reverse_charge: "EU business, reverse charge", non_eu_not_subject: "Not subject to Spanish IVA (outside the IVA territory)",
 };
 
 export const PURCHASED_BUCKETS = ["opening", "purchased", "consumed", "returned", "refunded", "expired", "charged_back", "adjusted", "closing"] as const;

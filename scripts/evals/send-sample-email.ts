@@ -21,6 +21,9 @@ const SAMPLES: Partial<{ [K in TemplateName]: Parameters<typeof renderEmail<K>>[
   signup_link: { link: `${APP}/workspace/signup`, source: "demo", demo: { host: "caudals.com", correct: 7, scored: 8 } },
   report_published: { url: `${APP}/workspace/reports`, settingsUrl },
   password_reset: { url: `${APP}/workspace/reset-password`, minutes: 30 },
+  // Launch G2: the unusual-spend billing alert (§6.10).
+  unusual_spend: { workspace: "Caudals (sample)", day: "2026-10-14", credits: 1240, average: 210, usageUrl: `${APP}/workspace/settings?tab=billing&view=usage`, settingsUrl },
+  low_balance: { workspace: "Caudals (sample)", balance: 420, threshold: 800, topUpUrl: `${APP}/workspace/settings?tab=billing&view=top-up`, settingsUrl },
 };
 
 async function main() {

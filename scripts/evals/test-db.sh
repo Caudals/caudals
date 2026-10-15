@@ -80,11 +80,12 @@ END $$;
 SQL
 # Decision I-12 (launch L-24): suites whose functions or assertions are
 # database-wide (alerts, the ops digest, the demo runner's queue, growth counts,
-# the invoicing job, the daily reconciliation, ops billing and global price-book
-# revisions) get their own copy of the migrated database, so every suite passes
-# in one parallel run. tests/helpers/test-database.ts points a
+# the invoicing job, the daily reconciliation, ops billing, global price-book
+# revisions, G1's funnel run, and G2's price-check acknowledgements and
+# tax-review queue) get their own copy of the migrated database, so every
+# suite passes in one parallel run. tests/helpers/test-database.ts points a
 # listed suite at caudals_<suite>; roles and grants are cluster-wide.
-isolated="analytics_growth billing_ops data_controls demo_disclosure demo_queue funnel_events health_alerts invoicing price_notice prospect_snapshots reconcile"
+isolated="analytics_growth billing_gaps billing_ops data_controls demo_disclosure demo_queue funnel_events health_alerts invoicing price_notice prospect_snapshots reconcile"
 for suite in $isolated; do
   # From the maintenance database: a template must have no open sessions.
   docker exec -i "$name" psql -v ON_ERROR_STOP=1 -q -U postgres -d postgres -c "CREATE DATABASE caudals_$suite TEMPLATE caudals" >&2

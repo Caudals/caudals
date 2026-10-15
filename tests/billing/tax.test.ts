@@ -7,6 +7,7 @@ import {
   checkTaxId, checkVies, decideTaxTreatment, grossCents, isSpanishSpecialTerritory, isValidSpanishNif, taxMention, vatCents, vatRateBp,
 } from "../../lib/billing/tax";
 import { PACKS } from "../../lib/billing/packs";
+import { REVIEW_TREATMENTS, reviewTreatmentAllowed } from "../../lib/billing/tax-review";
 
 describe("Spanish NIF", () => {
   it("accepts company CIFs, DNIs, NIEs and K/L/M NIFs with the right control character", () => {
@@ -99,5 +100,28 @@ describe("VIES client", () => {
     const result = await checkVies("DE", "123456789", { ...fast, fetch: async () => { calls++; throw new Error("network"); } });
     expect(result.status).toBe("unavailable");
     expect(calls).toBe(3);
+  });
+});
+
+describe("manual tax review choices (G2, §6.14)", () => {
+  it("allows 'not subject' or 21 % IVA for the Canary Islands, Ceuta and Melilla, never a reverse charge", () => {
+    expect(REVIEW_TREATMENTS.es_special_territory).toEqual(["non_eu_not_subject", "es_vat"]);
+    expect(reviewTreatmentAllowed("es_special_territory", "non_eu_not_subject", null)).toBe(true);
+    expect(reviewTreatmentAllowed("es_special_territory", "es_vat", null)).toBe(true);
+    expect(reviewTreatmentAllowed("es_special_territory", "eu_reverse_charge", "WAPIAAAAZ1")).toBe(false);
+    expect(reviewTreatmentAllowed("es_special_territory", "non_eu_not_subject", "WAPIAAAAZ1")).toBe(false);
+    for (const postalCode of ["35001", "38003", "51001", "52001"]) expect(isSpanishSpecialTerritory(postalCode)).toBe(true);
+    expect(taxMention("non_eu_not_subject")).toBe("Operación no sujeta");
+    expect(vatCents(5000, "non_eu_not_subject")).toBe(0);
+  });
+  it("allows a reverse charge for an EU VAT number only with the VIES consultation number, else 21 % IVA; never 'not subject'", () => {
+    expect(reviewTreatmentAllowed("vies_unavailable", "eu_reverse_charge", "WAPIAAAAZ1")).toBe(true);
+    expect(reviewTreatmentAllowed("vies_unavailable", "eu_reverse_charge", null)).toBe(false);
+    expect(reviewTreatmentAllowed("vies_unavailable", "eu_reverse_charge", "  ")).toBe(false);
+    expect(reviewTreatmentAllowed("vies_unavailable", "es_vat", null)).toBe(true);
+    expect(reviewTreatmentAllowed("vies_unavailable", "es_vat", "WAPIAAAAZ1")).toBe(false);
+    expect(reviewTreatmentAllowed("vies_unavailable", "non_eu_not_subject", null)).toBe(false);
+    expect(taxMention("eu_reverse_charge")).toBe("Inversión del sujeto pasivo");
+    expect(vatCents(2000, "es_vat")).toBe(420);
   });
 });

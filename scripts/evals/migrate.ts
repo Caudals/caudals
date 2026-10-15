@@ -85,6 +85,7 @@ const migrations=[
  '104_evals_publication_consent.sql',
  '110_evals_publication_published_at.sql',
  '111_billing_shadow_admission_mode.sql',
+ '112_billing_low_balance_threshold.sql',
  '113_evals_review_assignment.sql',
 ];
 async function main(){

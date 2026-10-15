@@ -8,7 +8,8 @@
 # daily shadow credit report with mismatches (L-11), invoice requests the
 # invoicing provider has failed for an hour (L-13), a daily billing
 # reconciliation with unexplained differences and a price increase whose
-# 30-day notice is due within a week or was missed (L-16). Each
+# 30-day notice is due within a week or was missed (L-16), and a weekly
+# provider-price check whose changes nobody has acknowledged yet (G2). Each
 # alert is emailed once when it opens, repeated at most daily while open, and
 # once when it resolves, with a link to its runbook. Messages carry counts and
 # names only: no prompts, customer content, secrets or private endpoints.
@@ -68,6 +69,7 @@ runbook_for() {
     holds_stale|billing_shadow_drift) echo "$runbooks#17-billing-incident" ;;
     invoicing_stalled) echo "$runbooks#22-invoicing-backlog" ;;
     billing_reconciliation|price_notice_due) echo "$runbooks#23-billing-reconciliation-and-price-notices" ;;
+    price_check_changes) echo "$runbooks#24-provider-price-changes" ;;
     database_down|database_unreadable) echo "$runbooks#18-database-unreachable" ;;
     *) echo "$runbooks" ;;
   esac
@@ -175,12 +177,17 @@ if (( ${#psql_cmd[@]} )); then
   # is due within 7 days or was missed (it then cannot take effect).
   reconcile_sql="SELECT coalesce((SELECT discrepancies FROM billing.reconciliation_report WHERE generated_at > now()-interval '26 hours' ORDER BY day DESC, generated_at DESC LIMIT 1),0) AS c"
   notice_sql="SELECT count(*) AS c FROM billing.price_book_revision WHERE status='scheduled' AND raises_prices AND notice_sent_at IS NULL AND effective_at - interval '30 days' < now() + interval '7 days'"
-  read -r reconcile_diff notice_due < <(sql "$app_database" "SELECT $(optional_count billing.reconciliation_report discrepancies,generated_at "$reconcile_sql"), $(optional_count billing.price_book_revision notice_sent_at,raises_prices "$notice_sql")" 2>/dev/null || echo "x x")
+  # Provider prices (L-10, G2): the latest weekly check found listed prices
+  # that moved or rates due for recomputation (cost or FX past 3 %), and no
+  # platform admin has acknowledged those findings (console → Price book).
+  prices_sql="SELECT coalesce((SELECT alerting FROM billing.price_check_status() WHERE acknowledged_at IS NULL),0) AS c"
+  read -r reconcile_diff notice_due price_changes < <(sql "$app_database" "SELECT $(optional_count billing.reconciliation_report discrepancies,generated_at "$reconcile_sql"), $(optional_count billing.price_book_revision notice_sent_at,raises_prices "$notice_sql"), $(optional_count billing.price_check_ack check_id,fingerprint "$prices_sql")" 2>/dev/null || echo "x x x")
   if [[ $reconcile_diff == x ]]; then
     flag database_unreadable "Billing reconciliation signals could not be read from PostgreSQL."
   else
     (( reconcile_diff > 0 )) && flag billing_reconciliation "The daily billing reconciliation found ${reconcile_diff} unexplained differences (billing.reconciliation_report)."
     (( notice_due > 0 )) && flag price_notice_due "${notice_due} price-book revisions raise prices and their 30-day notice is due within a week or was missed."
+    (( price_changes > 0 )) && flag price_check_changes "The weekly provider-price check found ${price_changes} rates whose price changed or that need recomputing, and nobody has acknowledged them (Price book)."
   fi
   engine_waiting=$(sql "$queue_database" "SELECT count(*) FROM ${queue_schema}.job WHERE state IN ('created','retry') AND start_after < now()-interval '${queue_minutes} minutes'" 2>/dev/null || echo x)
   if [[ $engine_waiting == x ]]; then
@@ -194,7 +201,7 @@ fi
 
 # Drill: open the named alerts (or all launch alerts) without evaluating them.
 if [[ -n $drill ]]; then
-  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift invoicing_stalled billing_reconciliation price_notice_due)
+  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift invoicing_stalled billing_reconciliation price_notice_due price_check_changes)
   [[ $drill == all ]] || IFS=, read -r -a drill_keys <<<"$drill"
   for key in "${drill_keys[@]}"; do
     [[ $key =~ ^[a-z0-9_]+$ ]] || { echo "Invalid drill key: $key" >&2; exit 2; }

@@ -5,8 +5,8 @@
  * /ops/platform/billing for platform admins: account search and view with
  * grant, adjust, refund, extend and freeze actions, two-person approvals,
  * per-workspace overrides (L-14), the price book with increase notices,
- * the daily reconciliation, manual invoices (L-13), the monthly export and
- * the fraud queue. Every change needs a recent sign-in and a reason and is
+ * the daily reconciliation, manual invoices (L-13), the monthly export, the
+ * fraud queue and manual tax reviews (G2). Every change needs a recent sign-in and a reason and is
  * audited on the server; above 10,000 credits (€100) a second admin approves.
  */
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -18,6 +18,7 @@ import {
 } from "./primitives";
 import { ActionMenu, Modal } from "./overlays";
 import { FraudQueue, MonthlyExport, ManualInvoices, PriceBook, Reconciliation } from "./ops-billing-reports";
+import { TaxReviews } from "./ops-billing-tax";
 import { credits, euros, newKey, outcomeMessage, planLabel, short, useOpsAction, type Outcome } from "./ops-billing-shared";
 import { BILLING_VIEWS, type BillingView } from "./ops-billing-views";
 import { t, tv } from "@/lib/evals/messages/runtime";
@@ -39,7 +40,8 @@ export function OpsBilling({ view, admin, userId, initialOrgId }: { view: Billin
               : view === "invoices" ? <ManualInvoices />
                 : view === "export" ? <MonthlyExport />
                   : view === "fraud" ? <FraudQueue />
-                    : <Overrides />}
+                    : view === "tax-review" ? <TaxReviews />
+                      : <Overrides />}
     </>
   );
 }

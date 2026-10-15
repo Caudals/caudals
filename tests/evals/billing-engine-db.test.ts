@@ -20,7 +20,7 @@ import { controlRun, createSelfServiceRun } from "../../lib/evals/repositories/s
 import { BudgetExceeded, reserve, settle } from "../../lib/evals/budget/ledger";
 import { adjustCredits, CreditsExhausted, expireDue, grantCredits, verifyAccounts } from "../../lib/billing/ledger";
 import {
-  admissionRequirementUcr, captureEngineCall, chargeMeter, engineChargeUcr, engineHoldUcr, holdEngineCall, recordShadowAdmission, shadowFailureCount, type EngineBillingMode,
+  admissionRequirementUcr, admitRun, captureEngineCall, chargeMeter, engineChargeUcr, engineHoldUcr, holdEngineCall, recordShadowAdmission, shadowFailureCount, type EngineBillingMode,
 } from "../../lib/billing/engine";
 import { runBillingReconciler, runShadowAdmissions, runShadowReport, shadowDiff } from "../../lib/billing/jobs";
 import { setWorkspaceOverride, type EnforcementOverride } from "../../lib/billing/overrides";
@@ -762,6 +762,65 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
     await unmeteredSuccess(f.orgId, run.id);
     expect((await todayDiff(f.orgId)).checks).toMatchObject({ success_without_action: 1, enforced_success_without_action: 0 });
   }, 30_000);
+
+  it("records a shadow admission at every resume for the questions left, as enforce mode checks them, only for shadow-admitted runs (G2)", async () => {
+    setMode("shadow");
+    const f = await apiEvaluation(3);
+    const run = await createSelfServiceRun(f.scope, { evaluationId: f.evaluationId }, randomUUID());
+    expect(await admissionMode(run.id)).toBe("shadow");
+    expect(await runShadowAdmissions({ orgId: f.orgId, actorId: SYSTEM }, "shadow")).toBe(1);
+    const worker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "shadow", execute: async (_config, input, context) => observation(input, context) });
+    const [first, second, third] = await f.steps(run.id);
+    await worker.handle(job(f.orgId, first));
+    const input = { evaluationId: f.evaluationId, suiteVersionId: f.suiteVersionId, targetRevisionId: f.revisionId };
+    const resumeAdmissions = async () => (await shadow(f.orgId, "admission")).filter(row => String(row.entry_key).startsWith(`admission:${run.id}:resume:`));
+
+    // Pause, then resume with two of three questions left: enforce mode would check the p90 of those two (admitRun).
+    await controlRun(f.scope, run.id, "pause");
+    await controlRun(f.scope, run.id, "resume");
+    const [resumed] = await resumeAdmissions();
+    const left = await withTenant(f.scope, db => admissionRequirementUcr(db, f.orgId, input, { units: 2, total: 3 }));
+    expect(left.requiredUcr < left.p90Ucr).toBe(true);
+    expect(resumed).toMatchObject({ kind: "admission", run_id: run.id, billing_mode: "free", would_block: true });
+    expect(B(resumed.amount_ucr)).toBe(left.requiredUcr);
+    expect(B(resumed.requested_ucr)).toBe(left.requiredUcr);
+    expect(resumed.price_book_revision_id).toBe(left.priceBookRevisionId);
+    // The same numbers in enforce mode refuse the resume with that shortfall (402), so the shadow report counts it as blocked.
+    await expect(withTenant(f.scope, db => admitRun(db, "enforce", f.orgId, input, { units: 2, total: 3 }, run.id)))
+      .rejects.toMatchObject({ code: "CREDITS_EXHAUSTED", status: 402 });
+    // Each resume counts once, keyed by its own workflow event.
+    await worker.handle(job(f.orgId, second));
+    await controlRun(f.scope, run.id, "pause");
+    await controlRun(f.scope, run.id, "resume");
+    const both = await resumeAdmissions();
+    expect(both).toHaveLength(2);
+    expect(new Set(both.map(row => row.entry_key)).size).toBe(2);
+    const last = await withTenant(f.scope, db => admissionRequirementUcr(db, f.orgId, input, { units: 1, total: 3 }));
+    expect(both.map(row => B(row.amount_ucr)).sort()).toEqual([last.requiredUcr, left.requiredUcr].sort());
+    await worker.handle(job(f.orgId, third));
+    expect((await owner.query("SELECT status FROM evals.run WHERE id=$1", [run.id])).rows[0].status).toBe("completed");
+    expect(await entries(f.orgId)).toEqual([]);
+    const diff = await todayDiff(f.orgId) as unknown as { mismatches: number; totals: Record<string, number> };
+    expect(diff.mismatches).toBe(0);
+    expect(diff.totals).toMatchObject({ admissions: 3, admissions_blocked: 3 });
+
+    // A run admitted under enforce stays on the real ledger: resumed after its override went back to shadow, no shadow admission.
+    const g = await apiEvaluation(2);
+    await override(g.orgId, "enforce");
+    const needed = await withTenant(g.scope, db => admissionRequirementUcr(db, g.orgId, { evaluationId: g.evaluationId, suiteVersionId: g.suiteVersionId, targetRevisionId: g.revisionId }));
+    await withTenant({ orgId: g.orgId, actorId: SYSTEM }, db => grantCredits(db, { orgId: g.orgId, key: `grant-${randomUUID()}`, amountUcr: needed.requiredUcr + c(5), source: "grant" }), schedulerPool);
+    const enforced = await createSelfServiceRun(g.scope, { evaluationId: g.evaluationId }, randomUUID());
+    expect(await admissionMode(enforced.id)).toBe("enforce");
+    await controlRun(g.scope, enforced.id, "pause");
+    await override(g.orgId, "inherit");
+    await controlRun(g.scope, enforced.id, "resume");
+    expect(await shadow(g.orgId, "admission")).toEqual([]);
+    // Enforce mode itself records nothing in the shadow ledger at resume (it checks credits instead).
+    setMode("enforce");
+    await controlRun(g.scope, enforced.id, "pause");
+    await controlRun(g.scope, enforced.id, "resume");
+    expect(await shadow(g.orgId, "admission")).toEqual([]);
+  }, 60_000);
 
   /* ---------------------------------------------- monthly window (G8) --- */
 

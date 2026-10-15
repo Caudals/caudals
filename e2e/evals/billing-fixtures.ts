@@ -19,7 +19,7 @@ export const widths = [390, 768, 1440] as const;
 export type Role = "owner" | "editor";
 export type Options = {
   role?: Role; available?: number; held?: number; used?: number; plan?: string; billingMode?: "free" | "credits" | "contract"; gate?: "enforced" | "none";
-  low?: boolean; invoices?: boolean; capCredits?: number | null; runStatus?: string | null; runReason?: string | null; estimate?: Partial<Estimate>;
+  low?: boolean; invoices?: boolean; capCredits?: number | null; lowBalanceCredits?: number | null; runStatus?: string | null; runReason?: string | null; estimate?: Partial<Estimate>;
 };
 export type Estimate = typeof baseEstimate;
 export const baseEstimate = {
@@ -123,8 +123,14 @@ export async function routeBilling(page: Page, o: Options = {}) {
     }
     if (path === "/billing/ledger") return json(ledger);
     if (path === "/billing/caps") {
-      if (method === "PUT") { const body = route.request().postDataJSON(); calls.caps.push({ body, key: route.request().headers()["idempotency-key"] ?? null }); return json({ monthlyUcr: body.monthlyCapCredits ? ucr(body.monthlyCapCredits) : null, perRunUcr: null, perRunMultiplier: body.perRun.multiplier ?? 2, updatedAt: new Date().toISOString() }); }
-      return json({ monthlyUcr: o.capCredits === null ? null : ucr(o.capCredits ?? 5000), perRunUcr: null, perRunMultiplier: 2, lowBalanceThresholdUcr: ucr(500), recipients: (o.role ?? "owner") === "owner" ? ["owner@acme.example"] : null, updatedAt: null });
+      if (method === "PUT") {
+        const body = route.request().postDataJSON(); calls.caps.push({ body, key: route.request().headers()["idempotency-key"] ?? null });
+        const custom = typeof body.lowBalanceThresholdCredits === "number" ? ucr(body.lowBalanceThresholdCredits) : null;
+        return json({ monthlyUcr: body.monthlyCapCredits ? ucr(body.monthlyCapCredits) : null, perRunUcr: null, perRunMultiplier: body.perRun.multiplier ?? 2, updatedAt: new Date().toISOString(),
+          lowBalanceThresholdUcr: custom ?? ucr(500), lowBalanceCustomUcr: custom, lowBalanceDefaultUcr: ucr(500) });
+      }
+      return json({ monthlyUcr: o.capCredits === null ? null : ucr(o.capCredits ?? 5000), perRunUcr: null, perRunMultiplier: 2, lowBalanceThresholdUcr: ucr(o.lowBalanceCredits ?? 500),
+        lowBalanceCustomUcr: o.lowBalanceCredits ? ucr(o.lowBalanceCredits) : null, lowBalanceDefaultUcr: ucr(500), recipients: (o.role ?? "owner") === "owner" ? ["owner@acme.example"] : null, updatedAt: null });
     }
     if (path === "/billing/packs") return json(packs);
     if (path === "/billing/auto-recharge") { calls.recharge.push(route.request().postDataJSON()); return json(packs.autoRecharge); }

@@ -414,6 +414,95 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("billing and usage screens on the prod
     expect(Number((await owner.query("SELECT count(*) FROM evals.notification WHERE org_id=$1 AND kind='low_balance'", [f.orgId])).rows[0].count)).toBe(0);
   });
 
+  /* -------------------------------------------- G2: threshold and spend --- */
+
+  const capsRequest = () => new Request("https://x/", { method: "PUT", headers: { "idempotency-key": randomUUID() } });
+  const perRun = { mode: "multiplier" as const, multiplier: 2 };
+
+  it("alerts below the owner's own low-balance threshold, audited, and goes back to the default (G2, §6.10/§6.12)", async () => {
+    const f = await seed();
+    open(f.orgId);
+    await grant(f, 700);
+    const env = { ...process.env, BILLING_UI_ENABLED: "true", BILLING_CREDITS_ENABLED: "true", BILLING_ENFORCE: "shadow", BILLING_TEST_WORKSPACE_IDS: f.orgId,
+      BILLING_STRIPE_MODE: "test", COLLABORATION_NOTIFICATION_EMAIL: "" };
+    const sent: EmailMessage[] = [];
+    const send = async (message: EmailMessage) => { sent.push(message); return { id: randomUUID() }; };
+    // Default: 500 credits (no pack bought yet), so 700 is not low.
+    expect(await billingCaps(f.owner, f.orgId)).toMatchObject({ lowBalanceThresholdUcr: String(c(500)), lowBalanceCustomUcr: null, lowBalanceDefaultUcr: String(c(500)) });
+    expect((await runBillingWatch({ orgId: f.orgId, actorId: SCHEDULER }, { env, send, pool: runtime })).alerts).not.toContain("low_balance");
+    // Owners set it; editors read it but cannot.
+    await expect(saveBillingCaps(capsRequest(), f.editor, { orgId: f.orgId, monthlyCapCredits: null, perRun, lowBalanceThresholdCredits: 800 })).rejects.toMatchObject({ code: "SCOPE_DENIED" });
+    await expect(saveBillingCaps(capsRequest(), f.owner, { orgId: f.orgId, monthlyCapCredits: null, perRun, lowBalanceThresholdCredits: 0 })).rejects.toThrow();
+    expect(await saveBillingCaps(capsRequest(), f.owner, { orgId: f.orgId, monthlyCapCredits: null, perRun, lowBalanceThresholdCredits: 800 }))
+      .toMatchObject({ lowBalanceThresholdUcr: String(c(800)), lowBalanceCustomUcr: String(c(800)), lowBalanceDefaultUcr: String(c(500)) });
+    expect(await billingCaps(f.editor, f.orgId)).toMatchObject({ lowBalanceThresholdUcr: String(c(800)), recipients: null });
+    const events = (await owner.query("SELECT actor_id,details FROM evals.audit_event WHERE org_id=$1 AND action='billing.low_balance_threshold_saved'", [f.orgId])).rows;
+    expect(events).toEqual([{ actor_id: f.ownerUser.id, details: expect.objectContaining({ before: { low_balance_threshold_ucr: null }, after: { low_balance_threshold_ucr: Number(c(800)) } }) }]);
+    // The banner and the alert use it: 700 < 800.
+    expect((await billingSummary(f.owner, f.orgId)).lowBalance).toEqual({ thresholdUcr: String(c(800)), below: true });
+    const tick = await runBillingWatch({ orgId: f.orgId, actorId: SCHEDULER }, { env, send, pool: runtime });
+    expect(tick.alerts).toContain("low_balance");
+    expect(sent.find(message => /balance is low/.test(message.subject))?.text).toContain("below your alert threshold of 800");
+    expect((await listNotifications(f.ownerScope)).notifications.find(item => item.kind === "low_balance")).toMatchObject({ payload: { balance: 700, threshold: 800 } });
+    // Saving the caps without the field keeps it; null goes back to the default rule.
+    await saveBillingCaps(capsRequest(), f.owner, { orgId: f.orgId, monthlyCapCredits: 5000, perRun });
+    expect((await billingCaps(f.owner, f.orgId)).lowBalanceCustomUcr).toBe(String(c(800)));
+    expect(await saveBillingCaps(capsRequest(), f.owner, { orgId: f.orgId, monthlyCapCredits: 5000, perRun, lowBalanceThresholdCredits: null }))
+      .toMatchObject({ lowBalanceThresholdUcr: String(c(500)), lowBalanceCustomUcr: null });
+    // The database checks the owner and whole credits.
+    await expect(as(f.editorScope.actorId, f.orgId, "SELECT billing.set_low_balance_threshold($1,$2,NULL)", [f.orgId, String(c(900))])).rejects.toThrow("SCOPE_DENIED");
+    await expect(as(f.ownerUser.id, f.orgId, "SELECT billing.set_low_balance_threshold($1,1500000,NULL)", [f.orgId])).rejects.toThrow("INPUT_INVALID");
+  });
+
+  it("emails unusual spend once per day to owners who keep billing email on, in their language (G2, §6.10)", async () => {
+    const f = await seed();
+    open(f.orgId);
+    await grant(f, 2000);
+    const r = await run(f);
+    // Four weeks of history: 56 credits ten days ago (moved back in time; balances and lots untouched).
+    const history = await meter(f, r.runId, "website_question", 56, 11);
+    await as(SCHEDULER, f.orgId, "UPDATE billing.ledger_entry SET created_at = now() - interval '10 days' WHERE id=$1", [history.id], true);
+    // Then 300 credits today: over 3 × the daily average (2 credits).
+    await meter(f, r.runId, "website_question", 300, 60);
+    // A second owner who switched billing email off.
+    const quiet = await user(`billing-quiet-${randomUUID().slice(0, 8)}@caudals.com`);
+    await as(f.ownerUser.id, f.orgId, "INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'owner')", [f.orgId, quiet.id]);
+    await owner.query("INSERT INTO evals.notification_preference(org_id,user_id,email_billing) VALUES($1,$2,false)", [f.orgId, quiet.id]);
+    await owner.query("INSERT INTO evals.email_preference(user_id,locale) VALUES($1,'es') ON CONFLICT (user_id) DO UPDATE SET locale='es'", [f.ownerUser.id]);
+    const sent: EmailMessage[] = [];
+    const send = async (message: EmailMessage) => { sent.push(message); return { id: randomUUID() }; };
+    const env = { ...process.env, BILLING_UI_ENABLED: "true", BILLING_CREDITS_ENABLED: "true", BILLING_ENFORCE: "shadow", BILLING_TEST_WORKSPACE_IDS: f.orgId,
+      BILLING_STRIPE_MODE: "test", COLLABORATION_NOTIFICATION_EMAIL: "" };
+    const today = new Date();
+    const tomorrow = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1, 2));
+    const tick = await runBillingWatch({ orgId: f.orgId, actorId: SCHEDULER }, { env, send, pool: runtime, now: tomorrow });
+    expect(tick.alerts).toContain("unusual_spend");
+    const spend = sent.filter(message => message.idempotencyKey?.startsWith("billing-unusual_spend:"));
+    expect(spend.map(message => message.to)).toEqual([f.ownerUser.email]);
+    expect(spend[0].subject).toBe("Gasto de créditos inusual en Billing fixture");
+    expect(spend[0].text).toContain("usó 300 créditos el");
+    expect(spend[0].text).toContain("(2 créditos)");
+    expect(spend[0].text).toContain("tab=billing&view=usage");
+    expect(spend[0].text).toContain("tab=notifications");
+    // Once per day: the next tick sends nothing.
+    expect((await runBillingWatch({ orgId: f.orgId, actorId: SCHEDULER }, { env, send, pool: runtime, now: tomorrow })).alerts).not.toContain("unusual_spend");
+    expect(sent.filter(message => message.idempotencyKey?.startsWith("billing-unusual_spend:"))).toHaveLength(1);
+    const notice = (await listNotifications(f.ownerScope)).notifications.find(item => item.kind === "unusual_spend");
+    expect(notice).toMatchObject({ category: "billing", payload: { credits: 300, average: 2 } });
+    // Test mode never emails outside Caudals: an owner at another domain is skipped.
+    const g = await seed();
+    open(g.orgId);
+    await owner.query("UPDATE public.auth_user SET email=$2 WHERE id=$1", [g.ownerUser.id, `${randomUUID()}@example.test`]);
+    await grant(g, 2000);
+    const gr = await run(g);
+    const old = await meter(g, gr.runId, "website_question", 56, 11);
+    await as(SCHEDULER, g.orgId, "UPDATE billing.ledger_entry SET created_at = now() - interval '10 days' WHERE id=$1", [old.id], true);
+    await meter(g, gr.runId, "website_question", 300, 60);
+    const before = sent.length;
+    expect((await runBillingWatch({ orgId: g.orgId, actorId: SCHEDULER }, { env: { ...env, BILLING_TEST_WORKSPACE_IDS: g.orgId }, send, pool: runtime, now: tomorrow })).alerts).toContain("unusual_spend");
+    expect(sent.length).toBe(before);
+  });
+
   /* ------------------------------------------------- estimate and admission --- */
 
   it("serves the run estimate to editors where billing shows, with the gate admission applies", async () => {

@@ -25,8 +25,8 @@ async function noHorizontalScroll(page: Page) {
 
 /**
  * axe-core on one region: no serious or critical violation. `exclude` leaves
- * out pre-existing parts that are not L-15's (the run pipeline's upcoming
- * stages, tracked for L-24).
+ * out parts another contract owns (none today: the run pipeline's stages,
+ * excluded until launch G2, now meet AA on the paused panel too).
  */
 async function axe(page: Page, selector: string, exclude: string[] = []) {
   await page.addScriptTag({ path: axePath });
@@ -116,14 +116,48 @@ test("billing: limits and alerts save both caps with an Idempotency-Key", async 
   await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=limits`);
   await expect(page.getByLabel("Monthly limit (credits)")).toHaveValue("5000");
   await expect(page.getByText("owner@acme.example")).toBeVisible();
-  await expect(page.getByText(/We alert you when the balance falls below 500 credits/)).toBeVisible();
+  await expect(page.getByLabel("Low-balance alert")).toHaveValue("default");
+  await expect(page.getByRole("option", { name: "Default: 500 credits" })).toHaveCount(1);
+  await expect(page.getByText("500 credits, or 20 % of your last pack when that is more.")).toBeVisible();
   await page.getByLabel("Monthly limit (credits)").fill("8000");
   await page.getByLabel("Limit", { exact: true }).selectOption("3");
   await page.getByRole("button", { name: "Save limits" }).click();
   await expect.poll(() => calls.caps.length).toBe(1);
-  expect(calls.caps[0].body).toEqual({ orgId: id, monthlyCapCredits: 8000, perRun: { mode: "multiplier", multiplier: 3 } });
+  expect(calls.caps[0].body).toEqual({ orgId: id, monthlyCapCredits: 8000, perRun: { mode: "multiplier", multiplier: 3 }, lowBalanceThresholdCredits: null });
   expect(calls.caps[0].key).toMatch(/^[0-9a-f-]{36}$/);
   await noHorizontalScroll(page);
+  await axe(page, "#p-main");
+});
+
+test("billing: an owner sets their own low-balance threshold, and goes back to the default (G2, §6.10/§6.12)", async ({ page }) => {
+  const { calls } = await routeBilling(page, { lowBalanceCredits: 1200 });
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=limits`);
+  await expect(page.getByLabel("Low-balance alert")).toHaveValue("custom");
+  await expect(page.getByLabel("Alert below (credits)")).toHaveValue("1200");
+  await page.getByLabel("Alert below (credits)").fill("800");
+  await page.getByRole("button", { name: "Save limits" }).click();
+  await expect.poll(() => calls.caps.length).toBe(1);
+  expect(calls.caps[0].body).toMatchObject({ lowBalanceThresholdCredits: 800 });
+  await page.getByLabel("Low-balance alert").selectOption("default");
+  await expect(page.getByLabel("Alert below (credits)")).toHaveCount(0);
+  await page.getByRole("button", { name: "Save limits" }).click();
+  await expect.poll(() => calls.caps.length).toBe(2);
+  expect(calls.caps[1].body).toMatchObject({ lowBalanceThresholdCredits: null });
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal scroll at ${width}px`).toBe(true);
+    await axe(page, "#p-main");
+  }
+});
+
+test("billing: the low-balance setting in Spanish (G2)", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await routeBilling(page, { lowBalanceCredits: 1200 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=limits`);
+  await expect(page.getByLabel("Avisar por debajo de (créditos)")).toHaveValue("1200");
+  await expect(page.getByRole("option", { name: "Predeterminado: 500 créditos" })).toHaveCount(1);
+  await expectSpanishOnly(page, "limits and alerts");
   await axe(page, "#p-main");
 });
 
@@ -328,7 +362,12 @@ test("paused for credits: one-step top-up and resume; the balance updates withou
   await expect(page.getByTestId("paused-balance")).toContainText("0");
   await expect(page.getByRole("button", { name: "Resume", exact: true })).toBeVisible();
   await noHorizontalScroll(page);
-  await axe(page, "#p-main", [".p-pipeline"]);
+  await axe(page, "#p-main");
+  // The paused run's progress (stages not reached yet included) meets AA at phone width too (G2).
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".p-pipeline li[data-state=upcoming]").first()).toBeVisible();
+  await axe(page, ".p-pipeline");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   // The balance arrives (a purchase in another tab, auto-recharge): no reload needed.
   state.available = 2400;
   await page.evaluate(() => window.dispatchEvent(new Event("caudals:billing-changed")));

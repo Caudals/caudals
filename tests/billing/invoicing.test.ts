@@ -286,7 +286,7 @@ describe("the accountant export files", () => {
     expect(Object.keys(files).sort()).toEqual(["credits.csv", "documents.csv", "orders.csv", "reconciliation.csv", "sales.csv", "summary.md"]);
     expect(files["summary.md"]).toContain("STRIPE TEST MODE (not for the books)");
     expect(files["summary.md"]).toContain("| Spain, IVA 21 % | IVA 21 % | 1 | 20.00 | 4.20 | 24.20 |");
-    expect(files["summary.md"]).toContain("| Outside the EU, not subject | Operación no sujeta | 1 | 50.00 | 0.00 | 50.00 |");
+    expect(files["summary.md"]).toContain("| Not subject to Spanish IVA (outside the IVA territory) | Operación no sujeta | 1 | 50.00 | 0.00 | 50.00 |");
     expect(files["summary.md"]).toContain("| Closing deferred balance | 3750 | 37.50 |");
     expect(files["summary.md"]).toContain("2 to issue");
     expect(files["summary.md"]).toContain("Reconciled: 1 movements checked");

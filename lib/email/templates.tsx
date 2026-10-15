@@ -54,6 +54,8 @@ export type TemplateProps = {
   auto_recharge_failed: { workspace: string; amountCents: number; currency: string; billingUrl: string; settingsUrl: string };
   credits_expiring: { workspace: string; credits: number; expiresAt: string; workspaceUrl: string; settingsUrl: string };
   cap_reached: { workspace: string; cap: number; percent: 50 | 80 | 100; scope: "monthly" | "run" | "schedule"; limitsUrl: string; settingsUrl: string };
+  /** Unusual spend (launch G2, §6.10): a UTC day above 3 × the daily average of the 28 days before it. */
+  unusual_spend: { workspace: string; day: string; credits: number; average: number; usageUrl: string; settingsUrl: string };
   /** A scheduled run skipped before it started (launch L-18): too few credits, or a credit limit it would pass. */
   schedule_skipped: {
     workspace: string; evaluation: string; scheduledFor: string; reason: "credits" | "cap"; capScope?: "monthly" | "run" | "schedule" | null;
@@ -84,7 +86,7 @@ export const TEMPLATE_CATEGORY: Record<TemplateName, EmailCategory> = {
   test_set_ready: "notification", report_published: "notification", run_failed: "notification", input_required: "notification",
   export_failed: "notification", generation_failed: "notification", website_failed: "notification", document_failed: "notification",
   low_balance: "billing", auto_recharge_succeeded: "billing", auto_recharge_failed: "billing", credits_expiring: "billing", cap_reached: "billing",
-  schedule_skipped: "billing", monitor_regression: "notification", monitor_summary: "essential",
+  unusual_spend: "billing", schedule_skipped: "billing", monitor_regression: "notification", monitor_summary: "essential",
   welcome: "lifecycle", d1_test_set: "lifecycle", d3_run: "lifecycle", d7_report: "lifecycle", first_report: "lifecycle",
   d21_rerun: "lifecycle", d30_winback: "lifecycle",
 };
@@ -374,6 +376,17 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
       return {
         subject: full ? k.subject : fill(k.subjectPartial, values), preview: fill(k.preview, values), heading: full ? k.heading : fill(k.headingPartial, values),
         blocks: [{ kind: "text", text: fill(full ? k.body : k.bodyPartial, values) }, { kind: "action", label: k.action, url: props.limitsUrl }],
+        ...billingFooter(c, props.workspace, props.settingsUrl),
+      };
+    }
+    case "unusual_spend": {
+      const props = p as TemplateProps["unusual_spend"];
+      const k = c.unusualSpend;
+      // The day is a UTC date: format its midday so no time zone moves it.
+      const values = { workspace: props.workspace, credits: number(locale, props.credits), average: number(locale, props.average), date: date(locale, `${props.day}T12:00:00Z`) };
+      return {
+        subject: fill(k.subject, values), preview: fill(k.preview, values), heading: k.heading,
+        blocks: [{ kind: "text", text: fill(k.body, values) }, { kind: "text", text: k.next }, { kind: "action", label: k.action, url: props.usageUrl }],
         ...billingFooter(c, props.workspace, props.settingsUrl),
       };
     }

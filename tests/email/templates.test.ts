@@ -43,6 +43,7 @@ const FIXTURES: { [K in TemplateName]: TemplateProps[K] } = {
   auto_recharge_failed: { workspace: "Acme", amountCents: 6050, currency: "EUR", billingUrl: billing, settingsUrl: notice.settingsUrl },
   credits_expiring: { workspace: "Acme", credits: 1200, expiresAt: "2026-11-11T23:00:00Z", workspaceUrl: `${APP}/workspace/evaluations?orgId=${ORG}`, settingsUrl: notice.settingsUrl },
   cap_reached: { workspace: "Acme", cap: 20000, percent: 100, scope: "monthly", limitsUrl: billing, settingsUrl: notice.settingsUrl },
+  unusual_spend: { workspace: "Acme", day: "2026-10-14", credits: 1240, average: 210, usageUrl: `${billing}&view=usage`, settingsUrl: notice.settingsUrl },
   schedule_skipped: { workspace: "Acme", evaluation: "Claims assistant", scheduledFor: "2026-11-02T08:00:00Z", reason: "credits", needed: 340, available: 120,
     nextRunAt: "2026-12-07T08:00:00Z", actionUrl: `${billing}&view=top-up`, settingsUrl: notice.settingsUrl },
   monitor_regression: { evaluation: "Claims assistant", scheduledFor: "2026-11-02T08:00:00Z", now: { pass: 36, scored: 50 }, before: { pass: 40, scored: 50 },
@@ -126,6 +127,9 @@ describe("email templates", () => {
     // The expiry date is the Madrid calendar day.
     expect(renderEmail("credits_expiring", "en", FIXTURES.credits_expiring).subject).toContain("12 November 2026");
     expect(renderEmail("cap_reached", "es", { ...FIXTURES.cap_reached, percent: 80, scope: "run" }).subject).toBe("Has usado el 80 % de tu límite de gasto de Caudals");
+    // Unusual spend (G2): the UTC day as written, the amounts grouped per language.
+    expect(renderEmail("unusual_spend", "en", FIXTURES.unusual_spend).text).toContain("Acme used 1,240 credits on 14 October 2026, more than three times its daily average of the last four weeks (210 credits).");
+    expect(renderEmail("unusual_spend", "es", FIXTURES.unusual_spend).text).toContain("Acme usó 1240 créditos el 14 de octubre de 2026");
   });
 
   it("escapes customer-supplied text", () => {

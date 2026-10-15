@@ -199,15 +199,44 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
     expect(sent.at(-1)!.text).toMatch(/RESOLVED (billing reconciliation|price notice due)/);
   });
 
+  it("alerts on provider-price changes nobody acknowledged, and stays quiet for acknowledged findings (G2)", async () => {
+    const revision = (await owner.query("SELECT id FROM billing.price_book_at(now())")).rows[0].id as string;
+    const change = (model: string, listed: string, recompute = true) => ({ label: model, provider: "openrouter", modelId: model, minInputTokens: 0, listing: model, proxy: false,
+      status: "changed", input: { book: "0.1", listed, change: 0.5 }, output: { book: "0.5", listed: "0.5", change: 0 }, recompute });
+    const record = async (changes: unknown[], minutesAgo: number) => (await owner.query(`INSERT INTO billing.price_check(actor_id,revision_id,checked,changed,unavailable,changes,checked_at)
+      VALUES('service:fixture',$1,12,$2,0,$3::jsonb,now()-make_interval(mins=>$4)) RETURNING id`, [revision, changes.length, JSON.stringify(changes), minutesAgo])).rows[0].id as string;
+    const checks: string[] = [];
+    // Only unavailable listings, no recompute: nothing for ops.
+    checks.push(await record([{ label: "Tiered", provider: "google", modelId: "gemini", minInputTokens: 200000, listing: null, proxy: false, status: "unavailable", recompute: false }], 50));
+    expect(await check({ CAUDALS_ALERT_DRY_RUN: "true" })).toBe("");
+    // Two rates moved: the alert opens with its runbook.
+    checks.push(await record([change("openai/gpt-6-luna", "0.15"), change("deepseek/v4-flash", "0.15", false)], 40));
+    expect(await check()).toContain("alerts_sent=1");
+    expect(sent.at(-1)!.text).toContain("The weekly provider-price check found 2 rates whose price changed or that need recomputing");
+    expect(sent.at(-1)!.text).toContain("#24-provider-price-changes");
+    // A platform admin acknowledges those findings: resolved.
+    await owner.query("INSERT INTO billing.price_check_ack(check_id,fingerprint,note,actor_id) SELECT id, billing.price_check_fingerprint(revision_id,changes), 'Absorbed until the next FX update', 'au_fixture' FROM billing.price_check WHERE id=$1", [checks[1]]);
+    expect(await check()).toContain("alerts_sent=1");
+    expect(sent.at(-1)!.text).toContain("RESOLVED price check changes");
+    // Next week's check with the same findings stays acknowledged; a new price opens it again.
+    checks.push(await record([change("deepseek/v4-flash", "0.15", false), change("openai/gpt-6-luna", "0.15")], 30));
+    expect(await check({ CAUDALS_ALERT_DRY_RUN: "true" })).toBe("");
+    checks.push(await record([change("openai/gpt-6-luna", "0.2"), change("deepseek/v4-flash", "0.15", false)], 20));
+    expect(await check({ CAUDALS_ALERT_DRY_RUN: "true" })).toContain("OPEN  The weekly provider-price check found 2 rates");
+    await replica("DELETE FROM billing.price_check_ack WHERE check_id = ANY($1::uuid[])", [checks]);
+    await replica("DELETE FROM billing.price_check WHERE id = ANY($1::uuid[])", [checks]);
+    expect(await check({ CAUDALS_ALERT_DRY_RUN: "true" })).toBe("");
+  });
+
   it("drills every launch alert in one email and resolves it on the next run", async () => {
-    expect(await check({ CAUDALS_ALERT_DRILL: "all" })).toContain("alerts_sent=11");
+    expect(await check({ CAUDALS_ALERT_DRILL: "all" })).toContain("alerts_sent=12");
     const drill = sent.at(-1)!;
     expect(drill.subject).toBe("Caudals platform alert (drill)");
-    for (const anchor of ["#15-demo-failures-or-queue", "#13-queue-age", "#1-dgx-down", "#11-disk-or-memory-pressure", "#16-webhook-failures", "#17-billing-incident", "#22-invoicing-backlog", "#23-billing-reconciliation-and-price-notices"]) {
+    for (const anchor of ["#15-demo-failures-or-queue", "#13-queue-age", "#1-dgx-down", "#11-disk-or-memory-pressure", "#16-webhook-failures", "#17-billing-incident", "#22-invoicing-backlog", "#23-billing-reconciliation-and-price-notices", "#24-provider-price-changes"]) {
       expect(drill.text).toContain(anchor);
     }
-    expect(await check()).toContain("alerts_sent=11");
-    expect(sent.at(-1)!.text.match(/RESOLVED/g)).toHaveLength(11);
+    expect(await check()).toContain("alerts_sent=12");
+    expect(sent.at(-1)!.text.match(/RESOLVED/g)).toHaveLength(12);
   });
 
   it("rejects malformed drill keys", async () => {

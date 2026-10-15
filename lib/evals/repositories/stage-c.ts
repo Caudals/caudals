@@ -25,7 +25,7 @@ import { coveredQuestions, reviewModeForPlan, spotCheckRequired, type ReviewMode
 import { withTenant } from "./db";
 import { createRunnerJob } from "../private-runner/store";
 import { assertRunAllowance, lockRunQueue } from "./run-capacity";
-import { admitRun, engineBillingMode, workspaceEngineMode } from "../../billing/engine";
+import { admitRun, engineBillingMode, recordShadowResumeAdmission, workspaceEngineMode } from "../../billing/engine";
 import { resumeCreditPausedWork } from "../queue/credit-pause";
 
 function required<T>(value: T | undefined): T {
@@ -1039,17 +1039,25 @@ export async function controlRunInTransaction(db: PoolClient, scope: EvidenceSco
     }
     // The workspace's credit mode: BILLING_ENFORCE or its admin override (L-14).
     const billingMode = await workspaceEngineMode(db, engineBillingMode(), scope.orgId);
-    if (action === "resume" && billingMode === "enforce" && ["paused", "pause_requested"].includes(workflow.status)) {
-      // §6.8 step 1 at resume (enforce mode): the p90 of the questions still to run.
-      const run = (await db.query(`SELECT r.evaluation_id,r.suite_version_id,r.target_revision_id,
+    // §6.8 step 1 at resume: the p90 of the questions still to run. Enforce mode
+    // checks it; shadow mode records what that check would have required (G2).
+    const resumeAdmission = action === "resume" && billingMode !== "off" && ["paused", "pause_requested"].includes(workflow.status)
+      ? (await db.query(`SELECT r.evaluation_id,r.suite_version_id,r.target_revision_id,
           (SELECT count(*) FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id)::int AS total,
           (SELECT count(*) FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id AND u.status IN ('pending','queued'))::int AS remaining
-        FROM evals.run r WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
-      if (run) await admitRun(db, billingMode, scope.orgId,
-        { evaluationId: run.evaluation_id, suiteVersionId: run.suite_version_id, targetRevisionId: run.target_revision_id },
-        { units: run.remaining, total: run.total }, runId);
+        FROM evals.run r WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0] ?? null
+      : null;
+    if (resumeAdmission && billingMode === "enforce") {
+      await admitRun(db, billingMode, scope.orgId,
+        { evaluationId: resumeAdmission.evaluation_id, suiteVersionId: resumeAdmission.suite_version_id, targetRevisionId: resumeAdmission.target_revision_id },
+        { units: resumeAdmission.remaining, total: resumeAdmission.total }, runId);
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
+    if (resumeAdmission && billingMode === "shadow") {
+      await recordShadowResumeAdmission(db, billingMode, scope.orgId,
+        { runId, workflowId: workflow.id, evaluationId: resumeAdmission.evaluation_id, suiteVersionId: resumeAdmission.suite_version_id, targetRevisionId: resumeAdmission.target_revision_id },
+        { units: resumeAdmission.remaining, total: resumeAdmission.total });
+    }
     if (action === "pause" && !["completed", "partial", "failed", "canceled"].includes(workflow.status)) {
       await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS (
         SELECT 1 FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$3 AND status='running'

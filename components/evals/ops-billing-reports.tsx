@@ -28,11 +28,19 @@ const plusDays = (days: number) => new Date(Date.now() + days * 86_400_000).toIS
 /* ----------------------------------------------------------- price book --- */
 
 type Revision = { id: string; revision: number; status: string; title: string; notes: string | null; effectiveAt: string | null; multiplier: string; fxUsdPerEur: string; fxDate: string; raisesPrices: boolean | null; noticeSentAt: string | null; createdAt: string };
-type RateChange = { label: string; provider: string; modelId: string | null; minInputTokens: number; status: string; input?: { listed: string }; output?: { listed: string } };
+type RateChange = {
+  label: string; provider: string; modelId: string | null; minInputTokens: number; status: string; recompute?: boolean;
+  input?: { book?: string; listed: string; change?: number }; output?: { book?: string; listed: string; change?: number };
+};
+type PriceCheck = {
+  id?: string; checkedAt: string; changed: number; unavailable: number; changes: RateChange[];
+  /** Launch G2: rates for ops, the acknowledgement covering them, and whether the platform alert is open. */
+  alerting?: number; acknowledgement?: { at: string; by: string; note: string; checkId: string } | null; open?: boolean;
+};
 type BookList = {
   effectiveRevisionId: string | null; revisions: Revision[]; routes: Array<{ issue: string | null }>;
   latestFx: { usdPerEur: string; date: string; source: string } | null;
-  latestCheck: { checkedAt: string; changed: number; unavailable: number; changes: RateChange[] } | null;
+  latestCheck: PriceCheck | null;
 };
 type ModelView = { id: string; label: string; provider: string; modelId: string | null; minInputTokens: number; credits: { input: string; output: string }; margin: { input: number; output: number }; planningRunCredits50: number; costBasis: string };
 type RevisionView = Revision & { models: ModelView[]; actions: Array<{ meter: string; label: string; credits: string; unit: string }>; routeIssues: Array<{ role: string; modelId: string; issue: string }> };
@@ -93,7 +101,69 @@ export function PriceBook() {
           );
         })}
       </DataTable>
+      <PriceCheckPanel check={list.latestCheck} onChanged={load} />
       <DraftDialog open={drafting} list={list} onClose={() => setDrafting(false)} onCreated={async id => { setDrafting(false); await load(); setSelected(id); }} />
+    </section>
+  );
+}
+
+/**
+ * The latest weekly provider-price check (launch G2, spec §6.4): the rates
+ * whose listed price moved or that need recomputing, and the acknowledgement
+ * that closes the platform alert (price_check_changes, runbook 24).
+ */
+function PriceCheckPanel({ check, onChanged }: { check: PriceCheck | null; onChanged: () => Promise<void> }) {
+  const { orgId } = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const { run, pending, messages, clear } = useOpsAction();
+  const rows = (check?.changes ?? []).filter(change => change.status === "changed" || change.recompute);
+  const usd = (value: { book?: string; listed: string } | undefined) => value ? `${value.book ?? "—"} → ${value.listed}` : "—";
+  const close = () => { setOpen(false); clear(); };
+  const state = !check ? null : !check.alerting ? "clean" : check.open ? "open" : "acknowledged";
+  return (
+    <section className="p-section" aria-labelledby="ob-price-check">
+      <SectionHeading id="ob-price-check" title={t("billingOpsPriceCheck")} actions={state === "open" && check?.id
+        ? <Action variant="secondary" onClick={() => setOpen(true)}>{t("billingOpsAcknowledge")}</Action> : undefined}>
+        {t("billingOpsPriceCheckHelp")}
+      </SectionHeading>
+      {!check ? <p className="p-cell-meta">{t("billingOpsNoPriceCheck")}</p> : (
+        <>
+          <p className="p-row">
+            <Badge tone={state === "open" ? "warn" : state === "acknowledged" ? "pass" : "neutral"} dot={state === "open"}>
+              {state === "open" ? t("billingOpsPriceCheckOpen") : state === "acknowledged" ? t("billingOpsPriceCheckAcknowledged") : t("billingOpsPriceCheckClean")}
+            </Badge>
+            <span className="p-cell-meta">{tv("billingOpsPriceCheckOn", { date: check.checkedAt.slice(0, 10) })}</span>
+          </p>
+          {check.acknowledgement && <Status tone="info">{tv("billingOpsPriceCheckAckBy", { date: check.acknowledgement.at.slice(0, 10), note: check.acknowledgement.note })}</Status>}
+          {rows.length > 0 && (
+            <DataTable caption={t("billingOpsPriceCheck")} headers={[t("billingOpsModel"), t("billingOpsListedInput"), t("billingOpsListedOutput"), { label: t("billingOpsRecompute"), align: "end" }]}>
+              {rows.map(change => (
+                <tr key={`${change.provider}|${change.modelId ?? ""}|${change.minInputTokens}`}>
+                  <RowTitle meta={change.status === "changed" ? t("billingOpsPriceChanged") : t("billingOpsPriceNotListed")}>{change.label}</RowTitle>
+                  <td className="p-cell-meta">{usd(change.input)}</td>
+                  <td className="p-cell-meta">{usd(change.output)}</td>
+                  <td className="p-table-action">{change.recompute ? <Badge tone="warn">{t("billingOpsRecomputeYes")}</Badge> : "—"}</td>
+                </tr>
+              ))}
+            </DataTable>
+          )}
+        </>
+      )}
+      <Modal alert={messages} open={open} onOpenChange={value => !value && close()} size="sm" title={t("billingOpsAcknowledgeTitle")} description={t("billingOpsAcknowledgeHelp")}
+        footer={<><Action variant="secondary" onClick={close}>{t("cancel")}</Action><Action type="submit" form="ob-price-ack" disabled={pending}>{t("billingOpsAcknowledge")}</Action></>}>
+        <form id="ob-price-ack" className="p-stack" onSubmit={event => {
+          event.preventDefault();
+          if (!check?.id) return;
+          const note = new FormData(event.currentTarget).get("note");
+          const key = newKey();
+          void run(async () => {
+            await evalRequest(`/billing/admin/price-book/checks/${check.id}/acknowledge`, "POST", { orgId, note }, key);
+            return t("billingOpsPriceCheckAcknowledgedDone");
+          }).then(async ok => { if (ok) { close(); await onChanged(); } });
+        }}>
+          <Field id="ob-price-ack-note" name="note" label={t("billingOpsAcknowledgeNote")} required minLength={3} maxLength={2000} />
+        </form>
+      </Modal>
     </section>
   );
 }

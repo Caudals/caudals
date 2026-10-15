@@ -439,6 +439,32 @@ export async function recordShadowAdmission(db: PoolClient, orgId: string, run: 
 }
 
 /**
+ * A resume in shadow mode (L-11 follow-up, launch G2): enforce mode checks the
+ * p90 of the units left at every resume (admitRun), so shadow mode records the
+ * same admission (`admission:<run>:resume:<workflow event id>`, the event the
+ * resume wrote, so each resume counts once) with the same requirement. Only
+ * for runs admitted in shadow mode (the L-16b model: the mode frozen on the
+ * run, else its charges, else the workspace's mode now); a run admitted under
+ * enforce stays on the real ledger. Call it inside the resume's transaction,
+ * after the workflow is re-queued; it runs in a savepoint and never raises.
+ */
+export async function recordShadowResumeAdmission(db: PoolClient, workspaceMode: EngineBillingMode, orgId: string,
+  run: AdmissionRun & { workflowId: string }, remaining: { units: number; total: number }): Promise<boolean> {
+  if (workspaceMode !== "shadow") return false;
+  let recorded = false;
+  await shadow(db, "resume_admission", async () => {
+    const row = (await db.query(`SELECT coalesce(billing.run_admission_mode($1,$2),$3) AS mode,
+        (SELECT max(e.id) FROM evals.execution_event e WHERE e.org_id=$1 AND e.workflow_id=$4 AND e.kind='queued')::text AS sequence`,
+      [orgId, run.runId, workspaceMode, run.workflowId])).rows[0];
+    if (row?.mode !== "shadow" || !row.sequence) return;
+    const { requiredUcr, priceBookRevisionId } = await admissionRequirementUcr(db, orgId, run, remaining);
+    recorded = (await db.query("SELECT billing.shadow_charge($1,'admission',$2,NULL,$3::bigint,NULL,$4,NULL,$5,NULL) AS ok",
+      [orgId, `admission:${run.runId}:resume:${row.sequence}`, requiredUcr.toString(), run.runId, priceBookRevisionId])).rows[0].ok === true;
+  });
+  return recorded;
+}
+
+/**
  * Runs created in the last few minutes that were admitted in shadow mode and
  * have no shadow admission yet (the scheduler's tick). The mode is the one the
  * run was admitted under (evals.run.billing_admission_mode, frozen at insert;

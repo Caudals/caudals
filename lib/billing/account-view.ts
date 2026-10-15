@@ -234,12 +234,33 @@ export async function ledgerPage(db: PoolClient, orgId: string, options: { befor
 
 /** §6.10: alert below 500 credits, or 20 % of the last pack bought when that is more. */
 export const LOW_BALANCE_DEFAULT_CREDITS = 500;
-export async function lowBalanceThresholdUcr(db: PoolClient, orgId: string): Promise<bigint> {
+/** The default rule, whatever the owner set. */
+export async function defaultLowBalanceThresholdUcr(db: PoolClient, orgId: string): Promise<bigint> {
   const row = (await db.query(`SELECT base_ucr + coalesce(bonus_ucr, 0) AS credits FROM billing.top_up_order
     WHERE org_id=$1 AND status='paid' ORDER BY paid_at DESC NULLS LAST, created_at DESC LIMIT 1`, [orgId])).rows[0];
   const floor = BigInt(LOW_BALANCE_DEFAULT_CREDITS) * UCR_PER_CREDIT;
   const fromPack = row ? (big(row.credits) * BigInt(20)) / BigInt(100) : ZERO;
   return fromPack > floor ? fromPack : floor;
+}
+
+export interface LowBalanceThreshold {
+  /** What the alert and the banner use. */
+  thresholdUcr: bigint;
+  /** The owner's own threshold (Settings → Billing and usage → Limits and alerts, migration 112), or null for the default. */
+  customUcr: bigint | null;
+  defaultUcr: bigint;
+}
+
+/** The workspace's low-balance threshold: the owner's own (§6.12 "Limits and alerts"), else the §6.10 default. */
+export async function lowBalanceThreshold(db: PoolClient, orgId: string): Promise<LowBalanceThreshold> {
+  const custom = (await db.query("SELECT low_balance_threshold_ucr FROM billing.alert_setting WHERE org_id=$1", [orgId])).rows[0]?.low_balance_threshold_ucr;
+  const defaultUcr = await defaultLowBalanceThresholdUcr(db, orgId);
+  const customUcr = custom === null || custom === undefined ? null : big(custom);
+  return { thresholdUcr: customUcr ?? defaultUcr, customUcr, defaultUcr };
+}
+
+export async function lowBalanceThresholdUcr(db: PoolClient, orgId: string): Promise<bigint> {
+  return (await lowBalanceThreshold(db, orgId)).thresholdUcr;
 }
 
 /** Whether the account ever received credits (no alerts for a workspace that never had any). */

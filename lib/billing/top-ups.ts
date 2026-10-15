@@ -188,14 +188,18 @@ const VIES_MAX_AGE_MS = 30 * 86_400_000;
 /**
  * Before a purchase, an EU VAT ID is checked again when the last VIES answer
  * is over 30 days old or VIES was unavailable. A fresh outage keeps the last
- * definite answer; a number that is no longer valid now pays Spanish IVA.
+ * definite answer (or the treatment set by a manual review); a number that is
+ * no longer valid now pays Spanish IVA, and one VIES now confirms gets the
+ * reverse charge.
  */
-async function refreshVies(identity: EvalIdentity, orgId: string, profile: BillingProfile | null, requestId: string, vies: typeof checkVies = checkVies) {
+export async function refreshVies(identity: EvalIdentity, orgId: string, profile: BillingProfile | null, requestId: string, vies: typeof checkVies = checkVies) {
   if (!profile || profile.taxIdKind !== "eu_vat") return profile;
   const stale = profile.viesStatus === "unavailable" || !profile.viesCheckedAt || Date.now() - profile.viesCheckedAt.getTime() > VIES_MAX_AGE_MS;
   if (!stale) return profile;
   const result = await vies(profile.taxId.slice(0, 2), profile.taxId.slice(2));
-  if (result.status === "unavailable" && profile.viesStatus !== "unavailable") return profile;
+  // A fresh outage keeps the last definite answer, and a treatment ops set after a
+  // manual review while VIES was down (launch G2: 21 % IVA) until VIES answers.
+  if (result.status === "unavailable" && (profile.viesStatus !== "unavailable" || profile.taxTreatment !== null)) return profile;
   const decision = decideTaxTreatment({ country: profile.country, kind: "eu_vat", vies: result.status, postalCode: profile.postalCode });
   return withTenant({ orgId, actorId: identity.user.id }, db => saveProfile(db, orgId, {
     legalName: profile.legalName, country: profile.country, taxId: profile.taxId, taxIdKind: "eu_vat", viesStatus: result.status,
@@ -231,7 +235,14 @@ export async function startTopUp(request: Request, identity: EvalIdentity, body:
   const scope = { orgId: body.orgId, actorId: identity.user.id };
   const livemode = isLivemode();
   const profile = await refreshVies(identity, body.orgId, await withTenant(scope, db => getProfile(db, body.orgId)), requestId);
-  if (profile?.taxReviewReason === "es_special_territory") throw new EvalError("TAX_REVIEW_REQUIRED", ...MESSAGES.TAX_REVIEW_TERRITORY);
+  if (profile?.taxReviewReason) {
+    // The details wait for a manual tax review (launch G2): the refused purchase goes to the ops queue.
+    await withTenant(scope, db => db.query("SELECT billing.record_blocked_top_up($1,$2)", [body.orgId, pack.netCents])).catch(() => {
+      console.error(JSON.stringify({ event: "billing_tax_review_record_failed", org: body.orgId }));
+    });
+    if (profile.taxReviewReason === "es_special_territory") throw new EvalError("TAX_REVIEW_REQUIRED", ...MESSAGES.TAX_REVIEW_TERRITORY);
+    throw new EvalError("TAX_REVIEW_REQUIRED", ...MESSAGES.TAX_REVIEW_REQUIRED);
+  }
   const created = await withTenant(scope, db => idempotent(db, scope, "billing-top-ups", key, { pack: body.pack, livemode }, async () => {
     const order = await createTopUpOrder(db, {
       orgId: body.orgId, key: `checkout:${createHash("sha256").update(`${identity.user.id}:${key}`).digest("hex")}`, netCents: pack.netCents,

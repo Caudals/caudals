@@ -22,13 +22,13 @@ import { requireWorkspace } from "@/lib/evals/domain/identity";
 import { withTenant } from "@/lib/evals/repositories/db";
 import { idempotent } from "@/lib/evals/repositories/evidence";
 import {
-  everFunded, ledgerPage, lowBalanceThresholdUcr, monthWindow, nextExpiry, readAccount, usageLines, usageReport, usageTotals, type UsageLine,
+  everFunded, ledgerPage, lowBalanceThreshold, lowBalanceThresholdUcr, monthWindow, nextExpiry, readAccount, usageLines, usageReport, usageTotals, type UsageLine,
 } from "./account-view";
 import { allowanceKey, allowancePeriod } from "./allowance";
 import { billingLevel, billingUiEligible, type BillingLevel } from "./billing-ui";
 import { engineBillingMode, workspaceEngineMode } from "./engine";
 import { EstimateError, evaluationModelRates } from "./estimate";
-import { capsInput, readSpendCaps, saveSpendCaps, type SpendCaps } from "./limits";
+import { capsInput, readSpendCaps, saveLowBalanceThreshold, saveSpendCaps, type SpendCaps } from "./limits";
 import { plansV2For } from "./overrides";
 import { findPack, packCredits } from "./packs";
 import { getAutoRecharge, getStripeCustomer } from "./payments";
@@ -214,20 +214,29 @@ export async function billingLedger(identity: EvalIdentity, params: URLSearchPar
 
 /* ---------------------------------------------------------------- caps --- */
 
+/** The low-balance threshold in use, the owner's own (null: the default rule) and the default. */
+function thresholdView(threshold: Awaited<ReturnType<typeof lowBalanceThreshold>>) {
+  return { lowBalanceThresholdUcr: s(threshold.thresholdUcr), lowBalanceCustomUcr: threshold.customUcr === null ? null : s(threshold.customUcr), lowBalanceDefaultUcr: s(threshold.defaultUcr) };
+}
+
 /** GET /caps: the caps, the low-balance threshold and who gets billing alerts (recipients for owners). */
 export async function billingCaps(identity: EvalIdentity, orgId: string, env: Env = process.env) {
   const reader = await requireBillingReader(identity, orgId, "editor", env);
   return withTenant({ orgId, actorId: identity.user.id }, async db => {
     const caps = await readSpendCaps(db, orgId);
-    const threshold = await lowBalanceThresholdUcr(db, orgId);
+    const threshold = await lowBalanceThreshold(db, orgId);
     const recipients = reader.level === "owner"
       ? (await db.query<{ email: string }>("SELECT email FROM evals.notification_email_recipients($1,'low_balance') ORDER BY email", [orgId])).rows.map(row => row.email)
       : null;
-    return { ...capsView(caps), updatedAt: caps.updatedAt?.toISOString() ?? null, lowBalanceThresholdUcr: s(threshold), recipients };
+    return { ...capsView(caps), updatedAt: caps.updatedAt?.toISOString() ?? null, ...thresholdView(threshold), recipients };
   });
 }
 
-/** PUT /caps (owners): the monthly cap and the per-run cap. Audited by billing.set_spend_cap. */
+/**
+ * PUT /caps (owners): the monthly cap, the per-run cap and, when given, the
+ * low-balance threshold (null: back to the default). Audited by
+ * billing.set_spend_cap and billing.set_low_balance_threshold.
+ */
 export async function saveBillingCaps(request: Request, identity: EvalIdentity, body: unknown, env: Env = process.env) {
   const input = capsInput.parse(body);
   const reader = await requireBillingReader(identity, input.orgId, "owner", env);
@@ -239,7 +248,8 @@ export async function saveBillingCaps(request: Request, identity: EvalIdentity, 
   const requestId = randomUUID();
   return withTenant(scope, db => idempotent(db, scope, "billing-caps", key, input, async () => {
     const caps = await saveSpendCaps(db, input, requestId);
-    return { ...capsView(caps), updatedAt: caps.updatedAt?.toISOString() ?? null };
+    if (input.lowBalanceThresholdCredits !== undefined) await saveLowBalanceThreshold(db, input.orgId, input.lowBalanceThresholdCredits, requestId);
+    return { ...capsView(caps), updatedAt: caps.updatedAt?.toISOString() ?? null, ...thresholdView(await lowBalanceThreshold(db, input.orgId)) };
   }));
 }
 

@@ -468,7 +468,11 @@ function DetailsPanel({ summary }: { summary: BillingSummary }) {
 
 /* ---------------------------------------------------------------- limits --- */
 
-type CapsView = { monthlyUcr: string | null; perRunUcr: string | null; perRunMultiplier: number; lowBalanceThresholdUcr: string; recipients: string[] | null; updatedAt: string | null };
+type CapsView = {
+  monthlyUcr: string | null; perRunUcr: string | null; perRunMultiplier: number; recipients: string[] | null; updatedAt: string | null;
+  /** The threshold in use, the owner's own (null: the default rule) and the default (§6.10, migration 112). */
+  lowBalanceThresholdUcr: string; lowBalanceCustomUcr?: string | null; lowBalanceDefaultUcr?: string;
+};
 
 function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: () => void }) {
   const { orgId, withOrg } = useWorkspace();
@@ -477,12 +481,14 @@ function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: (
   const [busy, setBusy] = useState(false);
   const [monthly, setMonthly] = useState<"none" | "cap">("none");
   const [perRun, setPerRun] = useState<"multiplier" | "fixed">("multiplier");
+  const [lowBalance, setLowBalance] = useState<"default" | "custom">("default");
   const key = useRef(newKey());
   useEffect(() => {
     let live = true;
     evalRequest<CapsView>(`/billing/caps?orgId=${encodeURIComponent(orgId)}`).then(value => {
       if (!live) return;
       setCaps(value); setMonthly(value.monthlyUcr ? "cap" : "none"); setPerRun(value.perRunUcr ? "fixed" : "multiplier");
+      setLowBalance(value.lowBalanceCustomUcr ? "custom" : "default");
     }, caught => { if (live) setError(caught instanceof Error ? caught.message : t("error")); });
     return () => { live = false; };
   }, [orgId]);
@@ -495,6 +501,7 @@ function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: (
         orgId,
         monthlyCapCredits: monthly === "cap" ? Number(form.get("monthlyCap")) : null,
         perRun: perRun === "fixed" ? { mode: "fixed", credits: Number(form.get("runCap")) } : { mode: "multiplier", multiplier: Number(form.get("multiplier")) },
+        lowBalanceThresholdCredits: lowBalance === "custom" ? Number(form.get("lowBalance")) : null,
       }, key.current);
       key.current = newKey();
       setCaps(current => current ? { ...current, ...saved } : current);
@@ -531,7 +538,18 @@ function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: (
             : <Field id="cap-run" name="runCap" type="number" min={10} max={1000000} required label={t("billingRunCapCredits")} defaultValue={caps.perRunUcr ? creditsUp(caps.perRunUcr) : 1000} />}
         </span>
       </SettingsRow>
-      <SettingsRow title={t("billingLowBalance")} description={tv("billingLowBalanceHelp", { threshold: formatCredits(caps.lowBalanceThresholdUcr) })} />
+      <SettingsRow title={t("billingLowBalance")} description={t("billingLowBalanceSetHelp")}>
+        <span className="p-stack p-stack-tight">
+          <SelectField id="low-balance-mode" label={t("billingLowBalance")} value={lowBalance} onChange={event => setLowBalance(event.currentTarget.value as "default" | "custom")}>
+            <option value="default">{tv("billingLowBalanceDefault", { threshold: formatCredits(caps.lowBalanceDefaultUcr ?? caps.lowBalanceThresholdUcr) })}</option>
+            <option value="custom">{t("billingLowBalanceCustom")}</option>
+          </SelectField>
+          {lowBalance === "custom"
+            ? <Field id="low-balance" name="lowBalance" type="number" min={1} max={10000000} required label={t("billingLowBalanceCredits")}
+                defaultValue={creditsUp(caps.lowBalanceCustomUcr ?? caps.lowBalanceThresholdUcr)} />
+            : <span className="p-field-hint">{t("billingLowBalanceDefaultHint")}</span>}
+        </span>
+      </SettingsRow>
       <SettingsRow title={t("billingRecipients")} description={<>{t("billingRecipientsHelp")} <Link className="p-link" href={withOrg("/workspace/settings?tab=notifications")}>{t("notifications")}</Link>.</>}>
         {caps.recipients?.length ? <ul className="p-plain-list">{caps.recipients.map(email => <li key={email}>{email}</li>)}</ul> : <span className="p-cell-meta">{t("billingNoRecipients")}</span>}
       </SettingsRow>

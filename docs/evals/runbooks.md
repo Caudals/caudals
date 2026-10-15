@@ -238,11 +238,20 @@ Price notices (§6.4): a revision that raises any rate takes effect only if its 
 1. Due: open the revision under Price book, check the increases and recipients, send a test (internal address), then — with `BILLING_PRICE_NOTICES=owners`, a founder decision — Send the notice before the deadline.
 2. Missed: the revision is held. Cancel it (allowed for a held revision) and schedule it again at least 30 days after the notice you will send. The alert stays open until then.
 
+## 24. Provider price changes
+
+Signals: `price_check_changes` (the latest weekly provider-price check found rates whose listed price moved, or whose cost moved more than 3 % with FX, and no platform admin has acknowledged those findings; launch G2), a `billing_price_check_changes` line from the scheduler. The check runs weekly from the evals scheduler (OpenRouter's public models API and the ECB rate; no paid calls) and compares them with the price-book revision in effect (spec §6.4).
+
+1. Open `/ops/platform/billing?view=price-book`. The *Provider-price check* panel lists each rate that changed (book price → listed price) and the rates due for recomputation, with the date of the check. As `postgres`: `SELECT * FROM billing.price_check_status()`, and the rows with `SELECT changes FROM billing.price_check ORDER BY checked_at DESC LIMIT 1`. `scripts/billing/check-provider-prices.ts` prints the same diff on demand.
+2. Decide. A decrease applies at once: draft a revision with *Use the latest price check*, schedule it and activate it. An increase needs 30 days' notice (§6.4): draft and schedule it at least 30 days ahead, then send its notice (runbook 23). A move we absorb (a small FX swing, a provider-side promotion) needs no revision. Rates of a model a customer route uses must stay priced (`ROUTE_UNPRICED`).
+3. Acknowledge the check in the panel with a note of what you decided (the draft revision, or why the book stays). It needs a sign-in within 15 minutes and is audited (`billing.price_check_acknowledged`). The alert resolves with the next health run. The same findings next week stay acknowledged; a further change, a new revision or a rate that crosses the threshold opens it again.
+4. Never edit `billing.price_check` or the acknowledgements: both are append-only.
+
 ## Alert drills
 
 Each alert must fire once in a drill and link to its runbook (L-08 acceptance).
 
-- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds, shadow drift, invoicing backlog), each with its runbook link. Since L-16 it also opens the billing reconciliation and price-notice alerts. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
+- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds, shadow drift, invoicing backlog), each with its runbook link. Since L-16 it also opens the billing reconciliation and price-notice alerts, and since G2 the provider-price alert. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
 - Uptime: runbook 19.
 - Sentry: runbook 20, step 2.
 - The production drills are recorded in `docs/launch/L-08.md`.

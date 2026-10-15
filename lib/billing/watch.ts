@@ -18,8 +18,10 @@
  *    (once per refill), the monthly cap at 50, 80 and 100 % (once each per
  *    month), credits expiring in 30 and 7 days (once each per lot; the monthly
  *    allowance is left out), unusual spend (yesterday above 3 × the 4-week
- *    daily average, once per day, in the app only) and a successful
- *    auto-recharge. Each is claimed once in billing.alert_state, written as an
+ *    daily average, once per day) and a successful auto-recharge. The
+ *    low-balance threshold is the owner's own when set (Limits and alerts,
+ *    migration 112), else 500 credits or 20 % of the last pack. Each is
+ *    claimed once in billing.alert_state, written as an
  *    in-app notice, and emailed with L-07's templates to owners who keep
  *    billing email on (evals.notification_email_recipients), each in their
  *    language. Stripe test mode emails only Caudals' own addresses.
@@ -158,10 +160,10 @@ export async function deliverBillingAlert<T extends TemplateName>(scope: Scope, 
   return true;
 }
 
-/** Settings links for billing alerts: top-up, limits, overview and the notification settings. */
+/** Settings links for billing alerts: top-up, limits, usage, overview and the notification settings. */
 export function billingLinks(orgId: string, env: Env = process.env) {
   const base = `${emailAppUrl(env)}/workspace/settings?orgId=${encodeURIComponent(orgId)}`;
-  return { topUp: `${base}&tab=billing&view=top-up`, limits: `${base}&tab=billing&view=limits`, overview: `${base}&tab=billing`, notifications: `${base}&tab=notifications` };
+  return { topUp: `${base}&tab=billing&view=top-up`, limits: `${base}&tab=billing&view=limits`, usage: `${base}&tab=billing&view=usage`, overview: `${base}&tab=billing`, notifications: `${base}&tab=notifications` };
 }
 
 const deliver = deliverBillingAlert;
@@ -271,7 +273,11 @@ export async function runBillingWatch(scope: Scope, deps: WatchDeps = {}): Promi
     const average = facts.month.netUcr / BigInt(28);
     if (average > ZERO && facts.yesterday.netUcr > average * BigInt(3)) {
       const day = new Date(now.getTime() - DAY).toISOString().slice(0, 10);
-      if (await deliver(scope, "unusual_spend", day, { day, credits: credits(facts.yesterday.netUcr), average: credits(average) }, null, deps)) tick.alerts.push("unusual_spend");
+      const spent = credits(facts.yesterday.netUcr), usual = credits(average);
+      if (await deliver(scope, "unusual_spend", day, { day, credits: spent, average: usual },
+        { template: "unusual_spend", props: workspace => ({ workspace, day, credits: spent, average: usual, usageUrl: url.usage, settingsUrl: url.notifications }) }, deps)) {
+        tick.alerts.push("unusual_spend");
+      }
     }
   }
   return tick;
