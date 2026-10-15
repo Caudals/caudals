@@ -654,7 +654,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
             <Breadcrumbs />
             <span className="p-topbar-spacer" />
             <div className="p-topbar-actions">
-              <button type="button" className="p-searchbar" onClick={() => setPalette(true)} aria-keyshortcuts="Meta+K Control+K">
+              <button type="button" className="p-searchbar" onClick={() => setPalette(true)} aria-keyshortcuts="Meta+K Control+K" aria-label={t("search")}>
                 <Search aria-hidden="true" />
                 <span className="p-searchbar-text">{t("search")}…</span>
                 <kbd className="p-kbd">⌘K</kbd>

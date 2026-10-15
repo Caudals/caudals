@@ -20,7 +20,7 @@ Un espacio gratuito incluye:
 - descarga de cada informe en PDF, Word y CSV;
 - los modelos propios de Caudals, en los servidores de Caudals.
 
-Las ejecuciones programadas, la subida de respuestas y el ejecutor privado no forman parte del plan gratuito. Cuando llegas a un límite, la aplicación te dice cuál, por ejemplo: «El plan gratis incluye tres ejecuciones al mes. Habla con nosotros de un piloto para hacer más.»
+Las ejecuciones programadas, la subida de respuestas y el ejecutor privado no forman parte del plan gratuito. Cuando llegas a un límite, la aplicación te dice cuál, por ejemplo: «El plan gratis incluye tres ejecuciones al mes. Habla con nosotros de un piloto para hacer más».
 
 ## Qué muestra Ajustes {#settings}
 

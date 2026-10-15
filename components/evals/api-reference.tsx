@@ -7,7 +7,7 @@
  * the reference cannot describe a field or a scope the API does not have.
  */
 import { useSyncExternalStore } from "react";
-import { DataTable, SectionHeading } from "./primitives";
+import { CodeText, DataTable, SectionHeading } from "./primitives";
 import { CodeBlock, CopyField } from "./overlays";
 import { apiCurl, ciGateScript, estimateCurl, githubActionExample, NODE_VERIFIER, PYTHON_VERIFIER, startRunCurl, webhookExample } from "@/lib/evals/api-reference";
 import {
@@ -61,13 +61,15 @@ function Codes({ values }: { values: readonly string[] }) {
   );
 }
 
-function Endpoint({ method, path, scope, children, fields, body }: { method: "GET" | "POST"; path: string; scope: CustomerScope | CustomerScope[]; children: React.ReactNode; fields?: readonly string[]; body?: readonly string[] }) {
+function Endpoint({ method, path, scope, children, fields, body }: { method: "GET" | "POST"; path: string; scope: CustomerScope | CustomerScope[]; children: string; fields?: readonly string[]; body?: readonly string[] }) {
   return (
     <article className="p-api-endpoint">
       <h4>
         <code className="p-api-method">{method}</code> <code className="p-api-path">{path}</code>
       </h4>
-      <p>{children}</p>
+      <p>
+        <CodeText text={children} />
+      </p>
       <dl className="p-api-facts">
         <div>
           <dt>{t("apiRefScopeLabel")}</dt>
@@ -113,7 +115,9 @@ export function ApiReference({ orgId, estimates = false, integrations = false }:
 
       <section aria-labelledby="api-auth">
         <h3 id="api-auth">{t("apiRefAuthTitle")}</h3>
-        <p>{t("apiRefAuthBody")}</p>
+        <p>
+          <CodeText text={t("apiRefAuthBody")} />
+        </p>
         <div className="p-api-ids">
           <CopyField label={t("apiRefWorkspaceId")} value={orgId} />
           <CopyField label={t("apiRefBaseUrl")} value={`${origin}/api/evals/v1`} />
@@ -128,7 +132,9 @@ export function ApiReference({ orgId, estimates = false, integrations = false }:
               <td>
                 <code className="p-code">{scope}</code>
               </td>
-              <td>{t(SCOPE_HELP[scope])}</td>
+              <td>
+                <CodeText text={t(SCOPE_HELP[scope])} />
+              </td>
             </tr>
           ))}
         </DataTable>
@@ -170,11 +176,13 @@ export function ApiReference({ orgId, estimates = false, integrations = false }:
 
       <section aria-labelledby="api-errors">
         <h3 id="api-errors">{t("apiRefErrorsTitle")}</h3>
-        <p>{t("apiRefErrorsBody")}</p>
+        <p>
+          <CodeText text={t("apiRefErrorsBody")} />
+        </p>
         <ul className="p-bullets">
           {statuses.map((status) => (
             <li key={status}>
-              <code className="p-code">{status}</code> {t(`apiRefError${status}` as MessageKey)}
+              <code className="p-code">{status}</code> <CodeText text={t(`apiRefError${status}` as MessageKey)} />
             </li>
           ))}
         </ul>
@@ -186,7 +194,11 @@ export function ApiReference({ orgId, estimates = false, integrations = false }:
           <li>{tv("apiRefLimitRate", { n: limits.requestsPerWindow })}</li>
           <li>{tv("apiRefLimitList", { n: limits.listItems })}</li>
           <li>{t("apiRefLimitToken")}</li>
-          {integrations && <li>{tv("apiRefLimitRuns", { n: limits.runStartsPerHour })}</li>}
+          {integrations && (
+            <li>
+              <CodeText text={tv("apiRefLimitRuns", { n: limits.runStartsPerHour })} />
+            </li>
+          )}
           {integrations && <li>{tv("apiRefLimitWriteToken", { n: limits.writeTokenMaxDays })}</li>}
         </ul>
       </section>
@@ -200,14 +212,16 @@ export function ApiReference({ orgId, estimates = false, integrations = false }:
               <td>
                 <code className="p-code">{kind}</code>
               </td>
-              <td>{t(EVENT_HELP[kind])}</td>
+              <td>
+                <CodeText text={t(EVENT_HELP[kind])} />
+              </td>
             </tr>
           ))}
         </DataTable>
         <CodeBlock label={t("apiRefPayloadTitle")} code={webhookExample()} />
         <h4>{t("apiRefSignatureTitle")}</h4>
         <p>
-          {t("apiRefSignatureBody")} <Codes values={Object.values(WEBHOOK_HEADERS)} />
+          <CodeText text={t("apiRefSignatureBody")} /> <Codes values={Object.values(WEBHOOK_HEADERS)} />
         </p>
         <CodeBlock label="Node.js" code={NODE_VERIFIER} />
         <CodeBlock label="Python" code={PYTHON_VERIFIER} />

@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { evalRequest } from "./api";
 import { invitationPath } from "./auth-path";
-import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SelectField, Status, Time } from "./primitives";
+import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SectionHeading, SelectField, Status, TableSkeleton, Time } from "./primitives";
 import { CopyField, Modal, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
-import { WorkspaceMemberRoles } from "./workspace-member-roles";
+import { WorkspaceMembers } from "./workspace-member-roles";
 import { t } from "@/lib/evals/messages/runtime";
 
 type Invitation = {
@@ -30,9 +30,9 @@ function invitationState(item: Invitation) {
 }
 
 /**
- * Invite people into one workspace and see who has joined. Invitations are
- * private links shown once; only a digest is stored. Used by workspace owners
- * in Settings and by operators on a client.
+ * The people in one workspace (launch U1) and the invitations to it.
+ * Invitations are private links shown once; only a digest is stored. Used by
+ * workspace owners in Settings and by operators on a client.
  */
 export function InvitationManager({ orgId, workspaceName }: { orgId: string; workspaceName: string }) {
   const { platformAdmin } = useWorkspace();
@@ -107,48 +107,51 @@ export function InvitationManager({ orgId, workspaceName }: { orgId: string; wor
       <div className="p-section-head">
         <div className="p-head-text">
           <h2>{t("members")}</h2>
-          <p>{t("membersHelp")}</p>
+          <p>{t("membersListHelp")}</p>
         </div>
         <Action variant="secondary" onClick={() => { setCreated(null); setOpen(true); }}>
           <UserPlus aria-hidden="true" />
           {t("invite")}
         </Action>
       </div>
-      {error && <Status error>{error}</Status>}
-      {items === null ? (
-        <p className="p-cell-meta">{t("loading")}</p>
-      ) : items.length ? (
-        <DataTable caption={t("members")} headers={[t("email"), t("invitedAs"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
-          {items.map((item) => {
-            const state = invitationState(item);
-            const revocable = !item.accepted_at && !item.revoked_at && state.label === t("pendingInvitation");
-            return (
-              <tr key={item.id}>
-                <RowTitle meta={item.expires_at && !item.accepted_at && !item.revoked_at ? <>{t("expires")} <Time value={item.expires_at} /></> : undefined}>{item.email}</RowTitle>
-                <td>{item.role ? t(item.role as "owner" | "editor" | "viewer") : "—"}</td>
-                <td>
-                  <Badge tone={state.tone} dot>
-                    {state.label}
-                  </Badge>
-                </td>
-                <td className="p-table-action">
-                  {revocable && (
-                    <Action variant="ghost" size="sm" disabled={!!pending} onClick={() => void revoke(item.id)}>
-                      {pending === item.id ? t("revoking") : t("revoke")}
-                    </Action>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </DataTable>
-      ) : (
-        <EmptyState title={t("noInvitations")} icon={<UserPlus />}>
-          <p>{t("noInvitationsHelp")}</p>
-        </EmptyState>
-      )}
+      <WorkspaceMembers key={orgId} orgId={orgId} canEditRoles={platformAdmin} />
 
-      {platformAdmin && <WorkspaceMemberRoles key={orgId} orgId={orgId} />}
+      <section className="p-section" aria-labelledby={`invitations-${orgId}`}>
+        <SectionHeading id={`invitations-${orgId}`} title={t("invitations")}>{t("membersHelp")}</SectionHeading>
+        {error && <Status error>{error}</Status>}
+        {items === null ? (
+          <TableSkeleton columns={3} />
+        ) : items.length ? (
+          <DataTable caption={t("invitations")} headers={[t("email"), t("invitedAs"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]} stack>
+            {items.map((item) => {
+              const state = invitationState(item);
+              const revocable = !item.accepted_at && !item.revoked_at && state.label === t("pendingInvitation");
+              return (
+                <tr key={item.id}>
+                  <RowTitle meta={item.expires_at && !item.accepted_at && !item.revoked_at ? <>{t("expires")} <Time value={item.expires_at} /></> : undefined}>{item.email}</RowTitle>
+                  <td data-label={t("invitedAs")}>{item.role ? t(item.role as "owner" | "editor" | "viewer") : "—"}</td>
+                  <td>
+                    <Badge tone={state.tone} dot>
+                      {state.label}
+                    </Badge>
+                  </td>
+                  <td className="p-table-action" data-cell="menu" data-actions="wide" data-empty={revocable ? undefined : "true"}>
+                    {revocable && (
+                      <Action variant="ghost" size="sm" disabled={!!pending} onClick={() => void revoke(item.id)}>
+                        {pending === item.id ? t("revoking") : t("revoke")}
+                      </Action>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </DataTable>
+        ) : (
+          <EmptyState compact title={t("noInvitations")} icon={<UserPlus />}>
+            <p>{t("noInvitationsHelp")}</p>
+          </EmptyState>
+        )}
+      </section>
 
       <Modal
         open={open}

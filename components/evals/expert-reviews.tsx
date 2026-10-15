@@ -81,7 +81,8 @@ export function ReviewRequestList() {
 /* --------------------------------------------------------------- detail --- */
 
 type BenchRow = {
-  id: string; user_id: string; domains: string[]; languages: string[]; credentials_status: string; terms_status: string; eligibility_status: string;
+  /** The expert's display name (ops only; null when the account has none). */
+  id: string; user_id: string; name?: string | null; domains: string[]; languages: string[]; credentials_status: string; terms_status: string; eligibility_status: string;
   onboarding: (Partial<ExpertOnboardingInput> & { updated_at?: string }) | null; ready: boolean; missing: string[];
 };
 type Detail = {
@@ -90,9 +91,14 @@ type Detail = {
   report: { title: string; currentRevisionId: string | null; reviewStatus: string | null; expertReview: { reviewer_count: number; reviewed_on: string; scope: string } | null } | null;
   results: Array<{ id: string; title: string; topic: string; outcome: string; severity: string; label: string | null }>;
   order: null | { id: string; scope: string; sector: string; due_at: string; quote_amount: string; quote_currency: string; quote_note: string; status: string; reviewer_count: number | null; delivered_at: string | null; created_at: string; result_revision_id: string | null; cancel_reason: string | null };
-  assignments: Array<{ id: string; status: string; due_at: string | null; expert_user_id: string; revisions: number; submitted_at: string | null }>;
+  assignments: Array<{ id: string; status: string; due_at: string | null; expert_user_id: string; expert_name?: string | null; revisions: number; submitted_at: string | null }>;
   progress: { reviewer_count: number; assignment_count: number };
 };
+
+/** An expert as operators read them: the account's name, else the start of the user id. */
+function expertLabel(name: string | null | undefined, userId: string) {
+  return name?.trim() || `${userId.slice(0, 12)}…`;
+}
 
 function dueIso(date: string) {
   // The end of the chosen day in the operator's time zone.
@@ -157,7 +163,13 @@ export function ReviewRequestDetail({ requestId }: { requestId: string }) {
         </Card>
         <Card title={t("erCrmDraft")}>
           <p className="p-field-hint">{t("erCrmDraftHelp")}</p>
-          {detail.draft ? <CodeBlock label={t("erCrmDraftLabel")} code={JSON.stringify(detail.draft.summary, null, 2)} /> : <p>—</p>}
+          {/* The raw handoff opens on demand, so the card stays the height of its neighbour (launch U1). */}
+          {detail.draft ? (
+            <details className="p-details">
+              <summary>{t("erCrmDraftShow")}</summary>
+              <CodeBlock label={t("erCrmDraftLabel")} code={JSON.stringify(detail.draft.summary, null, 2)} />
+            </details>
+          ) : <p>—</p>}
         </Card>
       </div>
       {!order && open && <OrderForm detail={detail} bench={bench} pending={pending} requestId={requestId}
@@ -238,7 +250,7 @@ function OrderForm({ detail, bench, pending, requestId, onCreate }: {
         {!bench.length ? <p className="p-field-hint">{t("erNoExperts")}</p> : (
           <div className="eval-review-scopes">
             {bench.map((item) => (
-              <Check key={item.id} label={`${item.user_id.slice(0, 12)}… · ${item.domains.join(", ")}`}
+              <Check key={item.id} label={`${expertLabel(item.name, item.user_id)} · ${item.domains.join(", ")}`}
                 description={item.ready ? (item.onboarding?.sectors?.length ? item.onboarding.sectors.map(sectorLabel).join(", ") : t("erReady")) : tv("erNotReadyMissing", { items: item.missing.map((miss) => t(missingLabel(miss))).join(", ") })}
                 disabled={!item.ready} checked={experts.includes(item.id)} onChange={(event) => setExperts((list) => toggle(list, item.id, event.target.checked))} />
             ))}
@@ -300,7 +312,9 @@ function OrderCard({ detail, pending, onPublish, onCancel }: { detail: Detail; p
       <DataTable caption={t("erAssignments")} headers={[t("expertColExpert"), t("expertColStatus"), t("erSubmitted"), t("erColDue")]}>
         {detail.assignments.map((item) => (
           <tr key={item.id}>
-            <RowTitle meta={item.revisions === 1 ? t("erRevisionsOne") : tv("erRevisions", { count: item.revisions })}><code className="p-code" title={item.expert_user_id}>{item.expert_user_id.slice(0, 12)}</code></RowTitle>
+            <RowTitle meta={item.revisions === 1 ? t("erRevisionsOne") : tv("erRevisions", { count: item.revisions })}>
+              {item.expert_name ? <span title={item.expert_user_id}>{item.expert_name}</span> : <code className="p-code" title={item.expert_user_id}>{item.expert_user_id.slice(0, 12)}</code>}
+            </RowTitle>
             <td><StatusBadge value={item.status} /></td>
             <td>{item.submitted_at ? formatDate(item.submitted_at, true) : "—"}</td>
             <td>{formatDate(item.due_at)}</td>
@@ -356,7 +370,7 @@ export function ExpertBench() {
       <p className="p-field-hint">{t("erBenchIntro")}</p>
       <div className="p-grid">
         {rows.map((row) => (
-          <Card key={row.id} title={`${row.user_id.slice(0, 12)}…`} actions={<Action size="sm" variant="secondary" onClick={() => setEditing(row)}>{t("erEditChecklist")}</Action>}>
+          <Card key={row.id} title={expertLabel(row.name, row.user_id)} actions={<Action size="sm" variant="secondary" onClick={() => setEditing(row)}>{t("erEditChecklist")}</Action>}>
             <div className="p-row">
               {row.ready ? <Badge tone="pass" dot>{t("erReady")}</Badge> : <Badge tone="warn" dot>{t("erNotReady")}</Badge>}
               <StatusBadge value={row.eligibility_status} />
@@ -398,7 +412,7 @@ function BenchEditor({ row, onClose, onSaved }: { row: BenchRow; onClose: () => 
     finally { setPending(false); }
   }
   return (
-    <SidePanel open onOpenChange={(value) => { if (!value) onClose(); }} title={tv("erChecklistTitle", { expert: `${row.user_id.slice(0, 12)}…` })} description={t("erChecklistHelp")}
+    <SidePanel open onOpenChange={(value) => { if (!value) onClose(); }} title={tv("erChecklistTitle", { expert: expertLabel(row.name, row.user_id) })} description={t("erChecklistHelp")}
       footer={<><Action variant="secondary" onClick={onClose}>{t("cancel")}</Action><Action onClick={() => void save()} disabled={pending}>{t("erSaveChecklist")}</Action></>}>
       <div className="p-stack">
         {error && <Status error>{error}</Status>}

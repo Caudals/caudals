@@ -107,6 +107,17 @@ describe("help centre content", () => {
     }
   });
 
+  it("quotes with typographic marks: “…” in English and «…» in Spanish, never straight quotes in prose (launch U1)", () => {
+    for (const locale of HELP_LOCALES) {
+      for (const source of readHelpSources(locale)) {
+        // Code spans and fenced blocks keep their literal quotes (`"stream": false`).
+        const prose = source.body.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "");
+        expect(prose, `${locale}/${source.slug}: straight double quote`).not.toContain('"');
+        if (locale === "es") expect(prose, `${locale}/${source.slug}: use «…» in Spanish`).not.toMatch(/[“”]/);
+      }
+    }
+  });
+
   it("points every contextual help link at an article section that exists in both languages", () => {
     for (const [key, target] of Object.entries(CONTEXT_HELP)) {
       for (const locale of HELP_LOCALES) {

@@ -103,7 +103,8 @@ const fixtures: Record<string, (url: URL, route: Route) => unknown> = {
     files: ["summary.md", "sales.csv", "credits.csv", "orders.csv", "documents.csv"], reconciliation: null, stripeNote: null }),
   "/billing/admin/fraud": () => ({ days: 30, since: ago(30),
     signups: [{ org_id: OTHER, workspace: "Second client", created_at: ago(3), domain: "beta.es", hosts: 4, runs_last_day: 3, flags: ["many_hosts", "many_runs"] }],
-    velocity: [{ org_id: OTHER, workspace: "Second client", orders_24h: 3, orders: 3, failed: 2, paid_net_cents: 2000 }],
+    // An older burst (launch U1): four top-ups within one day, none in the last 24 hours.
+    velocity: [{ org_id: OTHER, workspace: "Second client", orders_24h: 0, orders: 5, peak_24h: 4, failed: 0, paid_net_cents: 2000 }],
     flagged_orders: [{ order_id: "00000000-0000-4000-8000-000000000b01", org_id: ORG, workspace: "Example client", status: "paid", livemode: false, net_cents: 5000, card_country: "US", flags: ["card_country_mismatch"], created_at: ago(10) }],
     disputes: [{ order_id: "00000000-0000-4000-8000-000000000b02", org_id: OTHER, workspace: "Second client", status: "disputed", livemode: false, net_cents: 2000, dispute: "dp_1", updated_at: ago(1) }],
     frozen_accounts: [{ org_id: OTHER, workspace: "Second client", frozen_reason: "dispute:dp_1", available: "0", updated_at: ago(1) }] }),
@@ -193,6 +194,17 @@ test("invoices: rows read the API's fields, attaching is the visible step and vo
   await expect(row.getByRole("button", { name: "Attach issued invoice" })).toBeVisible();
   await row.getByRole("button", { name: /^Actions/ }).click();
   await expect(page.getByRole("menuitem", { name: "Void test document" })).toBeVisible();
+});
+
+test("fraud queue: a velocity row shows the count its criterion is about, and flags read as pills (launch U1)", async ({ page }) => {
+  await routes(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/ops/platform/billing?admin&view=fraud");
+  const velocity = page.getByRole("table", { name: "Top-up velocity" });
+  await expect(velocity.getByRole("columnheader", { name: "Most in 24 h" })).toBeVisible();
+  const cells = velocity.getByRole("row", { name: /Second client/ }).getByRole("cell");
+  await expect(cells).toHaveText(["4", "5", "0", "0", /^€20(\.00)?$/]);
+  await expect(page.getByRole("table", { name: "Orders with risk flags" }).locator(".p-badge")).toHaveText(["Card country mismatch"]);
 });
 
 test("approvals: your own request waits for another admin; approving sends the reviewed payload hash (L-16)", async ({ page }) => {

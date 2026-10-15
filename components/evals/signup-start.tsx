@@ -86,7 +86,7 @@ export function SignupStart({ marketingOrigin }: { marketingOrigin: string }) {
       description={t("startHelp")}
       footer={
         <>
-          <p><Link href="/workspace/sign-in">{t("signupExisting")}</Link></p>
+          <p>{t("signupExistingQuestion")} <Link href="/workspace/sign-in">{t("signupExistingAction")}</Link></p>
           <p>{t("startDemoNote")} <a href={demoHref}>{t("startTryDemo")}</a></p>
         </>
       }

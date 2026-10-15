@@ -20,7 +20,7 @@ A free workspace includes:
 - downloads of every report as PDF, Word and CSV;
 - Caudals' own models, running on Caudals' servers.
 
-Scheduled runs, uploaded answers and the private runner are not part of the free plan. When you reach a limit, the app tells you which one, for example "The free plan includes three runs a month. Talk to us about a pilot for more."
+Scheduled runs, uploaded answers and the private runner are not part of the free plan. When you reach a limit, the app tells you which one, for example “The free plan includes three runs a month. Talk to us about a pilot for more.”
 
 ## What Settings shows {#settings}
 
@@ -33,9 +33,9 @@ These are set by your plan or your agreement with Caudals; a workspace member ca
 Caudals is introducing prepaid credits for pay-as-you-go use, workspace by workspace. Where credits are on for your workspace, Settings has a **Billing and usage** tab and the sidebar shows your plan and balance. Elsewhere nothing is charged in credits.
 
 - **1 credit = €0.01 excluding VAT.** Credits pay for completed work only: engine tokens, each question your system answers, pages and documents read. Failed, retried and cancelled calls are free.
-- **Before every run** you see an estimate, for example "About 270–340 credits (≈ €2.70–€3.40). You have 1,820." The range is what most runs like this one cost; the higher figure must be covered before the run starts, unless auto-recharge will cover the gap.
+- **Before every run** you see an estimate, for example “About 270–340 credits (≈ €2.70–€3.40). You have 1,820.” The range is what most runs like this one cost; the higher figure must be covered before the run starts, unless auto-recharge will cover the gap.
 - **While a run works**, a few credits are held for the call in progress and released when it finishes. You pay what the call used, never more than was held.
-- **If credits run out**, the run pauses with "Paused — add credits to continue". Add credits and it continues by itself.
+- **If credits run out**, the run pauses with “Paused — add credits to continue”. Add credits and it continues by itself.
 - **Limits.** Owners can set a monthly credit limit and a per-run limit (twice the run's estimate unless they change it). A run that reaches a limit pauses until an owner raises it.
 - **Alerts.** Owners get an email and everyone who sees the balance gets a notice when it is low, when credits are about to expire and when a limit is near. Choose which emails you get in Settings → Notifications.
 

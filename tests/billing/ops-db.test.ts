@@ -281,6 +281,22 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("ops billing console on the production
     const fraud = await fraudQueueForAdmin(identity(admin), new URLSearchParams("days=30"));
     expect(fraud).toHaveProperty("signups");
     expect(fraud).toHaveProperty("disputes");
+    // Top-up velocity (launch U1): three top-ups within one day, two days ago, are flagged with that count,
+    // although none falls in the last 24 hours.
+    const burst = await workspace("payg");
+    const profile: ProfileInput = { legalName: "Burst Software SL", country: "ES", taxId: `B${String(Math.floor(Math.random() * 1e7)).padStart(7, "0")}0`, taxIdKind: "es_nif",
+      viesStatus: "not_required", viesConsultation: null, taxTreatment: "es_vat", taxReviewReason: null, addressLine1: "Calle Mayor 2", addressLine2: null,
+      postalCode: "47001", city: "Valladolid", region: null, billingEmail: "billing@burst.test" };
+    await tx({ orgId: burst.orgId, actorId: burst.ownerId }, db => saveProfile(db, burst.orgId, profile));
+    const first = await tx({ orgId: burst.orgId, actorId: burst.ownerId }, db => createTopUpOrder(db, { orgId: burst.orgId, key: `checkout:${randomUUID()}`, netCents: 2_000, livemode: false, buyerDomain: null }));
+    for (const minutes of [10, 20]) {
+      await owner.query(`INSERT INTO billing.top_up_order (org_id,kind,livemode,status,net_cents,vat_rate_bp,vat_cents,gross_cents,tax_treatment,tax_snapshot,base_ucr,pack_bonus_ucr,idempotency_key,created_by,created_at)
+        SELECT org_id,kind,livemode,status,net_cents,vat_rate_bp,vat_cents,gross_cents,tax_treatment,tax_snapshot,base_ucr,pack_bonus_ucr,$2,created_by,now()-interval '2 days'+make_interval(mins=>$3::int)
+        FROM billing.top_up_order WHERE id=$1`, [first.id, `fixture-burst-${randomUUID()}`, minutes]);
+    }
+    await owner.query("UPDATE billing.top_up_order SET created_at=now()-interval '2 days' WHERE id=$1", [first.id]);
+    const queue = await fraudQueueForAdmin(identity(admin), new URLSearchParams("days=30")) as unknown as { velocity: Array<{ org_id: string; orders: number; orders_24h: number; peak_24h: number }> };
+    expect(queue.velocity.find(row => row.org_id === burst.orgId)).toMatchObject({ orders: 3, orders_24h: 0, peak_24h: 3 });
     const run = await runCreditsForPlatform(identity(admin), runId, new URLSearchParams({ orgId: f.orgId }));
     expect(run).toMatchObject({ attempts: [], meters: [{ meter: "api_question", count: 1, credits: "2", shadow: false }], totals: { meterCredits: "2" } });
   });

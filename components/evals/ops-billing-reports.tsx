@@ -667,7 +667,8 @@ export function MonthlyExport() {
 
 type Fraud = {
   signups: Array<{ org_id: string; workspace: string; created_at: string; domain: string | null; hosts: number; runs_last_day: number; flags: string[] }>;
-  velocity: Array<{ org_id: string; workspace: string; orders_24h: number; orders: number; failed: number; paid_net_cents: number }>;
+  /** `peak_24h`: the most top-ups started within any 24 hours of the period, the count the criterion is about (launch U1). */
+  velocity: Array<{ org_id: string; workspace: string; orders_24h: number; orders: number; peak_24h?: number; failed: number; paid_net_cents: number }>;
   flagged_orders: Array<{ order_id: string; org_id: string; workspace: string; status: string; livemode: boolean; net_cents: number; card_country: string | null; flags: string[]; created_at: string }>;
   disputes: Array<{ order_id: string; org_id: string; workspace: string; status: string; livemode: boolean; net_cents: number; updated_at: string }>;
   frozen_accounts: Array<{ org_id: string; workspace: string; frozen_reason: string; available: string; updated_at: string }>;
@@ -683,7 +684,9 @@ export function FraudQueue() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [days]);
-  const link = (orgId: string, label: string) => <Link href={accountHref(orgId)}>{label}</Link>;
+  // Workspace names read as links, and each risk flag is its own pill rather than a comma list (launch U1).
+  const link = (orgId: string, label: string) => <Link className="p-link" href={accountHref(orgId)}>{label}</Link>;
+  const flags = (values: string[]) => <span className="p-row">{values.map(flag => <Badge key={flag} tone="warn">{humanize(flag)}</Badge>)}</span>;
   if (failure) return <Status error>{failure}</Status>;
   const total = data ? data.signups.length + data.velocity.length + data.flagged_orders.length + data.disputes.length + data.frozen_accounts.length : 0;
   return (
@@ -714,15 +717,15 @@ export function FraudQueue() {
             <section className="p-section">
               <SectionHeading title={t("billingOpsFlaggedOrders")} />
               <DataTable caption={t("billingOpsFlaggedOrders")} headers={[t("workspace"), t("billingOpsFlags"), { label: t("billingOpsNet"), align: "end" }, { label: t("createdAt"), align: "end" }]}>
-                {data.flagged_orders.map(row => <tr key={row.order_id}><RowTitle meta={[short(row.order_id), row.livemode ? t("billingOpsLive") : t("billingOpsTestMode")].join(" · ")}>{link(row.org_id, row.workspace)}</RowTitle><td className="p-cell-meta">{row.flags.map(humanize).join(", ")}</td><td className="p-num">{euros(row.net_cents)}</td><td className="p-table-action p-cell-meta"><Time value={row.created_at} /></td></tr>)}
+                {data.flagged_orders.map(row => <tr key={row.order_id}><RowTitle meta={[short(row.order_id), row.livemode ? t("billingOpsLive") : t("billingOpsTestMode")].join(" · ")}>{link(row.org_id, row.workspace)}</RowTitle><td>{flags(row.flags)}</td><td className="p-num">{euros(row.net_cents)}</td><td className="p-table-action p-cell-meta"><Time value={row.created_at} /></td></tr>)}
               </DataTable>
             </section>
           )}
           {data.velocity.length > 0 && (
             <section className="p-section">
               <SectionHeading title={t("billingOpsVelocity")}>{t("billingOpsVelocityHelp")}</SectionHeading>
-              <DataTable caption={t("billingOpsVelocity")} headers={[t("workspace"), { label: t("billingOpsOrders24h"), align: "end" }, { label: t("billingOpsFailedPayments"), align: "end" }, { label: t("billingOpsPaidNet"), align: "end" }]}>
-                {data.velocity.map(row => <tr key={row.org_id}><RowTitle>{link(row.org_id, row.workspace)}</RowTitle><td className="p-num">{row.orders_24h}</td><td className="p-num">{row.failed}</td><td className="p-num">{euros(row.paid_net_cents)}</td></tr>)}
+              <DataTable caption={t("billingOpsVelocity")} headers={[t("workspace"), { label: t("billingOpsPeak24h"), align: "num" }, { label: t("billingOpsTopUps"), align: "num" }, { label: t("billingOpsOrders24h"), align: "num" }, { label: t("billingOpsFailedPayments"), align: "num" }, { label: t("billingOpsPaidNet"), align: "end" }]}>
+                {data.velocity.map(row => <tr key={row.org_id}><RowTitle>{link(row.org_id, row.workspace)}</RowTitle><td className="p-num">{row.peak_24h ?? row.orders_24h}</td><td className="p-num">{row.orders}</td><td className="p-num">{row.orders_24h}</td><td className="p-num">{row.failed}</td><td className="p-num">{euros(row.paid_net_cents)}</td></tr>)}
               </DataTable>
             </section>
           )}
@@ -730,7 +733,7 @@ export function FraudQueue() {
             <section className="p-section">
               <SectionHeading title={t("billingOpsFlaggedSignups")}>{t("billingOpsFlaggedSignupsHelp")}</SectionHeading>
               <DataTable caption={t("billingOpsFlaggedSignups")} headers={[t("workspace"), t("billingOpsFlags"), { label: t("billingOpsHosts"), align: "end" }, { label: t("createdAt"), align: "end" }]}>
-                {data.signups.map(row => <tr key={row.org_id}><RowTitle meta={row.domain ?? undefined}>{link(row.org_id, row.workspace)}</RowTitle><td className="p-cell-meta">{row.flags.map(humanize).join(", ")}</td><td className="p-num">{row.hosts}</td><td className="p-table-action p-cell-meta"><Time value={row.created_at} /></td></tr>)}
+                {data.signups.map(row => <tr key={row.org_id}><RowTitle meta={row.domain ?? undefined}>{link(row.org_id, row.workspace)}</RowTitle><td>{flags(row.flags)}</td><td className="p-num">{row.hosts}</td><td className="p-table-action p-cell-meta"><Time value={row.created_at} /></td></tr>)}
               </DataTable>
             </section>
           )}

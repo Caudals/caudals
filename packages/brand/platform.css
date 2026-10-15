@@ -645,6 +645,15 @@
 .p-crumbs li:not(:last-child) {
   max-width: 16rem;
 }
+/* The first crumb is the section ("Evaluations"): it keeps its word up to
+   10rem and the middle crumbs give way first (launch U1; it read "Evalua…"
+   at 768 px). */
+@media (min-width: 640px) {
+  .p-crumbs li:first-child:not(:last-child) {
+    flex-shrink: 0;
+    max-width: 10rem;
+  }
+}
 /* Phones: the parent and the current page only. */
 @media (max-width: 639px) {
   .p-crumbs li:not(:nth-last-child(-n + 2)) {
@@ -1838,6 +1847,14 @@
   .p-table-wrap[data-stack] td[data-label]::before {
     content: attr(data-label) ": ";
   }
+  /* A stacked row never runs past the canvas: a row of badges wraps, and a
+     long identifier (a model id) breaks where it must (launch U1). */
+  .p-table-wrap[data-stack] td .p-nowrap {
+    flex-wrap: wrap;
+  }
+  .p-table-wrap[data-stack] tbody td {
+    overflow-wrap: anywhere;
+  }
 }
 /* A row title or a short free-text cell (a reason) that must stay readable
    when the table scrolls on a phone (launch R4). */
@@ -2932,11 +2949,21 @@
   }
 }
 @media (max-width: 767px) {
+  /* Icon-only on a narrow screen, styled like the menu and the bell beside it:
+     a ghost icon button, not a bordered tile (launch U1). */
   .p-searchbar {
     min-width: 0;
     width: 32px;
     padding: 0;
     justify-content: center;
+    border-color: transparent;
+    border-radius: var(--p-radius-sm);
+    background: transparent;
+    color: var(--p-text-secondary);
+  }
+  .p-searchbar svg {
+    width: 16px;
+    height: 16px;
   }
   .p-searchbar-text,
   .p-searchbar .p-kbd {
@@ -3415,6 +3442,19 @@
   .p-settings[data-controls="lists"] .p-setting-control {
     flex: 0 0 min(26rem, 45%);
     justify-content: flex-start;
+  }
+}
+
+/* Rows whose controls are form fields (Billing → Limits and alerts): one
+   control column, so every select and field has one width and one left edge
+   (launch U1). The row title names the first control; its label is hidden. */
+@media (min-width: 640px) {
+  .p-settings[data-controls="fields"] .p-setting-control {
+    flex: 0 0 min(20rem, 45%);
+    justify-content: flex-start;
+  }
+  .p-settings[data-controls="fields"] .p-setting-control > * {
+    width: 100%;
   }
 }
 
@@ -4232,6 +4272,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  /* Ghost buttons with a leading icon: the icon lines up with the text edge
+     instead of sitting 12px in on its padding (launch U1). */
+  margin-inline-start: -12px;
 }
 .p-generate {
   display: flex;
@@ -5420,6 +5463,13 @@
     padding: 24px 18px 48px;
   }
 }
+/* On a phone the context line ("Shared privately") wrapped to three lines
+   beside the language select; the page's own intro already says it (launch U1). */
+@media (max-width: 479px) {
+  .p-public-context {
+    display: none;
+  }
+}
 
 /* -----------------------------------------------------------------------------
    10. Motion preferences
@@ -5526,6 +5576,14 @@
     flex: 1 1 100%;
     min-width: 0;
     margin-left: 0;
+  }
+  /* A ghost action that drops to its own line starts on the text edge, not
+     on its padding ("Open that run's report", launch U1). */
+  .p-section-head > .p-head-actions:last-child:not(:first-child) > .p-btn[data-variant="ghost"]:first-child:not([data-shape="icon"]) {
+    margin-inline-start: -10px;
+  }
+  .p-section-head > .p-head-actions:last-child:not(:first-child) > .p-btn[data-variant="ghost"]:first-child:not([data-shape="icon"]):has(> svg:first-child) {
+    margin-inline-start: -12px;
   }
   /* A lone "?" help link stays beside the title instead of taking a line. */
   .p-section-head > .p-head-actions:last-child:not(:first-child):has(> .p-help-link:only-child) {
@@ -6322,6 +6380,12 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+/* A score or "No results yet" that wraps under the name (a trend at 390 px)
+   still ends on the right edge, like the scores that fit beside it (launch U1). */
+.p-home-item > .p-home-score,
+.p-home-item > .p-cell-meta:last-child {
+  margin-left: auto;
 }
 .p-home-score-value {
   font-size: var(--p-text-subtitle);

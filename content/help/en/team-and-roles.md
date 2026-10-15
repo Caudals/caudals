@@ -30,4 +30,6 @@ Each company email domain gets one self-serve workspace. If a colleague tries to
 
 ## Changing roles {#changes}
 
+**Settings → Members** lists everyone in the workspace, with their role and the day they joined, above the invitations.
+
 Changing a member's role is done by Caudals: write to hello@caudals.com from an owner's address. A workspace always keeps at least one owner. Removing a member is not available in the app yet; write to us if someone should lose access.

@@ -46,7 +46,7 @@ Outcomes are listed under **Monitoring outcomes**, with the score against last t
 In **Settings → Developers → Alert destinations**, owners choose **Add destination** and pick a type:
 
 - **Slack**: in Slack, add the Incoming Webhooks app to the channel and paste the webhook URL it gives you (`https://hooks.slack.com/services/…`).
-- **Microsoft Teams**: in Teams, create a workflow from the template "Post to a channel when a webhook request is received" and paste its URL.
+- **Microsoft Teams**: in Teams, create a workflow from the template “Post to a channel when a webhook request is received” and paste its URL.
 - **Email**: a team member's address, or an address on your team's company domain such as a shared alerts inbox.
 - **Signed webhook**: a JSON event signed with HMAC for your own systems; the API reference shows how to verify it.
 

@@ -96,14 +96,17 @@ const PLAN_LABEL: Record<Plan, MessageKey> = { free: "limitPlan_free", payg: "li
 /** Where the workspace stands on the limit, in one line. */
 function currentLine(plan: PlanSummaryView, kind: PlanLimitKind): string {
   const { limits } = plan;
-  const of = (value: number | null) => (value === null ? "—" : String(value));
+  // A plan without a limit says so, never "1 of —" (launch U1).
   switch (kind) {
-    case "systems": return tv("limitNow_systems", { used: limits.systems.used, limit: of(limits.systems.limit) });
-    case "runs": return tv("limitNow_runs", { used: limits.runsPerMonth.used, limit: of(limits.runsPerMonth.limit) });
-    case "questions": return tv("limitNow_questions", { limit: of(limits.questionsPerSet.limit) });
+    case "systems": return limits.systems.limit === null ? tv("limitNowNoLimit_systems", { used: limits.systems.used }) : tv("limitNow_systems", { used: limits.systems.used, limit: limits.systems.limit });
+    case "runs": return limits.runsPerMonth.limit === null ? tv("limitNowNoLimit_runs", { used: limits.runsPerMonth.used }) : tv("limitNow_runs", { used: limits.runsPerMonth.used, limit: limits.runsPerMonth.limit });
+    case "questions": return limits.questionsPerSet.limit === null ? t("limitNowNoLimit_questions") : tv("limitNow_questions", { limit: limits.questionsPerSet.limit });
     case "connection": return tv("limitNow_connection", { list: [...new Set(limits.connectionTypes.map(connectionLabel))].join(", ") });
     case "schedules": return t("limitNow_schedules");
-    case "members": return tv("limitNow_members", { used: limits.members.used + limits.members.pending, limit: of(limits.members.limit) });
+    case "members": {
+      const used = limits.members.used + limits.members.pending;
+      return limits.members.limit === null ? tv("limitNowNoLimit_members", { used }) : tv("limitNow_members", { used, limit: limits.members.limit });
+    }
   }
 }
 
@@ -111,12 +114,12 @@ function currentLine(plan: PlanSummaryView, kind: PlanLimitKind): string {
 function creditsLine(plan: PlanSummaryView, kind: PlanLimitKind): string {
   const { payg } = plan;
   switch (kind) {
-    case "systems": return tv("limitCredits_systems", { n: payg.systems ?? "—" });
+    case "systems": return payg.systems == null ? t("limitCreditsNoLimit_systems") : tv("limitCredits_systems", { n: payg.systems });
     case "runs": return t("limitCredits_runs");
-    case "questions": return tv("limitCredits_questions", { n: payg.questionsPerSet ?? "—" });
+    case "questions": return payg.questionsPerSet == null ? t("limitCreditsNoLimit_questions") : tv("limitCredits_questions", { n: payg.questionsPerSet });
     case "connection": return t("limitCredits_connection");
     case "schedules": return t("limitCredits_schedules");
-    case "members": return tv("limitCredits_members", { n: payg.members ?? "—" });
+    case "members": return payg.members == null ? t("limitCreditsNoLimit_members") : tv("limitCredits_members", { n: payg.members });
   }
 }
 

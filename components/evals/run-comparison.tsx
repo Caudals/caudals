@@ -260,7 +260,8 @@ export function CompareRunsDialog({ open, onOpenChange, orgId, runId, openResult
       {error && <Status error>{error}</Status>}
       {runs === null ? <p className="p-cell-meta">{t("loading")}</p> : runs.length ? (
         <form id="compare-form" onSubmit={compare}>
-          <SelectField id="compare-baseline" label={t("compareWith")} value={baseline} onChange={event => setBaseline(event.target.value)} required>
+          {/* Focus lands on the one choice, not on the close button (launch U1). */}
+          <SelectField id="compare-baseline" label={t("compareWith")} value={baseline} onChange={event => setBaseline(event.target.value)} required autoFocus>
             <option value="">{t("selectRun")}</option>
             {runs.map(run => <option key={run.id} value={run.id}>{formatDate(run.created_at, true)} · {run.status}</option>)}
           </SelectField>

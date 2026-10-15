@@ -117,7 +117,7 @@ export function ByokSettings({ orgId, data, onChange }: { orgId: string; data: B
           </Status>
         )}
         {live.length ? (
-          <DataTable caption={t("byokKeys")} headers={[t("byokProvider"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]}>
+          <DataTable caption={t("byokKeys")} headers={[t("byokProvider"), t("statusLabel"), { label: t("actions"), align: "end", hidden: true }]} stack>
             {live.map((connection) => (
               <tr key={connection.id} data-testid={`byok-key-${connection.provider}`}>
                 <RowTitle meta={connection.rotatedAt ? tv("byokReplacedOn", { date: formatDate(connection.rotatedAt) }) : tv("byokSavedOn", { date: formatDate(connection.createdAt) })}>
@@ -127,7 +127,7 @@ export function ByokSettings({ orgId, data, onChange }: { orgId: string; data: B
                   </span>
                 </RowTitle>
                 <td><StateBadge state={connection.state} /></td>
-                <td className="p-table-action">
+                <td className="p-table-action" data-cell="menu">
                   <ActionMenu
                     label={t("moreActions")}
                     items={[
@@ -153,7 +153,7 @@ export function ByokSettings({ orgId, data, onChange }: { orgId: string; data: B
               {t("byokUseYourKey")}
             </Action>
           ) : undefined}>
-          <DataTable caption={t("byokTasks")} headers={[t("byokTask"), t("byokModel"), { label: t("actions"), align: "end", hidden: true }]}>
+          <DataTable caption={t("byokTasks")} headers={[t("byokTask"), t("byokModel"), { label: t("actions"), align: "end", hidden: true }]} stack>
             {data.roles.map((role) => {
               const route = data.routes.find((item) => item.role === role);
               return (
@@ -169,7 +169,7 @@ export function ByokSettings({ orgId, data, onChange }: { orgId: string; data: B
                       <span className="p-row p-nowrap"><Cpu aria-hidden="true" width={14} /><span className="p-cell-meta">{t("byokCaudalsModel")}</span></span>
                     )}
                   </td>
-                  <td className="p-table-action">
+                  <td className="p-table-action" data-cell="menu" data-empty={route || data.available ? undefined : "true"}>
                     {(route || data.available) && (
                       <ActionMenu
                         label={t("moreActions")}

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { KeyRound, Plus, SlidersHorizontal } from "lucide-react";
 import { evalRequest } from "./api";
 import {
+  CodeText,
   Action,
   Badge,
   Check,
@@ -974,7 +975,7 @@ function Accounts({ admin }: { admin: boolean }) {
   return (
     <>
       <section>
-        <SectionHeading title={t("platformRoles")}>{t("platformRolesHelp")}</SectionHeading>
+        <SectionHeading title={t("platformRoles")}><CodeText text={t("platformRolesHelp")} /></SectionHeading>
         <DataTable caption={t("platformRoles")} headers={[t("account"), { label: t("roleLabel"), align: "end" }]}>
           {data.platformRoles.map((row) => (
             <tr key={row.user_id}>

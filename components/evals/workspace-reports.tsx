@@ -32,7 +32,7 @@ export function WorkspaceReports() {
         </Status>
       )}
       {!summary ? (
-        loading ? <TableSkeleton columns={4} /> : null
+        loading ? <TableSkeleton columns={5} /> : null
       ) : !summary.reports.length ? (
         // The example evaluation (L-33) shows what a finished report looks like (launch L-06, P-02).
         <EmptyState title={t("noReports")} icon={<FileText />} action={example.visible ? <ExampleEvaluationLink variant="button" /> : undefined}>

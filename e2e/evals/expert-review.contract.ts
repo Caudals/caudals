@@ -154,7 +154,8 @@ const requestRow = {
   due_at: null, delivered_at: null, order_id: null, order_status: null, reviewer_count: null,
 };
 const bench = [
-  { id: EXPERT_READY, user_id: "au_EXPERTREADY000000000000", domains: ["insurance"], languages: ["es-ES"], credentials_status: "verified", terms_status: "accepted", eligibility_status: "eligible",
+  // Launch U1: operators read an expert by the account's name; one without a name falls back to the id.
+  { id: EXPERT_READY, user_id: "au_EXPERTREADY000000000000", name: "Ana Experta", domains: ["insurance"], languages: ["es-ES"], credentials_status: "verified", terms_status: "accepted", eligibility_status: "eligible",
     onboarding: { sectors: ["insurance"], availability: "available", agreement_threshold: 0.8, trial_agreement: 0.9 }, ready: true, missing: [] },
   { id: EXPERT_NOT_READY, user_id: "au_EXPERTNOTREADY0000000000", domains: ["banking"], languages: ["en-GB"], credentials_status: "verified", terms_status: "accepted", eligibility_status: "eligible",
     onboarding: { sectors: [], availability: "unavailable", agreement_threshold: 0.8, ip_assignment: false }, ready: false, missing: ["ip_assignment", "dpa", "availability"] },
@@ -165,7 +166,7 @@ function detail(order: Record<string, unknown> | null = null, progress = { revie
     draft: { id: "d1", summary: { kind: "expert_review_request", destination: "warmbly", sent: false, company: "Example client", title: "Investment assistant — October" }, created_at: CREATED },
     report: { title: "Investment assistant — October", currentRevisionId: REVISION, reviewStatus: "preliminary", expertReview: null },
     results: snapshot().results.map((item) => ({ id: item.assessment_id, title: item.title, topic: item.topic, outcome: item.outcome, severity: item.severity, label: item.label })),
-    order, assignments: order ? [{ id: ASSIGNMENT, status: "submitted", due_at: order.due_at, expert_user_id: "au_EXPERTREADY000000000000", revisions: 2, submitted_at: CREATED }] : [], progress,
+    order, assignments: order ? [{ id: ASSIGNMENT, status: "submitted", due_at: order.due_at, expert_user_id: "au_EXPERTREADY000000000000", expert_name: "Ana Experta", revisions: 2, submitted_at: CREATED }] : [], progress,
   };
 }
 
@@ -202,6 +203,8 @@ for (const width of WIDTHS) {
     await expect(table.getByRole("row").filter({ hasText: "Example client" })).toContainText(/Reply (overdue|by)/);
     expect(await noHorizontalScroll(page)).toBe(true);
     await page.goto(`/ops/experts/reviews/${REQUEST}?orgId=${ORG}`);
+    // The raw handoff opens on demand (launch U1).
+    await page.getByText("Show the handoff draft").click();
     await expect(page.getByText('"sent": false')).toBeVisible();
     await expect(page.getByText("Not sent anywhere. Copy it into Warmbly; campaigns stay drafts there.")).toBeVisible();
     // Failed and partly correct answers are in scope by default; the passing one is not.
@@ -210,7 +213,7 @@ for (const width of WIDTHS) {
     await expect(page.getByLabel("Question 3")).not.toBeChecked();
     await expect(page.getByLabel(/au_EXPERTNOT/)).toBeDisabled();
     await expect(page.getByText(/Missing: IP assignment, DPA, availability/)).toBeVisible();
-    await page.getByLabel(/au_EXPERTREA/).check();
+    await page.getByLabel(/Ana Experta/).check();
     await page.getByLabel("Due date").fill("2027-01-20");
     await page.getByLabel("Quoted price (EUR, before tax)").fill("1500.00");
     await page.getByLabel("Quote (hand-written)").fill("Two experts, 12 answers, invoiced by hand on delivery.");
@@ -243,6 +246,8 @@ test("ops: publishing the reviewed revision shows its label first and needs a su
   await page.reload();
   await expect(page.getByText(/^The report will read: Reviewed by 2 experts on .+, scope: the failed answers on fees\.$/)).toBeVisible();
   await expect(page.getByText("2 of 2")).toBeVisible();
+  // The assignment names its expert for operators (launch U1).
+  await expect(page.getByRole("table", { name: "Assignments" }).getByRole("rowheader", { name: /Ana Experta/ })).toBeVisible();
   await page.getByLabel("Note for the customer (optional)").fill("Both experts agree with most grades.");
   await page.getByRole("button", { name: "Publish the reviewed revision" }).click();
   await expect.poll(() => calls.filter((call) => call.method === "PATCH").length).toBe(1);

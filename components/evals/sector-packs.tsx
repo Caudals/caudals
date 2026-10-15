@@ -93,7 +93,7 @@ function PackList({ mode, onOpen }: { mode: "ops" | "expert"; onOpen: (id: strin
           <p>{t("sectorPackNoneHelp")}</p>
         </EmptyState>
       ) : data ? (
-        <DataTable caption={t("sectorPacks")} headers={[t("sectorPackColumnPack"), t("sectorPackColumnVersion"), { label: t("sectorPackColumnQuestions"), align: "end" }, { label: t("sectorPackColumnApproved"), align: "end" }, { label: t("sectorPackColumnOldest"), align: "end" }]}>
+        <DataTable caption={t("sectorPacks")} headers={[t("sectorPackColumnPack"), t("sectorPackColumnVersion"), { label: t("sectorPackColumnQuestions"), align: "end" }, { label: t("sectorPackColumnApproved"), align: "end" }, { label: t("sectorPackColumnOldest"), align: "end" }]} stack>
           {data.packs.flatMap((pack) =>
             pack.versions.map((version) => (
               <tr key={version.id}>
@@ -111,9 +111,9 @@ function PackList({ mode, onOpen }: { mode: "ops" | "expert"; onOpen: (id: strin
                     <Badge tone={STATUS_TONE[version.status]} dot>{t(STATUS_LABEL[version.status])}</Badge>
                   </span>
                 </td>
-                <td className="p-num">{version.items}</td>
-                <td className="p-num">{version.approved}/{version.items}</td>
-                <td className="p-table-action p-cell-meta">
+                <td className="p-num" data-label={t("sectorPackColumnQuestions")}>{version.items}</td>
+                <td className="p-num" data-label={t("sectorPackColumnApproved")}>{version.approved}/{version.items}</td>
+                <td className="p-table-action p-cell-meta" data-label={t("sectorPackColumnOldest")}>
                   {version.oldestSource ? formatDate(version.oldestSource) : "—"}
                   {stale(version.oldestSource) && <> · <Badge tone="warn">{t("sectorPackStale")}</Badge></>}
                 </td>
@@ -278,7 +278,7 @@ function PackVersion({ versionId, onBack, onOpen }: { versionId: string; onBack:
           </Action>
         )}
       </Toolbar>
-      <DataTable caption={t("sectorPackColumnQuestions")} headers={[t("sectorPackQuestion"), t("sectorPackColumnSource"), t("sectorPackColumnRights"), t("sectorPackColumnReview"), { label: t("sectorPackColumnResults"), align: "end" }]}>
+      <DataTable caption={t("sectorPackColumnQuestions")} headers={[t("sectorPackQuestion"), t("sectorPackColumnSource"), t("sectorPackColumnRights"), t("sectorPackColumnReview"), { label: t("sectorPackColumnResults"), align: "end" }]} stack>
         {visible.map((row) => (
           <tr key={row.id}>
             <th scope="row">
@@ -287,7 +287,7 @@ function PackVersion({ versionId, onBack, onOpen }: { versionId: string; onBack:
                 <span className="p-cell-meta">{row.topic} · {row.key}</span>
               </span>
             </th>
-            <td className="p-cell-meta">
+            <td className="p-cell-meta" data-cell="wide">
               {row.source.publisher} · {row.source.locator}
               <br />
               {formatDate(row.source.retrievedAt)}
@@ -295,7 +295,7 @@ function PackVersion({ versionId, onBack, onOpen }: { versionId: string; onBack:
             </td>
             <td><Badge>{t(RIGHTS_LABEL[row.rights.kind])}</Badge></td>
             <td><Badge tone={REVIEW_TONE[row.review.status]} dot>{t(REVIEW_LABEL[row.review.status])}</Badge></td>
-            <td className="p-table-action p-cell-meta">{resultsText(row.stats)}</td>
+            <td className="p-table-action p-cell-meta" data-label={t("sectorPackColumnResults")}>{resultsText(row.stats)}</td>
           </tr>
         ))}
       </DataTable>

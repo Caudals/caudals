@@ -2137,7 +2137,9 @@ test("direct sign-up asks for a work email and company, and confirms without say
     if (width === 390) await page.screenshot({ path: "/tmp/evals-ui-test-results/l05-start-390.png", fullPage: true });
   }
   await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "https://caudals.com/en/legal/privacy");
-  await expect(page.getByRole("link", { name: "Already have an account? Sign in" })).toHaveAttribute("href", "/workspace/sign-in");
+  // The question is text and only the action is the link, as on sign-in (launch U1).
+  await expect(page.getByText("Already have an account?")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/workspace/sign-in");
   const submit = page.getByRole("button", { name: "Email me a link" });
   await expect(submit).toBeDisabled();
   await page.getByLabel("Work email").fill("ana@acme-seguros.es");

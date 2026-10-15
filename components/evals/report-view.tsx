@@ -158,7 +158,8 @@ export function ReportView({
   const tabs: Array<{ value: Tab; label: string; count?: number }> = [
     { value: "overview", label: t("overview") },
     ...(report.findings ? [{ value: "findings" as const, label: t("findings"), count: findings.length }] : []),
-    ...(report.results ? [{ value: "results" as const, label: t("testResults"), count: results.length }] : []),
+    // The tab's own short label: "Resultados de las pruebas" was cut at the edge of a phone's tab strip (launch U1).
+    ...(report.results ? [{ value: "results" as const, label: t("reportTabResults"), count: results.length }] : []),
     ...(report.improvements ? [{ value: "improvements" as const, label: t("improvements"), count: improvements.length }] : []),
     ...(report.methodology ? [{ value: "methodology" as const, label: t("methodology") }] : []),
   ];
@@ -1468,7 +1469,8 @@ export function SharedReport({ marketingOrigin = "https://caudals.com" }: { mark
   if (!token || error)
     return (
       <EmptyState title={t("shareUnavailableTitle")}>
-        <p>{t("shareUnavailable")}</p>
+        {/* The next step, as the vendor's fix-list page gives it (launch U1). */}
+        <p>{t("shareUnavailable")} {t("shareUnavailableNext")}</p>
       </EmptyState>
     );
   if (!report)

@@ -160,7 +160,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
           />
         }
       >
-        <DataTable caption={t("engineTasks")} headers={[t("engineTask"), t("engineModel"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable caption={t("engineTasks")} headers={[t("engineTask"), t("engineModel"), { label: t("actions"), align: "end", hidden: true }]} stack>
           {settings.roles.map((role) => {
             const { route, inherited } = effective(role);
             return (
@@ -187,7 +187,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                     <Badge tone="warn" dot>{t("engineNotSet")}</Badge>
                   )}
                 </td>
-                <td className="p-table-action">
+                <td className="p-table-action" data-cell="menu" data-actions="wide">
                   <span className="p-row p-nowrap">
                     {scope === "workspace" && !inherited && route && (
                       <Action
@@ -225,7 +225,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
           </Action>
         }
       >
-        <DataTable caption={t("engineProviders")} headers={[t("engineProvider"), t("engineKey"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable caption={t("engineProviders")} headers={[t("engineProvider"), t("engineKey"), { label: t("actions"), align: "end", hidden: true }]} stack>
           {settings.connections.map((connection) => (
             <tr key={connection.id}>
               <RowTitle meta={connection.host}>
@@ -243,7 +243,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                   <Badge>{t("engineNoKey")}</Badge>
                 )}
               </td>
-              <td className="p-table-action">
+              <td className="p-table-action" data-cell="menu" data-empty={connection.adapter === "dgx" ? "true" : undefined}>
                 {connection.adapter !== "dgx" && (
                   <ActionMenu
                     label={t("moreActions")}
@@ -644,7 +644,7 @@ function WebResearch({
           <h3>{t("engineWebEngines")}</h3>
           <p>{t("engineWebEnginesHelp")}</p>
         </div>
-        <DataTable caption={t("engineWebEngines")} headers={[t("engineWebEngine"), t("engineWebStatus"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable caption={t("engineWebEngines")} headers={[t("engineWebEngine"), t("engineWebStatus"), { label: t("actions"), align: "end", hidden: true }]} stack>
           {SEARCH_ENGINES().map((engine) => {
             const row = engines.find((item) => item.engine === engine.id && item.enabled);
             const rank = row ? connected.indexOf(row) : -1;
@@ -671,7 +671,7 @@ function WebResearch({
                     <span className="p-cell-meta">{t("engineWebNotConnected")}</span>
                   )}
                 </td>
-                <td className="p-table-action">
+                <td className="p-table-action" data-cell="menu" data-actions="wide">
                   {row ? (
                     <span className="p-row p-nowrap">
                       <Action variant="ghost" size="sm" disabled={action.pending} onClick={() => void test(engine.id)}>

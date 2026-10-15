@@ -59,6 +59,27 @@ export function Action({
   return <button type="button" {...actionAttrs({ variant, size, shape, block })} {...props} />;
 }
 
+/**
+ * Message text whose `backticked` spans (a header, a field, an error code, a
+ * command) read as inline code (launch U1). The catalogues keep the backticks;
+ * nothing else in the sentence changes.
+ */
+export function CodeText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(`[^`]+`)/).map((part, index) =>
+        part.length > 2 && part.startsWith("`") && part.endsWith("`") ? (
+          <code key={index} className="p-code">
+            {part.slice(1, -1)}
+          </code>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 /** Same visual contract as `Action`, for navigation rather than a command. */
 export function ActionLink({
   variant,
@@ -649,12 +670,19 @@ export function SelectField({
   label,
   id,
   hint,
+  labelHidden = false,
   children,
   ...props
-}: ComponentProps<"select"> & { label: string; id: string; hint?: ReactNode }) {
+}: ComponentProps<"select"> & {
+  label: string;
+  id: string;
+  hint?: ReactNode;
+  /** The label stays the select's accessible name but is not shown: a settings row whose title already says it (launch U1). */
+  labelHidden?: boolean;
+}) {
   return (
     <div className="p-field">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id} className={labelHidden ? "sr-only" : undefined}>{label}</label>
       <select id={id} {...props}>
         {children}
       </select>

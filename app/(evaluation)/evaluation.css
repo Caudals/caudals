@@ -282,6 +282,11 @@
   .p-readout-keys {
     display: none;
   }
+  /* A phone shows the slide full width already; the full-screen button sat
+     alone on a third line of controls (launch U1). The F key still works. */
+  .p-readout-bar .p-readout-fullscreen {
+    display: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .p-readout-slide {

@@ -61,7 +61,7 @@ test("a report reads in Spanish, with its tabs", async ({ page }) => {
   await page.goto("/workspace/reports/fixture-v2");
   // The fixture's content is Spanish too, so any common English word is a leak.
   await check(page, "report", () => expect(page.getByRole("heading", { level: 1 })).toBeVisible(), true);
-  await page.getByRole("tab", { name: /Resultados de las pruebas/ }).click();
+  await page.getByRole("tab", { name: /^Resultados/ }).click();
   await expectSpanishOnly(page, "report results tab", { words: true });
   await page.getByRole("tab", { name: /Metodología/ }).click();
   await expectSpanishOnly(page, "report methodology tab", { words: true });

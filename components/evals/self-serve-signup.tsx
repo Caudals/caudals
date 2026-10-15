@@ -120,7 +120,7 @@ export function SelfServeSignup({ termsRequired = false, directSignup = false, o
     <AuthFrame
       title={t("signupTitle")}
       description={t(link?.source === "direct" ? "signupHelpDirect" : "signupHelp")}
-      footer={<Link href="/workspace/sign-in">{t("signupExisting")}</Link>}
+      footer={<p>{t("signupExistingQuestion")} <Link href="/workspace/sign-in">{t("signupExistingAction")}</Link></p>}
     >
       {state === "checking" ? (
         <Status tone="info">{t("signupChecking")}</Status>

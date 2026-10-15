@@ -38,3 +38,16 @@ export async function acceptInvitation(identity:EvalIdentity,token:string){
     catch {throw new EvalError('SCOPE_DENIED',404,'The invitation is unavailable, expired, or belongs to another account.');}
   });
 }
+/** One person in a workspace, for Settings → Members (launch U1). */
+export type WorkspacePerson={user_id:string;name:string|null;email:string;role:'owner'|'editor'|'viewer'|'operator';joined_at:string;partner_managed:boolean;is_self:boolean};
+/**
+ * The people in a workspace and their roles (launch U1). Owners and operators
+ * of the workspace and platform admins, as for invitations; the SQL function
+ * checks the same rule again and returns nothing to anyone else.
+ */
+export async function listWorkspacePeople(identity:EvalIdentity,orgId:string):Promise<WorkspacePerson[]>{
+  await requireWorkspace(identity,orgId,'manage');
+  return withTenant({orgId,actorId:identity.user.id},async client=>
+    (await client.query<WorkspacePerson>('SELECT user_id,name,email,role,joined_at,partner_managed,is_self FROM evals.list_workspace_people($1)',[orgId])).rows
+      .map(row=>({...row,joined_at:new Date(row.joined_at).toISOString()})));
+}

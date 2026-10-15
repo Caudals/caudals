@@ -194,6 +194,27 @@ for (const width of [390, 1440] as const) {
   });
 }
 
+/** How far anything runs past the right edge: the shell's canvas or a table's own scroll box (launch U1). */
+const sideways = (page: Page) => page.evaluate(() => Math.max(0, ...[...document.querySelectorAll<HTMLElement>(".p-canvas, .p-table-wrap")].map((node) => node.scrollWidth - node.clientWidth)));
+
+for (const locale of ["en", "es"] as const)
+  test(`expert sector packs fit a phone in ${locale.toUpperCase()}: rows stack and nothing scrolls sideways (launch U1)`, async ({ page }) => {
+    if (locale === "es") await spanish(page);
+    await routePacks(page, { role: { staff: true, expert: true, reviewer: true }, approved: 3 });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/review/sector-packs?sector-packs`);
+    const packs = page.getByRole("region", { name: locale === "es" ? "Paquetes sectoriales" : "Sector packs" });
+    await expect(packs.getByRole("rowheader")).toHaveCount(2);
+    // The counts are labelled once the column headers are gone.
+    await expect(packs.locator(`td[data-label="${locale === "es" ? "Aprobadas por expertos" : "Expert-approved"}"]`).first()).toHaveText("3/62");
+    expect(await sideways(page)).toBe(0);
+    await page.screenshot({ path: `/tmp/evals-u1-review-sector-packs-${locale}-390.png`, fullPage: true });
+    await packs.getByRole("rowheader").first().getByRole("button").click();
+    const questions = page.getByRole("region", { name: locale === "es" ? "Preguntas" : "Questions" });
+    await expect(questions.getByRole("rowheader")).toHaveCount(62);
+    expect(await sideways(page)).toBe(0);
+  });
+
 /* ---------------------------------------------- Prepare: sector questions --- */
 
 const EVAL = id(520), SUITE = id(420);

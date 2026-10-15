@@ -30,4 +30,6 @@ Cada dominio de correo de empresa tiene un solo espacio de autoservicio. Si un c
 
 ## Cambiar roles {#changes}
 
+**Ajustes → Miembros** muestra a todas las personas del espacio, con su rol y el día en que se unieron, encima de las invitaciones.
+
 El cambio de rol de un miembro lo hace Caudals: escribe a hello@caudals.com desde la dirección de un propietario. Un espacio siempre conserva al menos un propietario. Quitar a un miembro aún no está disponible en la aplicación; escríbenos si alguien debe perder el acceso.

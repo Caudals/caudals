@@ -144,7 +144,8 @@ export function readReviewRequest(scope: Scope, requestId: string) {
     let assignments: unknown[] = [];
     let progress = { reviewer_count: 0, assignment_count: 0 };
     if (order) {
-      assignments = (await db.query(`SELECT a.id,a.status,a.due_at,a.updated_at,l.expert_profile_id,p.user_id AS expert_user_id,
+      // The expert's name is for operators only (evals.expert_name answers NULL to anyone else); customers never get it.
+      assignments = (await db.query(`SELECT a.id,a.status,a.due_at,a.updated_at,l.expert_profile_id,p.user_id AS expert_user_id,evals.expert_name(l.expert_profile_id) AS expert_name,
           (SELECT count(*)::int FROM evals.expert_submission_revision s WHERE (s.org_id,s.assignment_id)=(a.org_id,a.id)) AS revisions,
           (SELECT max(s.created_at) FROM evals.expert_submission_revision s WHERE (s.org_id,s.assignment_id)=(a.org_id,a.id) AND s.status='submitted') AS submitted_at
         FROM evals.review_order_assignment l JOIN evals.expert_assignment a ON (a.org_id,a.id)=(l.org_id,l.assignment_id)
@@ -335,7 +336,7 @@ export function cancelReviewOrder(scope: Scope, orderId: string, reason: string)
 export function listExpertBench(actorId: string) {
   return withTenant({ orgId: "", actorId }, async (db) => {
     if (!(await db.query<{ ok: boolean }>("SELECT evals.is_operator() AS ok")).rows[0]?.ok) throw new EvalError("SCOPE_DENIED", 404);
-    const rows = (await db.query(`SELECT p.id,p.user_id,p.domains,p.languages,p.credentials_status,p.terms_status,p.eligibility_status,
+    const rows = (await db.query(`SELECT p.id,p.user_id,evals.expert_name(p.id) AS name,p.domains,p.languages,p.credentials_status,p.terms_status,p.eligibility_status,
         to_jsonb(o) - 'expert_profile_id' - 'updated_by' AS onboarding,evals.expert_ready(p.id) AS ready
       FROM evals.expert_profile p LEFT JOIN evals.expert_onboarding o ON o.expert_profile_id=p.id
       ORDER BY evals.expert_ready(p.id) DESC,p.created_at DESC,p.id LIMIT 200`)).rows;

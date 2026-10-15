@@ -193,6 +193,8 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("expert review orders on PostgreSQL", 
     const bench = (await (await GET(call("/expert-bench", "GET"))).json()).data as Array<{ id: string; ready: boolean; missing: string[] }>;
     expect(bench.find((row) => row.id === profiles.A)).toMatchObject({ ready: true, missing: [] });
     expect(bench.find((row) => row.id === profiles.C)).toMatchObject({ ready: false, missing: ["ip_assignment", "agreement"] });
+    // Operators read each expert by name (launch U1).
+    expect(bench.find((row) => row.id === profiles.A)).toMatchObject({ name: "expertA" });
     as("owner");
     expect((await GET(call("/expert-bench", "GET"))).status).toBe(404);
     expect((await PUT(call(`/expert-bench/${profiles.A}`, "PUT", checklist))).status).toBe(404);
@@ -251,12 +253,24 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("expert review orders on PostgreSQL", 
       expect(text).not.toContain(orgId);
       expect(text).not.toContain(reportId);
     }
-    // Customers see the order's due date on their request, never the quote.
+    // Operators see who holds each assignment by name (launch U1).
+    const ordered = (await (await (await detailRoute()).GET(call(`/expert-reviews/${requestId}`, "GET"))).json()).data;
+    expect(ordered.assignments.map((item: { expert_name: string | null }) => item.expert_name).sort()).toEqual(["expertA", "expertB"]);
+    // Customers see the order's due date on their request, never the quote or an expert's name.
     as("owner");
     const customer = (await (await (await requestRoute()).GET(call(`/reports/${reportId}/expert-review?orgId=${orgId}`, "GET"))).json()).data.request;
     expect(customer).toMatchObject({ status: "ordered" });
     expect(customer.dueAt).not.toBeNull();
     expect(JSON.stringify(customer)).not.toContain("900");
+    expect(JSON.stringify(customer)).not.toMatch(/expert[ABC]/);
+    expect((await (await detailRoute()).GET(call(`/expert-reviews/${requestId}`, "GET"))).status).toBe(404);
+    // The name function answers nobody but platform staff, even called directly.
+    await asActor(users.owner, orgId, async (db) => {
+      expect((await db.query("SELECT evals.expert_name($1) AS name", [profiles.A])).rows[0].name).toBeNull();
+    });
+    await asActor(users.ops, orgId, async (db) => {
+      expect((await db.query("SELECT evals.expert_name($1) AS name", [profiles.A])).rows[0].name).toBe("expertA");
+    });
     await asActor(users.owner, orgId, async (db) => {
       expect((await db.query("SELECT count(*)::int AS n FROM evals.review_order")).rows[0].n).toBe(0);
       expect((await db.query("SELECT count(*)::int AS n FROM evals.review_order_assignment")).rows[0].n).toBe(0);

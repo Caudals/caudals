@@ -123,7 +123,7 @@ export function WorkspaceTestSets() {
       <PageHeading title={t("testSets")}>{t("testSetsHelp")}</PageHeading>
       {error && <Status error>{error}</Status>}
       {items === null ? (
-        <TableSkeleton columns={4} />
+        <TableSkeleton columns={5} />
       ) : !items.length ? (
         // The example evaluation (L-33) shows a finished test set and its results (launch L-06, P-02).
         <EmptyState title={t("noTestSetsCustomer")} icon={<ListChecks />} action={example.visible ? <ExampleEvaluationLink variant="button" /> : undefined}>

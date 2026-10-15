@@ -409,7 +409,8 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
       {controls.dialog}
       {controls.alert}
       {connectOpen && <Panel title={t("connectEvaluation")} help={connectHelp(system?.document.kind)}>
-        <p>{t("connectEvaluationHelp")}</p>
+        {/* Only platform admins pick models here; everyone else is not promised a picker (launch U1). */}
+        <p>{t(platformAdmin ? "connectEvaluationHelp" : "connectEvaluationHelpConnection")}</p>
         {system && <div className="p-row"><strong>{system.title}</strong><Badge>{connectionLabel(system.document.kind)}</Badge><ActionLink variant="secondary" href={withOrg(`/workspace/systems?system=${system.id}`)}>{t("manageConnection")}</ActionLink></div>}
         {system && <ConnectionHealth system={system} orgId={orgId} onChecked={reload} fixHref={withOrg(`/workspace/systems?system=${system.id}&fix=1`)} />}
         {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} />}

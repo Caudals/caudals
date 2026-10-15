@@ -522,11 +522,11 @@ function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: (
   if (!caps) return error ? <Status error>{error}</Status> : <Loading>{t("billingLoading")}</Loading>;
   const enforced = summary.gate === "enforced";
   return (
-    <form className="p-settings" onSubmit={save} aria-label={t("billingLimits")}>
+    <form className="p-settings" data-controls="fields" onSubmit={save} aria-label={t("billingLimits")}>
       {!enforced && summary.billingMode !== "contract" && <Status tone="info">{t("billingLimitsNotEnforced")}</Status>}
       <SettingsRow title={t("billingMonthCap")} description={t("billingMonthCapSetHelp")}>
         <span className="p-stack p-stack-tight">
-          <SelectField id="cap-monthly-mode" label={t("billingMonthCap")} value={monthly} onChange={event => setMonthly(event.currentTarget.value as "none" | "cap")}>
+          <SelectField id="cap-monthly-mode" label={t("billingMonthCap")} labelHidden value={monthly} onChange={event => setMonthly(event.currentTarget.value as "none" | "cap")}>
             <option value="none">{t("billingNoMonthCap")}</option>
             <option value="cap">{t("billingSetMonthCap")}</option>
           </SelectField>
@@ -536,7 +536,7 @@ function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: (
       </SettingsRow>
       <SettingsRow title={t("billingRunCap")} description={t("billingRunCapHelp")}>
         <span className="p-stack p-stack-tight">
-          <SelectField id="cap-run-mode" label={t("billingRunCap")} value={perRun} onChange={event => setPerRun(event.currentTarget.value as "multiplier" | "fixed")}>
+          <SelectField id="cap-run-mode" label={t("billingRunCap")} labelHidden value={perRun} onChange={event => setPerRun(event.currentTarget.value as "multiplier" | "fixed")}>
             <option value="multiplier">{t("billingRunCapMultiple")}</option>
             <option value="fixed">{t("billingRunCapFixed")}</option>
           </SelectField>
@@ -549,7 +549,7 @@ function LimitsPanel({ summary, onSaved }: { summary: BillingSummary; onSaved: (
       </SettingsRow>
       <SettingsRow title={t("billingLowBalance")} description={t("billingLowBalanceSetHelp")}>
         <span className="p-stack p-stack-tight">
-          <SelectField id="low-balance-mode" label={t("billingLowBalance")} value={lowBalance} onChange={event => setLowBalance(event.currentTarget.value as "default" | "custom")}>
+          <SelectField id="low-balance-mode" label={t("billingLowBalance")} labelHidden value={lowBalance} onChange={event => setLowBalance(event.currentTarget.value as "default" | "custom")}>
             <option value="default">{tv("billingLowBalanceDefault", { threshold: formatCredits(caps.lowBalanceDefaultUcr ?? caps.lowBalanceThresholdUcr) })}</option>
             <option value="custom">{t("billingLowBalanceCustom")}</option>
           </SelectField>

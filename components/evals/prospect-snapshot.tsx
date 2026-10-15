@@ -14,7 +14,7 @@ import { Camera, Copy, ExternalLink, Plus } from "lucide-react";
 import { evalRequest } from "./api";
 import {
   Action, ActionLink, Badge, Check, DataTable, DefinitionList, EmptyState, Field, Loading, PageHeading, RowTitle, Section, SelectField,
-  Status, StatusBadge, Steps, Tabs, TextArea, Time, formatDate,
+  Status, StatusBadge, Steps, Tabs, TextArea, Time, Toolbar, formatDate,
 } from "./primitives";
 import { notify } from "./overlays";
 import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
@@ -73,7 +73,8 @@ export function ProspectSnapshots() {
       {error && <Status error>{error}</Status>}
       {!data && !error ? <Loading /> : data && (
         <>
-          <p className="p-cell-meta" data-testid="snapshot-cap">{tv("psToday", { created: data.today.created, cap: data.today.cap })}</p>
+          {/* The day's quota reads as the toolbar's note, not as a caption floating above the table (launch U1). */}
+          <Toolbar><p className="p-toolbar-note" data-testid="snapshot-cap">{tv("psToday", { created: data.today.created, cap: data.today.cap })}</p></Toolbar>
           {data.snapshots.length ? (
             <DataTable caption={t("psTitle")} headers={[t("psCompany"), t("psBasis"), t("psLink"), t("psCrmDraft"), { label: t("psCreated"), align: "end" }]}>
               {data.snapshots.map((row) => (

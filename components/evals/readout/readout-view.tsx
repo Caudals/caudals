@@ -303,7 +303,7 @@ export function ReadoutView(props: ReadoutViewProps) {
             <Presentation aria-hidden="true" />
             {copy.presenterView}
           </Action>
-          <Action variant="ghost" size="sm" shape="icon" onClick={toggleFullscreen} aria-keyshortcuts="F" aria-label={copy.fullScreen} aria-pressed={fullscreen}>
+          <Action variant="ghost" size="sm" shape="icon" className="p-btn p-readout-fullscreen" onClick={toggleFullscreen} aria-keyshortcuts="F" aria-label={copy.fullScreen} aria-pressed={fullscreen}>
             {fullscreen ? <Minimize aria-hidden="true" /> : <Maximize aria-hidden="true" />}
           </Action>
           {props.onExport && (
