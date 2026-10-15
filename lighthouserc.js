@@ -16,6 +16,13 @@
  * 5.2–6.4 s to ~3.4–4.3 s and tightened the ceilings; what is left on the
  * simulated path is the framework's script, the stylesheet, Geist and the
  * italic Newsreader that below-the-fold text pulls in at the first layout.
+ *
+ * Lantern multiplexes only HTTP/2: production (HTTP/3) and localhost
+ * (HTTP/1.1) are both simulated as six connections with a round trip per
+ * request, so the request count before the first paint bounds LCP more than
+ * bytes. L-24c removed 141 KB of script from sign-up without moving its
+ * median (2.7–2.9 s; 1.8 s over HTTP/2), and left these ceilings as they are
+ * (docs/launch/L-24c.md).
  */
 const port = Number(process.env.LHCI_PORT ?? 4173);
 const local = `http://localhost:${port}`;
