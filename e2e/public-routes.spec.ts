@@ -511,8 +511,10 @@ test.describe("404 without JavaScript (launch L-24c)", () => {
       expect(html).toContain(`<html lang="${locale}"`);
       const heading = html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]?.replace(/&#x27;|&#39;/g, "'") ?? "";
       expect(heading).toMatch(refreshCopy[locale].missing);
-      if (demoPublic) expect(html).toContain(`href="/${locale}/demo"`);
-      expect(html).toContain(`href="/${locale}"`);
+      // On the app host the links lead to the public site (its translated slugs exist only there).
+      const origin = path.startsWith("http") ? "https?://[^\"/]+" : "";
+      if (demoPublic) expect(html).toMatch(new RegExp(`href="${origin}/${locale}/demo"`));
+      expect(html).toMatch(new RegExp(`href="${origin}/${locale}"`));
     });
   }
 });

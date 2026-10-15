@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef } from "react";
+import { createContext, forwardRef, useContext, type ReactNode } from "react";
 import { useLocale } from "@/lib/i18n/context";
 import { localizePathname } from "@/lib/i18n/routing";
 
@@ -9,6 +9,18 @@ type LocaleLinkProps = Omit<React.ComponentProps<typeof Link>, "href"> & {
   /** Locale-free pathname, e.g. "/contact". Hashes and queries are preserved. */
   href: string;
 };
+
+/**
+ * Origin for the public site's links when a public page is served from
+ * another host: the 404 on the app host (`app/global-not-found.tsx`, launch
+ * L-24c), whose translated slugs (`/es/contacto`) exist only on the public
+ * host. Empty everywhere else: links stay relative.
+ */
+const LinkOriginContext = createContext("");
+
+export function LinkOriginProvider({ origin, children }: { origin: string; children: ReactNode }) {
+  return <LinkOriginContext.Provider value={origin}>{children}</LinkOriginContext.Provider>;
+}
 
 /**
  * `next/link` that keeps the visitor inside their current language.
@@ -20,6 +32,7 @@ type LocaleLinkProps = Omit<React.ComponentProps<typeof Link>, "href"> & {
 export const LocaleLink = forwardRef<HTMLAnchorElement, LocaleLinkProps>(
   function LocaleLink({ href, ...props }, ref) {
     const locale = useLocale();
+    const origin = useContext(LinkOriginContext);
 
     const isInternal = href.startsWith("/");
     if (!isInternal) {
@@ -33,7 +46,7 @@ export const LocaleLink = forwardRef<HTMLAnchorElement, LocaleLinkProps>(
     return (
       <Link
         ref={ref}
-        href={`${localized}${query ? `?${query}` : ""}${hash ? `#${hash}` : ""}`}
+        href={`${origin}${localized}${query ? `?${query}` : ""}${hash ? `#${hash}` : ""}`}
         {...props}
       />
     );
