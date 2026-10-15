@@ -75,7 +75,7 @@ The state persists per device in `localStorage` under `caudals.sidebar`. Every r
 
 **A collapsed label stays in the DOM.** Only its presentation collapses (`max-width: 0; opacity: 0`), so the link keeps its accessible name and a screen reader still hears "Reports". `title` gives sighted mouse users the same information the visible label used to.
 
-**Brand assets** live in `public/`: `caudals-logo-wordmark.png` (mark + "Caudals", 3212×1080) and `caudals-logo-icon.png` (the three-bar mark, 1080×1080). `caudals_logo_black.svg` is the mark in vector. Never redraw the mark in CSS and never set `alt` on the lockup inside a link that already has an `aria-label` — that would announce the name twice.
+**Brand assets** live in `public/`: `caudals-logo-wordmark.png` (mark + "Caudals", 3212×1080; the master) with `caudals-logo-wordmark-108.png` (the same lockup at 321×108, 7 KB, what the sign-in and sign-up screens show: images are served unoptimized, so a page uses a copy sized for its display) and `caudals-logo-icon.png` (the three-bar mark, 1080×1080). `caudals_logo_black.svg` is the mark in vector. Never redraw the mark in CSS and never set `alt` on the lockup inside a link that already has an `aria-label` — that would announce the name twice.
 
 Those two files plus `caudals-brand.png` shipped as mode `600`, which made them unreadable to the server process and rendered as broken images in the deployed app while working fine in the harness. Everything in `public/` must be world-readable; `find public -type f ! -perm -o+r` should return nothing.
 

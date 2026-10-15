@@ -30,7 +30,8 @@ export function AuthFrame({
           <p className="p-brand">
             <Image
               className="p-brand-wordmark"
-              src="/caudals-logo-wordmark.png"
+              // The lockup at 108 px tall (3.6× its 30 px display), 7 KB instead of the 43 KB master (L-24c).
+              src="/caudals-logo-wordmark-108.png"
               alt={t("brand")}
               width={321}
               height={108}
