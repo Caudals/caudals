@@ -601,6 +601,8 @@ export const es: Partial<Record<MessageKey, string>> = {
   searchIn: "Buscar",
   search: "Buscar",
   noMatches: "Sin coincidencias.",
+  paletteModelsKeywords: "clave proveedor clave API modelo propio BYOK",
+  paletteDataKeywords: "retención respuestas exportar descargar datos del espacio",
   actions: "Acciones",
   switchWorkspace: "Cambiar de espacio",
   current: "Actual",

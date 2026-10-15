@@ -369,6 +369,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding"), home: params.has("home"), billing: params.has("billing"), sectorPacks: params.has("sector-packs") }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding"), home: params.has("home"), billing: params.has("billing"), sectorPacks: params.has("sector-packs"), dataControls: params.has("data-controls") }}>{content}</ShellFrame>
   ),
 );

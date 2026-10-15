@@ -71,7 +71,7 @@ import { partnerCopy } from "@/lib/evals/partners/copy";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean; billing?: boolean; /** Launch L-25: SECTOR_PACKS_ENABLED. */ sectorPacks?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean; home?: boolean; billing?: boolean; /** Launch L-25: SECTOR_PACKS_ENABLED. */ sectorPacks?: boolean; /** Launch L-32: DATA_CONTROLS_ENABLED (Settings → Data, listed in ⌘K). */ dataControls?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -663,7 +663,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
           </main>
         </div>
       </div>
-      <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} onHelp={() => openHelp()} />
+      <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} onHelp={() => openHelp()} dataControls={!!features.dataControls} />
       <HelpPanel open={help} onOpenChange={setHelp} target={helpTarget} />
       <LimitDialogHost />
       <Toaster />

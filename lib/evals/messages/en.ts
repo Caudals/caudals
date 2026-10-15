@@ -620,6 +620,9 @@ export const messages = {
   searchIn: "Search",
   search: "Search",
   noMatches: "No matches.",
+  // Extra search words for two Settings tabs in ⌘K (never shown).
+  paletteModelsKeywords: "provider key API key own model BYOK",
+  paletteDataKeywords: "answer retention export download workspace data",
   actions: "Actions",
   switchWorkspace: "Switch workspace",
   current: "Current",

@@ -5,7 +5,10 @@
  * settings tab in the current workspace, or switch workspace, without learning
  * the navigation (launch L-22 added systems as deep links, test sets and
  * settings tabs). Items come from the same scoped APIs as the screens;
- * nothing is cached.
+ * nothing is cached. The Settings tabs are the ones Settings shows the same
+ * person: AI models for platform admins, and for owners when the workspace's
+ * own-key settings answer (launch L-27, the request Settings makes); Data
+ * while DATA_CONTROLS_ENABLED is on, for every member (launch L-32).
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -31,17 +34,23 @@ export function CommandPalette({
   onOpenChange,
   links,
   onHelp,
+  dataControls = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   links: PaletteLink[];
   /** Opens the help panel; the palette closes first. */
   onHelp?: () => void;
+  /** Settings → Data is on (DATA_CONTROLS_ENABLED, read on the server). */
+  dataControls?: boolean;
 }) {
   const router = useRouter();
   const { orgId, workspaces, workspace, role, canWrite, canManage, platformAdmin, setOrgId, withOrg } = useWorkspace();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [testSets, setTestSets] = useState<TestSet[]>([]);
+  // The workspace whose own-key settings answered for this owner (Settings → AI models shows then).
+  const [modelsFor, setModelsFor] = useState("");
+  const ownerOnly = role === "owner" && !platformAdmin;
 
   useEffect(() => {
     if (!open || !orgId) return;
@@ -52,12 +61,20 @@ export function CommandPalette({
     void evalRequest<TestSet[]>(`/suites?orgId=${encodeURIComponent(orgId)}&grouped=1`)
       .then((value) => live && setTestSets(value))
       .catch(() => live && setTestSets([]));
+    // Platform admins always have the tab; editors and viewers never do.
+    if (ownerOnly)
+      void evalRequest<unknown>(`/engine/byok?orgId=${encodeURIComponent(orgId)}`)
+        .then(() => live && setModelsFor(orgId))
+        .catch(() => live && setModelsFor(""));
     return () => {
       live = false;
     };
-  }, [open, orgId]);
+  }, [open, orgId, ownerOnly]);
   const { summary: billing } = useBilling();
-  const settings = workspace ? settingsTabs({ canManage, platformAdmin, owner: role === "owner", billing: !!billing }) : [];
+  const settings = workspace
+    ? settingsTabs({ canManage, platformAdmin, owner: role === "owner", billing: !!billing, models: ownerOnly && modelsFor === orgId, data: dataControls })
+    : [];
+  const searchHint: Partial<Record<string, string>> = { models: t("paletteModelsKeywords"), data: t("paletteDataKeywords") };
 
   function go(href: string) {
     onOpenChange(false);
@@ -147,7 +164,7 @@ export function CommandPalette({
               {settings.length ? (
                 <Command.Group heading={t("settings")}>
                   {settings.map((item) => (
-                    <Command.Item key={item.value} value={`settings ${t("settings")} ${item.label} ${item.value}`} onSelect={() => go(withOrg(`/workspace/settings?tab=${item.value}`))}>
+                    <Command.Item key={item.value} value={`settings ${t("settings")} ${item.label} ${item.value} ${searchHint[item.value] ?? ""}`} onSelect={() => go(withOrg(`/workspace/settings?tab=${item.value}`))}>
                       <Settings aria-hidden="true" />
                       <span className="p-palette-text">{item.label}</span>
                       <span className="p-palette-meta">{t("settings")}</span>

@@ -322,6 +322,90 @@ test("⌘K reaches systems, reports, test sets and settings tabs; breadcrumbs na
   await expect(page.getByRole("tab", { name: "Notifications" })).toHaveAttribute("aria-selected", "true");
 });
 
+/** Settings → AI models (launch L-27) and Data (L-32) in ⌘K, shown to the same people Settings shows them to (gap G4). */
+const BYOK_VIEW = {
+  available: true, plan: "payg", roles: ["context_analyzer", "generator", "judge", "report_writer"], connections: [], routes: [],
+  providers: [["openai", "OpenAI"], ["anthropic", "Anthropic"], ["google", "Google Gemini"], ["mistral", "Mistral"], ["openrouter", "OpenRouter"]].map(([value, label]) => ({ id: value, label })),
+};
+async function routeSettingsTabs(page: Page, byok: { open: boolean }) {
+  const byokReads: string[] = [];
+  await routeWorkspace(page, summary(), {
+    [`^/workspaces/${ORG}/retention$`]: () => ({ observationDays: null, version: 0, updatedAt: null, canChange: true, preview: null }),
+  });
+  // Registered last, so it answers before routeWorkspace's catch-all: the own-key settings exist only while BYOK is open.
+  await page.route((url) => url.pathname === "/api/evals/v1/engine/byok", (route) => {
+    byokReads.push(route.request().method());
+    return byok.open
+      ? route.fulfill({ json: { data: BYOK_VIEW, meta: {} } })
+      : route.fulfill({ status: 404, json: { error: { code: "SCOPE_DENIED", message: "Not found." } } });
+  });
+  return byokReads;
+}
+async function openPalette(page: Page, name = "Search and jump") {
+  // The page has settled (evaluations list or Settings) before the shortcut.
+  await expect(page.getByRole("table").or(page.getByRole("tablist")).first()).toBeVisible();
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name });
+  await expect(palette.getByRole("option", { name: /^(Monitoring|Monitorización)/ })).toBeVisible();
+  return palette;
+}
+
+test("⌘K lists Settings → AI models and Data for an owner and opens them (EN and ES)", async ({ page }) => {
+  const byokReads = await routeSettingsTabs(page, { open: true });
+  await page.goto(`/workspace/evaluations?orgId=${ORG}&owner&data-controls`);
+  let palette = await openPalette(page);
+  await expect(palette.getByRole("option", { name: /^AI models/ })).toBeVisible();
+  await expect(palette.getByRole("option", { name: /^Data/ })).toBeVisible();
+  // What the tab does finds it, not only its name.
+  await palette.getByRole("combobox").fill("retention");
+  await palette.getByRole("option", { name: /^Data/ }).click();
+  await expect(page).toHaveURL(/\/workspace\/settings\?.*tab=data/);
+  await expect(page.getByRole("tab", { name: "Data" })).toHaveAttribute("aria-selected", "true");
+  palette = await openPalette(page);
+  await palette.getByRole("combobox").fill("provider key");
+  await palette.getByRole("option", { name: /^AI models/ }).click();
+  await expect(page).toHaveURL(/\/workspace\/settings\?.*tab=models/);
+  await expect(page.getByRole("tab", { name: "AI models" })).toHaveAttribute("aria-selected", "true");
+  expect(byokReads.length).toBeGreaterThan(0);
+
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.goto(`/workspace/evaluations?orgId=${ORG}&owner&data-controls`);
+  palette = await openPalette(page, "Buscar e ir");
+  await expect(palette.getByRole("option", { name: /^Modelos de IA/ })).toBeVisible();
+  await palette.getByRole("combobox").fill("retención");
+  await palette.getByRole("option", { name: /^Datos/ }).click();
+  await expect(page).toHaveURL(/tab=data/);
+  await expect(page.getByRole("tab", { name: "Datos" })).toHaveAttribute("aria-selected", "true");
+});
+
+test("⌘K hides AI models from editors, viewers and owners without BYOK, and Data while the flag is off", async ({ page }) => {
+  const byok = { open: false };
+  const byokReads = await routeSettingsTabs(page, byok);
+  // Owner, BYOK closed for the workspace (the settings answer 404), data controls off: neither tab.
+  await page.goto(`/workspace/evaluations?orgId=${ORG}&owner`);
+  let palette = await openPalette(page);
+  await expect.poll(() => byokReads.length).toBeGreaterThan(0);
+  await expect(palette.getByRole("option", { name: /^Members/ })).toBeVisible();
+  await expect(palette.getByRole("option", { name: /^AI models/ })).toHaveCount(0);
+  await expect(palette.getByRole("option", { name: /^Data/ })).toHaveCount(0);
+  // Editors and viewers: Data (every member sees it), never AI models, and no request for the owner-only settings.
+  byok.open = true;
+  byokReads.length = 0;
+  for (const role of ["editor", "viewer"]) {
+    await page.goto(`/workspace/evaluations?orgId=${ORG}&${role}&data-controls`);
+    palette = await openPalette(page);
+    await expect(palette.getByRole("option", { name: /^Data/ })).toBeVisible();
+    await expect(palette.getByRole("option", { name: /^AI models/ })).toHaveCount(0);
+  }
+  expect(byokReads).toEqual([]);
+  // Platform admins always have AI models (engine settings), without asking for the owner's view.
+  await page.goto(`/workspace/evaluations?orgId=${ORG}&admin`);
+  palette = await openPalette(page);
+  await expect(palette.getByRole("option", { name: /^AI models/ })).toBeVisible();
+  await expect(palette.getByRole("option", { name: /^Data/ })).toHaveCount(0);
+  expect(byokReads).toEqual([]);
+});
+
 test("an evaluation's breadcrumb names its system and links to it", async ({ page }) => {
   await routeWorkspace(page, summary({ evaluations: [{ ...EVALUATIONS[1], selected_target_id: SYSTEMS.api.id }] }));
   await page.goto(`/workspace/evaluations/${id(502)}?orgId=${ORG}&editor`);
