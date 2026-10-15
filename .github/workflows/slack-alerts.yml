@@ -1,0 +1,41 @@
+name: Slack alerts
+
+# Posts failed main-branch runs to the founders' Slack #alerts (infra/slack/README.md).
+# Successful runs stay silent. Needs the repository secret SLACK_BOT_TOKEN (the
+# caudals bot token); without it the job logs a notice and does nothing.
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker image", "Build evaluation workers", "CI", "Secret Scan"]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  notify:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to #alerts
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: C0C9JTHN30R
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ]; then
+            echo "::notice::SLACK_BOT_TOKEN is not set; skipping the Slack alert."
+            exit 0
+          fi
+          payload=$(jq -n \
+            --arg channel "$SLACK_CHANNEL" --arg repo "$GITHUB_REPOSITORY" --arg name "$RUN_NAME" \
+            --arg url "$RUN_URL" --arg title "$RUN_TITLE" --arg sha "${RUN_SHA:0:7}" \
+            'def esc: gsub("&";"&amp;") | gsub("<";"&lt;") | gsub(">";"&gt;");
+             {channel: $channel, unfurl_links: false,
+              text: ":x: *\($repo | esc)*: \($name | esc) failed on main\n<\($url)|\($title | esc)> (`\($sha)`)"}')
+          curl -sS -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$payload" | jq -e '.ok' > /dev/null

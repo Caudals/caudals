@@ -1,0 +1,77 @@
+{
+  "team_id": "T0C9L6LPX3N",
+  "team_domain": "caudalsespacio",
+  "channels": [
+    {
+      "key": "general",
+      "name": "general",
+      "previous_names": ["general-caudals"],
+      "purpose": "Founders' HQ: decisions, weekly plan and announcements. The morning brief lands here.",
+      "topic": "Decisions → :pushpin: Decision log in the HQ canvas · weekly review on Fridays",
+      "bookmarks": [
+        { "title": "caudals.com", "link": "https://caudals.com" },
+        { "title": "Caudals Ops", "link": "https://ops.caudals.com" },
+        { "title": "Evaluation ops", "link": "https://app.caudals.com/ops" }
+      ]
+    },
+    {
+      "key": "customers",
+      "name": "customers",
+      "previous_names": [],
+      "purpose": "Pipeline and customers: evaluation requests, demo sign-ups, meetings and pilots. One thread per account.",
+      "topic": "One thread per account · prep and follow-ups in thread",
+      "bookmarks": [
+        { "title": "Caudals Ops", "link": "https://ops.caudals.com" },
+        { "title": "Evaluation ops", "link": "https://app.caudals.com/ops" },
+        { "title": "Contact page", "link": "https://caudals.com/en/contact" }
+      ]
+    },
+    {
+      "key": "build",
+      "name": "build",
+      "previous_names": [],
+      "purpose": "Product and code: PRs, deploys, bugs and Claude Code tasks for Caudals/caudals and Caudals/ops.",
+      "topic": "@Claude for code tasks · bugs in thread · alerts live in #alerts",
+      "bookmarks": [
+        { "title": "Caudals/caudals", "link": "https://github.com/Caudals/caudals" },
+        { "title": "Caudals/ops", "link": "https://github.com/Caudals/ops" },
+        { "title": "Open PRs", "link": "https://github.com/pulls?q=is%3Aopen+is%3Apr+org%3ACaudals" }
+      ]
+    },
+    {
+      "key": "growth",
+      "name": "growth",
+      "previous_names": ["redes sociales", "redes-sociales"],
+      "purpose": "Prospecting, outreach and content: LinkedIn/X drafts for approval, newsletter, campaigns and what Hermes learns.",
+      "topic": "Drafts need a :white_check_mark: from the other founder before scheduling",
+      "bookmarks": [
+        { "title": "Postiz", "link": "https://postiz.caudals.com" },
+        { "title": "Warmbly", "link": "https://out.caudals.com" },
+        { "title": "Analytics", "link": "https://analytics.caudals.com" }
+      ]
+    },
+    {
+      "key": "agents",
+      "name": "agents",
+      "previous_names": ["nuevo-canal"],
+      "purpose": "Shared console for AI agents: ask Hermes or Claude, scheduled agent reports and agent failures.",
+      "topic": "@Hermes for research and Ops data · @Claude for code · results are drafts until a human acts",
+      "bookmarks": [
+        { "title": "Caudals Ops", "link": "https://ops.caudals.com" },
+        { "title": "GPU cloud", "link": "https://ops.caudals.com/operations/gpu" }
+      ]
+    },
+    {
+      "key": "alerts",
+      "name": "alerts",
+      "previous_names": [],
+      "purpose": "Machine alerts only: infra, CI on main, deploys and failed jobs. Acknowledge with :eyes:, resolve with :white_check_mark:, discuss fixes in #build.",
+      "topic": ":eyes: = looking · :white_check_mark: = resolved · no chatter here",
+      "bookmarks": [
+        { "title": "Infra monitor", "link": "https://ops.caudals.com/operations/infra" },
+        { "title": "Actions · caudals", "link": "https://github.com/Caudals/caudals/actions" },
+        { "title": "Actions · ops", "link": "https://github.com/Caudals/ops/actions" }
+      ]
+    }
+  ]
+}
