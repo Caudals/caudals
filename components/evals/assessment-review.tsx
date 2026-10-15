@@ -318,7 +318,7 @@ export function ReviewQueue() {
                   <Assignee assignment={assignee(item.orgId, "assessment", item.assessment_id)} title={item.question ?? item.case_title} busy={assigning === assignmentKey(item.orgId, "assessment", item.assessment_id)}
                     onChange={(action, takeOver) => void changeAssignment(item.orgId, "assessment", item.assessment_id, action, takeOver)} />
                 </td>
-                <td className="p-cell-meta">{reviewReason(item)}</td>
+                <td className="p-cell-meta p-cell-wide">{reviewReason(item)}</td>
               </tr>
             ))}
           </DataTable>

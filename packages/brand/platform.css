@@ -1837,8 +1837,9 @@
     content: attr(data-label) ": ";
   }
 }
-/* A row title that must stay readable when the table scrolls on a phone (launch R4). */
-.p-table th.p-cell-wide {
+/* A row title or a short free-text cell (a reason) that must stay readable
+   when the table scrolls on a phone (launch R4). */
+.p-table .p-cell-wide {
   min-width: 14rem;
 }
 /* A short label that reads badly broken over two lines ("Managed by you"),

@@ -39,8 +39,8 @@ import { ActionMenu, Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { usePlatformAction } from "./platform-action";
 import { EntitlementForm } from "./entitlement-form";
-import { OpsBilling, type BillingView } from "./ops-billing";
-import { accountHref, credits as fmtCredits, euros, planLabel } from "./ops-billing-shared";
+import { OpsBilling, modeLabel, type BillingView } from "./ops-billing";
+import { accountHref, credits as fmtCredits, euros } from "./ops-billing-shared";
 import { adapterLabel, amendmentText, countOf, perMillion, roleName } from "./ops-labels";
 import { t, tv } from "@/lib/evals/messages/runtime";
 
@@ -943,7 +943,7 @@ function CreditUsage({ admin }: { admin: boolean }) {
             <DataTable caption={t("billingOpsCreditUsage")} headers={[t("workspace"), { label: t("billingOpsSold"), align: "end" }, { label: t("billingOpsConsumed"), align: "end" }, { label: t("billingOpsHeld"), align: "end" }, { label: t("billingOpsExpired"), align: "end" }, { label: t("billingOpsAvailable"), align: "end" }]}>
               {data.workspaces.map(row => (
                 <tr key={row.orgId}>
-                  <RowTitle href={admin ? accountHref(row.orgId) : undefined} meta={[...new Set([planLabel(row.plan), humanize(row.billingMode)]), row.frozen && t("billingOpsFrozen")].filter(Boolean).join(" · ")}>{row.workspace}</RowTitle>
+                  <RowTitle href={admin ? accountHref(row.orgId) : undefined} meta={[modeLabel(row.plan, row.billingMode), row.frozen && t("billingOpsFrozen")].filter(Boolean).join(" · ")}>{row.workspace}</RowTitle>
                   <td className="p-num">{fmtCredits(row.sold)}{row.soldNetCents ? <span className="p-cell-meta p-cell-note">{euros(row.soldNetCents)}</span> : null}</td>
                   <td className="p-num">{fmtCredits(row.consumed)}{Number(row.shadowCharged) ? <span className="p-cell-meta p-cell-note">{tv("billingOpsShadowShort", { credits: fmtCredits(row.shadowCharged) })}</span> : null}</td>
                   <td className="p-num">{fmtCredits(row.held)}</td>

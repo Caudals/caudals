@@ -23,8 +23,8 @@ import { credits, euros, newKey, outcomeMessage, planLabel, short, useOpsAction,
 import { BILLING_VIEWS, type BillingView } from "./ops-billing-views";
 import { t, tv } from "@/lib/evals/messages/runtime";
 
-/** Plan and billing mode, once when they say the same ("Free", not "Free · Free"). */
-const modeLabel = (plan: string | null, mode: string) => [...new Set([planLabel(plan), humanize(mode)])].join(" · ");
+/** Plan and billing mode, once when they say the same ("Free", not "Free · Free" or "Gratis · Gratuito"). */
+export const modeLabel = (plan: string | null, mode: string) => (plan === mode ? planLabel(plan) : [...new Set([planLabel(plan), humanize(mode)])].join(" · "));
 /** Credit enforcement for a workspace override. */
 const enforcementLabel = (value: string) => (value === "inherit" ? t("billingOpsInherit") : humanize(value));
 /** System-written ledger reasons in the interface language; an operator's own reason is shown as written. */

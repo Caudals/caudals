@@ -533,7 +533,7 @@ export function ManualInvoices() {
               <td className="p-table-action p-cell-meta">{formatDate(doc.operationDate)}</td>
               <td className="p-table-action">
                 {/* Attaching the issued invoice is the next step; voiding a test document is destructive and sits in the menu (launch R4). */}
-                <span className="p-row">
+                <span className="p-row p-nowrap">
                   {(doc.status === "pending_issue" || doc.status === "queued") && <Action variant="secondary" size="sm" onClick={() => setDialog({ kind: "issue", doc })}>{t("billingOpsAttach")}</Action>}
                   {!doc.livemode && doc.status !== "voided" && <ActionMenu label={`${t("actions")}: ${doc.number ?? t("billingOpsInvoice")}`} items={[{ label: t("billingOpsVoid"), tone: "danger", onSelect: () => setDialog({ kind: "void", doc }) }]} />}
                 </span>
