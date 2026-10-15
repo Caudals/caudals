@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import { FrontDoorProvider } from "@/components/public/front-door";
 import { PublicDocument } from "@/components/document/public-document";
-import { SERIF_GATE_SRC } from "@/components/document/serif-gate";
+import { LATE_FONTS_SRC } from "@/components/document/late-fonts";
 import { localeHtmlLang, type Locale } from "@/lib/i18n/config";
 import { PUBLIC_SHELL_MESSAGES } from "@/lib/i18n/client-messages";
 import { LocaleProvider } from "@/lib/i18n/context";
@@ -22,10 +22,10 @@ export function PublicRoot({ locale, fontClassName, children }: { locale: Locale
     <PublicDocument lang={localeHtmlLang[locale]}>
       <LocaleProvider locale={locale} messages={pickMessages(locale, PUBLIC_SHELL_MESSAGES)}>
         <FrontDoorProvider value={frontDoor()}>
-          {/* Hoisted into the head; sets `data-serif` after the first paint, so Newsreader loads then (serif-gate.ts). */}
-          <script async src={SERIF_GATE_SRC} />
-          {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. `mk-serif-gate` holds Newsreader back until the first paint (globals.css). */}
-          <div className={`${fontClassName} font-mk-sans mk-serif-gate contents`}>
+          {/* Hoisted into the head; sets `data-fonts` after the first paint, so Newsreader and Geist Mono load then (late-fonts.ts). */}
+          <script async src={LATE_FONTS_SRC} />
+          {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. `mk-font-gate` holds Newsreader and Geist Mono back until the first paint (globals.css). */}
+          <div className={`${fontClassName} font-mk-sans mk-font-gate contents`}>
             {children}
             <CookieConsentBanner />
           </div>

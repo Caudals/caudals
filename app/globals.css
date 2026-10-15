@@ -96,13 +96,15 @@
 }
 
 /*
- * Newsreader loads after the first paint (launch L-24d, components/document/
- * serif-gate.ts): until <html data-serif> is set, the public pages use its
- * metric-matched local fallback, which is what they showed before the font
- * arrived anyway, so laying out the first frame requests no Newsreader file.
+ * Newsreader and Geist Mono load after the first paint (launch L-24d,
+ * components/document/late-fonts.ts): until <html data-fonts> is set, the
+ * public pages use their metric-matched local fallbacks, which is what they
+ * showed until the fonts arrived anyway, so laying out the first frame
+ * requests neither family. Geist (the largest paint's face) is not gated.
  */
-html:not([data-serif]) .mk-serif-gate {
+html:not([data-fonts]) .mk-font-gate {
   --font-newsreader: "Newsreader Fallback";
+  --font-geist-mono: "Geist Mono Fallback";
 }
 
 .hover-lift {

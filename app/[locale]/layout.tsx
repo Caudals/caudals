@@ -18,9 +18,9 @@ import {
 // Only Geist is preloaded: it sets the largest paint on every public page (the
 // hero standfirst and headline). Newsreader (the hero's italic word, the
 // problem statement, step numbers; 279 KB with its optical-size axis, kept by
-// founder decision) and Geist Mono (figure labels) load when the page first
-// lays text out in them and swap in as before, instead of competing with the
-// stylesheet and the page's script before the first paint (launch L-24b).
+// founder decision) and Geist Mono (figure labels) are not preloaded (launch
+// L-24b) and load once the first paint has been presented, then swap in as
+// before (launch L-24d, components/document/late-fonts.ts).
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap", preload: false });
 const newsreader = Newsreader({
