@@ -83,8 +83,12 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("publication consent and the anonymous
       await db.query("INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,created_by) VALUES($1,$2,$3,$4,$5,'deployed_system','completed','done',$6)",
         [runId, orgId, randomUUID(), targetRevisionId, randomUUID(), creator]);
       await db.query("INSERT INTO evals.report(id,org_id,project_id,title,publication_status,current_revision_id,created_by) VALUES($1,$2,$3,'Report','published',$4,$5)", [reportId, orgId, randomUUID(), revisionId, creator]);
-      await db.query("INSERT INTO evals.report_revision(id,org_id,report_id,run_id,content_hash,snapshot,review_status,published_at,created_by) VALUES($1,$2,$3,$4,$5,$6,'preliminary',$7,$8)",
-        [revisionId, orgId, reportId, runId, createHash("sha256").update(revisionId).digest("hex"), snapshot, publishedAt, creator]);
+      // As every publish path does (publishReport, the reviewed revision of an expert order): the revision becomes
+      // the report's current one and a "report published" notice is written; report_revision.published_at stays NULL.
+      await db.query("INSERT INTO evals.report_revision(id,org_id,report_id,run_id,content_hash,snapshot,review_status,created_by,created_at) VALUES($1,$2,$3,$4,$5,$6,'preliminary',$7,$8)",
+        [revisionId, orgId, reportId, runId, createHash("sha256").update(revisionId).digest("hex"), snapshot, creator, publishedAt]);
+      await db.query("INSERT INTO evals.notification(org_id,event_id,kind,audience,payload,status,delivered_at,created_at) VALUES($1,$2,'report_published','workspace','{}','delivered',$3,$3)",
+        [orgId, `report:${reportId}:${revisionId}:published`, publishedAt]);
       let snapshotId: string | null = null;
       if (options.sandbox) {
         snapshotId = randomUUID();
@@ -259,6 +263,22 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("publication consent and the anonymous
     const draft = await system({ members: [[otto, "owner"]] });
     await owner.query("UPDATE evals.report SET publication_status='draft' WHERE id=$1", [draft.reportId]);
     await expect(consented(draft)).rejects.toThrow("REPORT_NOT_PUBLISHED");
+    // Nor a revision of a published report that was never published itself (no notice, not the current one) ...
+    const report = await system({ members: [[otto, "owner"]] });
+    const unpublished = randomUUID();
+    const runId = (await owner.query("SELECT run_id FROM evals.report_revision WHERE id=$1", [report.revisionId])).rows[0].run_id;
+    await owner.query("INSERT INTO evals.report_revision(id,org_id,report_id,run_id,content_hash,snapshot,review_status,created_by) SELECT $1,org_id,report_id,run_id,$2,snapshot,review_status,created_by FROM evals.report_revision WHERE id=$3",
+      [unpublished, createHash("sha256").update(unpublished).digest("hex"), report.revisionId]);
+    expect(runId).toBeTruthy();
+    await expect(consented({ ...report, revisionId: unpublished })).rejects.toThrow("REPORT_NOT_PUBLISHED");
+    // ... while the current revision of a published report counts even without its notice.
+    await owner.query("DELETE FROM evals.notification WHERE org_id=$1", [report.orgId]);
+    const fallback = await consented(report);
+    const fallbackSlug = `otto-${randomUUID().slice(0, 6)}`;
+    const page = (await publish(fallback.id, fallbackSlug)).rows[0];
+    expect(page.projection.report_published_at).toEqual(expect.any(String));
+    // The publication date comes from the notice, never from report_revision.published_at.
+    expect((await owner.query("SELECT count(*)::int AS n FROM evals.report_revision WHERE published_at IS NOT NULL AND org_id=$1", [report.orgId])).rows[0].n).toBe(0);
   });
 
   it("never publishes our own snapshots of third parties", async () => {
