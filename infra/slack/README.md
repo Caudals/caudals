@@ -86,14 +86,14 @@ Two sources post here; successful runs and healthy checks stay silent.
 
 ## caudals.com → #customers
 
-`lib/notifications/slack.ts` posts each new `/contact` evaluation request to `#customers` once the response has been sent. The post carries the company, system, sector, stage and offer, plus a link to Ops; the requester's name, email and notes stay in the notification email and Ops. It is off until both production credentials exist:
+`lib/notifications/slack.ts` posts each new `/contact` evaluation request to `#customers` once the response has been sent. The post carries the company, system, sector, stage and offer, plus a link to Ops; the requester's name, email and notes stay in the notification email and Ops. Both production credentials were stored on atlantic on 2026-10-15, so it goes live with the first app deploy that includes this code. To rotate them:
 
 ```bash
-sudo scripts/set-app-credentials.sh SLACK_BOT_TOKEN          # caudals bot token
+sudo scripts/set-app-credentials.sh SLACK_BOT_TOKEN              # caudals bot token
 sudo scripts/set-app-credentials.sh SLACK_CUSTOMERS_CHANNEL_ID   # C0C9GQSPNSE
 ```
 
-After setting them, redeploy the app stack.
+After rotating, redeploy the app stack.
 
 ## Claude Code and other local agents
 
