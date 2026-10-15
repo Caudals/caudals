@@ -5,7 +5,7 @@ import type { EvaluationControlAction } from "@/lib/evals/repositories/evaluatio
 import { evalRequest } from "./api";
 import { Action, Status } from "./primitives";
 import { Modal, notify, type MenuEntry } from "./overlays";
-import { getLocale, t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/runtime";
 
 type ControlState = { subject: { id: string; kind: "generation" | "run"; status: string; phase?: string; updatedAt: string } | null; restart: { id: string; status: string; reason_code: string | null } | null; actions: EvaluationControlAction[] };
 const labels = { pause: () => t("pauseEvaluation"), resume: () => t("resumeEvaluation"), stop: () => t("stopEvaluation"), restart: () => t("restartEvaluation") };

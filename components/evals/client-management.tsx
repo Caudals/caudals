@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Building2, Pencil, Plus, Trash2 } from "lucide-react";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 import { Action, ActionLink, Badge, DataTable, DefinitionList, EmptyState, Field, FilterChips, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
 import type { ClientDetail } from "@/lib/analytics/ops-kpis";
 import { ActionMenu, Modal, SidePanel, notify } from "./overlays";

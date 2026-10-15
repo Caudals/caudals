@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Field, humanize } from "./primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export type WorkspaceEntitlement = {
   max_active_runs: number;

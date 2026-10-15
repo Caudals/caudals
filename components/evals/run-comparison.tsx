@@ -21,7 +21,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Action, ActionLink, Badge, SectionHeading, SelectField, Stat, StatGrid, Status, StatusBadge, formatDate } from "./primitives";
 import { Modal } from "./overlays";
 import { ResultBadge } from "./result-labels";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 type Outcome = "pass" | "partial" | "fail" | "unscorable";
 type Score = { pass: number; scored: number };

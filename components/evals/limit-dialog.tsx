@@ -16,7 +16,7 @@ import { ActionAnchor, ActionLink, Loading, Status } from "./primitives";
 import { Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel } from "./workspace-data";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { localizePathname } from "@/lib/i18n/routing";
 import type { Plan, PlanLimitKind, Unlock } from "@/lib/billing/plans";
 

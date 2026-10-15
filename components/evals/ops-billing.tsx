@@ -20,7 +20,7 @@ import { ActionMenu, Modal } from "./overlays";
 import { FraudQueue, MonthlyExport, ManualInvoices, PriceBook, Reconciliation } from "./ops-billing-reports";
 import { credits, euros, newKey, outcomeMessage, planLabel, short, useOpsAction, type Outcome } from "./ops-billing-shared";
 import { BILLING_VIEWS, type BillingView } from "./ops-billing-views";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 
 export type { BillingView } from "./ops-billing-views";
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { evalRequest } from "./api";
 import { Action, DataTable, DefinitionList, RowTitle, SectionHeading, Status, StatusBadge, humanize } from "./primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type Judgments = {
   jobs: Array<{ id: string; case_revision_id: string; status: string; reason_code: string | null; result_assessment_id: string | null }>;

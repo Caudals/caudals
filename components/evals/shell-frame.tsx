@@ -65,7 +65,7 @@ import { BillingPill, LowBalanceBanner } from "./workspace-billing";
 import { setInterfaceLocale } from "./locale";
 import { Check as CheckIcon, CircleHelp, Handshake, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useCrumbParent, useWorkspace, type ParentCrumb } from "./workspace-context";
-import { getLocale, t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/runtime";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 import { partnerCopy } from "@/lib/evals/partners/copy";
 
@@ -129,7 +129,8 @@ function initials(identity: EvalIdentity) {
 
 /* ----------------------------------------------------------- breadcrumbs --- */
 
-const SECTION: Record<string, string> = {
+/** Labels are built on use: the page's messages arrive while it renders (launch L-24c). */
+const SECTION = (): Record<string, string> => ({
   home: t("home"),
   evaluations: t("product"),
   systems: t("systems"),
@@ -151,20 +152,21 @@ const SECTION: Record<string, string> = {
   accounts: t("accounts"),
   audit: t("auditLog"),
   billing: t("billingOpsTitle"),
-};
-const DETAIL: Record<string, string> = {
+});
+const DETAIL = (): Record<string, string> => ({
   evaluations: t("evaluation"),
   reports: t("report"),
   "test-sets": t("testSet"),
   runs: t("run"),
   assignments: t("assignment"),
-};
+});
 
 type Crumb = { label: string; href?: string };
 
 function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb | null = null): Crumb[] {
   const s = pathname.split("/").filter(Boolean);
-  const name = (segment: string) => SECTION[segment] ?? humanize(segment.replaceAll("-", "_"));
+  const sections = SECTION();
+  const name = (segment: string) => sections[segment] ?? humanize(segment.replaceAll("-", "_"));
   if (s[0] === "workspace") {
     const section = s[1] ?? "evaluations";
     if (section === "example") return [{ label: name("evaluations"), href: "/workspace/evaluations" }, { label: t("exampleEvaluationTitle") }];
@@ -172,7 +174,7 @@ function crumbsFor(pathname: string, detail: string | null, parent: ParentCrumb 
     if (s.length <= 2) return detail && section === "systems" ? [{ label: name(section), href: `/workspace/${section}` }, { label: detail }] : [{ label: name(section) }];
     const base = { label: name(section), href: `/workspace/${section}` };
     if (s[2] === "new") return [base, { label: t("newEvaluationAction") }];
-    return [base, ...(parent ? [parent] : []), { label: detail ?? DETAIL[section] ?? t("details") }];
+    return [base, ...(parent ? [parent] : []), { label: detail ?? DETAIL()[section] ?? t("details") }];
   }
   if (s[0] === "ops") {
     if (!s[1] || s[1] === "evaluations" || s[1] === "reports") return [{ label: t("overview") }];

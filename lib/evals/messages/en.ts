@@ -1,4 +1,5 @@
 import { es } from "./es";
+import { registerCatalogues } from "./runtime";
 
 export const messages = {
   growth: "Growth",
@@ -4065,34 +4066,10 @@ export type MessageKey = keyof typeof messages;
 
 /* ------------------------------------------------------------- locale --- */
 
-export type Locale = "en" | "es";
-export const LOCALES: readonly Locale[] = ["en", "es"];
-export { LOCALE_COOKIE } from "./locale-cookie";
-
-/**
- * The interface language is chosen per person (cookie, else the browser's
- * Accept-Language; see interface-locale.ts) and fixed for the page
- * load: the evaluation layout puts it on window.__CAUDALS_LOCALE before any
- * bundle runs, and switching language reloads the page. Server code renders
- * English unless it passes a locale explicitly.
- */
-function detectLocale(): Locale {
-  if (typeof window === "undefined") return "en";
-  const value = (window as unknown as { __CAUDALS_LOCALE?: string }).__CAUDALS_LOCALE;
-  return value === "es" ? "es" : "en";
-}
-let active: Locale = detectLocale();
-export function getLocale(): Locale {
-  return active;
-}
-/** For server-side rendering in a given language (exports) and for tests. */
-export function setLocale(locale: Locale) {
-  active = locale;
-}
-export function t(key: MessageKey, locale: Locale = active): string {
-  return (locale === "es" && es[key]) || messages[key];
-}
-/** A message with {name} placeholders filled in. */
-export function tv(key: MessageKey, values: Record<string, string | number>, locale: Locale = active): string {
-  return t(key, locale).replace(/\{(\w+)\}/g, (match, name: string) => (name in values ? String(values[name]) : match));
-}
+// The lookup lives in ./runtime, which client components import instead of
+// this file so the browser never bundles the catalogues (launch L-24c).
+// Loading this module registers both full catalogues there: server code,
+// tests and the workers keep calling `t(key, locale)` as before.
+export { LOCALES, LOCALE_COOKIE, getLocale, setLocale, t, tv } from "./runtime";
+export type { Locale } from "./runtime";
+registerCatalogues(messages, es);

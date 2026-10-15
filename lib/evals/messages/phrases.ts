@@ -1,4 +1,4 @@
-import { getLocale } from "./en";
+import { getLocale } from "./runtime";
 
 /**
  * Spanish for fixed English labels that live in data tables rather than the

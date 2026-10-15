@@ -38,7 +38,7 @@ import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary, type WorkspaceReport, type WorkspaceSystem } from "./workspace-data";
 import { HEALTH_LABEL, canCheckConnection, fixAction, isApiKind, lastHealthy, scoreHistory, systemHealth } from "@/lib/evals/workspace/health";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 
 const FIX_LABEL: Record<"reteach" | "key" | "pair", MessageKey> = { reteach: "fixReteach", key: "fixKey", pair: "fixPair" };
 

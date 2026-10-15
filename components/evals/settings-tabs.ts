@@ -6,7 +6,7 @@
  * "pages remember their last tab"). Storage is a per-device preference, like
  * the sidebar state: every read and write is best-effort.
  */
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export type SettingsTab = "general" | "billing" | "members" | "notifications" | "monitoring" | "developers" | "models" | "data" | "danger";
 

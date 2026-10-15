@@ -17,7 +17,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { evalRequest, EvalRequestError } from "./api";
 import { useWorkspace } from "./workspace-context";
-import { getLocale } from "@/lib/evals/messages/en";
+import { getLocale } from "@/lib/evals/messages/runtime";
 
 /** GET /api/evals/v1/billing/summary (lib/billing/customer-api.ts). Amounts are µcr strings. */
 export type BillingSummary = {

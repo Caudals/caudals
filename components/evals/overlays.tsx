@@ -11,7 +11,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as MenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Toaster as SonnerToaster, toast } from "sonner";
 import { Check, Copy, MoreHorizontal, X } from "lucide-react";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 /* ----------------------------------------------------------------- modal -- */
 

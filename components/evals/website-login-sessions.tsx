@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { evalRequest } from "./api";
 import { Action, SectionHeading, Status, StatusBadge, Time, codeText } from "./primitives";
 import { notify } from "./overlays";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type Data = {
   sessions: Array<{ id: string; created_at: string; expires_at: string; state: string }>;

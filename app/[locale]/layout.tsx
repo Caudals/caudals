@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
-import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
-import { FrontDoorProvider } from "@/components/public/front-door";
-import { localeHtmlLang, locales, type Locale } from "@/lib/i18n/config";
-import { LocaleProvider } from "@/lib/i18n/context";
-import { PUBLIC_SHELL_MESSAGES } from "@/lib/i18n/client-messages";
-import { pickMessages } from "@/lib/i18n/messages";
-import { PublicDocument } from "@/components/document/public-document";
+import { locales, type Locale } from "@/lib/i18n/config";
+import { PublicRoot } from "@/components/document/public-root";
 import { rootMetadata } from "@/components/document/root-metadata";
 import { buildAlternates } from "@/lib/i18n/metadata";
 import { resolveLocale } from "@/lib/i18n/server";
-import { frontDoor } from "@/lib/public/front-door";
 import {
   buildMarketingUrl,
   getSiteDescription,
@@ -98,16 +92,8 @@ export default async function LocaleLayout({
   const locale: Locale = resolveLocale(rawLocale);
 
   return (
-    <PublicDocument lang={localeHtmlLang[locale]}>
-      <LocaleProvider locale={locale} messages={pickMessages(locale, PUBLIC_SHELL_MESSAGES)}>
-        <FrontDoorProvider value={frontDoor()}>
-          {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. */}
-          <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-mk-sans contents`}>
-            {children}
-            <CookieConsentBanner />
-          </div>
-        </FrontDoorProvider>
-      </LocaleProvider>
-    </PublicDocument>
+    <PublicRoot locale={locale} fontClassName={`${geist.variable} ${geistMono.variable} ${newsreader.variable}`}>
+      {children}
+    </PublicRoot>
   );
 }

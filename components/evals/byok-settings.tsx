@@ -14,7 +14,7 @@ import { Action, Badge, Check, DataTable, Field, RowTitle, Section, SelectField,
 import { ActionMenu, Modal } from "./overlays";
 import { useAction } from "./engine-settings";
 import { BYOK_PROVIDER_LABELS, type ByokKeyState, type ByokProvider, type ByokRole } from "@/lib/evals/byok/shared";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 export type ByokConnection = {
   id: string; provider: ByokProvider; label: string; state: ByokKeyState; checkedAt: string | null; models: string[];

@@ -9,7 +9,7 @@
  */
 import { useSyncExternalStore, type ReactNode } from "react";
 import { Languages } from "lucide-react";
-import { LOCALE_COOKIE, getLocale, t, type Locale } from "@/lib/evals/messages/en";
+import { LOCALE_COOKIE, getLocale, t, type Locale } from "@/lib/evals/messages/runtime";
 
 const subscribe = () => () => undefined;
 

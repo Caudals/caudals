@@ -13,7 +13,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Action, ActionAnchor, Badge, Check, DataTable, Field, FilterChips, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time, codeText } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { CompareRunsDialog } from "./run-comparison";
 import { SHARE_EXPIRY_PRESETS, isFixListLink, openedLabel, type ShareLink } from "./share-links";

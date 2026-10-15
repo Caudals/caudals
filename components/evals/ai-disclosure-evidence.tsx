@@ -1,7 +1,7 @@
 "use client";
 
 import type { DisclosureResult, DisclosureStatus, DisclosureTurnKind } from "@/lib/evals/scoring/disclosure";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 import { Badge, SectionHeading, type Tone } from "./primitives";
 
 /**

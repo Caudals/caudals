@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { evalsPageMessages } from "@/components/evals/page-messages";
 import { SelfServeSignup } from "@/components/evals/self-serve-signup";
 import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
@@ -15,7 +16,12 @@ export default async function SignupPage() {
   } catch (error) {
     if (!(error instanceof EvalError) || error.code !== "SESSION_REQUIRED") throw error;
     // Flags are read here, at request time, and passed down (never NEXT_PUBLIC_*).
-    return <SelfServeSignup termsRequired={signupTermsRequired()} directSignup={directSignupEnabled()} onboarding={onboardingEnabled()} marketingOrigin={getMarketingSiteOrigin()} />;
+    return (
+      <>
+        {await evalsPageMessages(["workspace/signup"])}
+        <SelfServeSignup termsRequired={signupTermsRequired()} directSignup={directSignupEnabled()} onboarding={onboardingEnabled()} marketingOrigin={getMarketingSiteOrigin()} />
+      </>
+    );
   }
   redirect("/evaluation-entry");
 }

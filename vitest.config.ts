@@ -6,6 +6,7 @@ export default defineConfig({
     environment: "node",
     include: ["**/*.test.ts"],
     exclude: [...configDefaults.exclude, "e2e/**"],
+    setupFiles: ["test/setup/evals-messages.ts"],
   },
   resolve: {
     alias: {

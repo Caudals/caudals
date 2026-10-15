@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Image from "next/image";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 import { LocaleSwitch } from "./locale";
 
 /**

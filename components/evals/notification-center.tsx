@@ -8,7 +8,7 @@ import { evalRequest } from "./api";
 import { Action, Chip, EmptyState, Progress, Status, Tabs, codeText, formatDate, relativeTime } from "./primitives";
 import { SidePanel, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 type Notice = {
   id: string; kind: string; category: "completion" | "required_input" | "failure" | "progress" | "billing"; created_at: string; read: boolean;

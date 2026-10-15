@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { evaluationReturnPath, evaluationSignInPath } from "@/components/evals/auth-path";
+import { evalsPageMessages } from "@/components/evals/page-messages";
 import { TwoFactorSettings } from "@/components/evals/two-factor-settings";
 import { EvalError } from "@/lib/evals/domain/errors";
 import { isPlatformStaff, requireIdentity } from "@/lib/evals/domain/identity";
@@ -20,12 +21,15 @@ export default async function SecurityPage({ searchParams }: { searchParams: Pro
     throw error;
   }
   return (
-    <TwoFactorSettings
-      email={identity.user.email}
-      enabled={identity.mfa?.enabled ?? false}
-      required={identity.mfa?.required ?? false}
-      staff={isPlatformStaff(identity)}
-      next={evaluationReturnPath(typeof params.next === "string" ? params.next : undefined)}
-    />
+    <>
+      {await evalsPageMessages(["workspace/security"])}
+      <TwoFactorSettings
+        email={identity.user.email}
+        enabled={identity.mfa?.enabled ?? false}
+        required={identity.mfa?.required ?? false}
+        staff={isPlatformStaff(identity)}
+        next={evaluationReturnPath(typeof params.next === "string" ? params.next : undefined)}
+      />
+    </>
   );
 }

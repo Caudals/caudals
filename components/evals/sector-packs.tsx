@@ -5,7 +5,7 @@ import { ArrowLeft, BookCheck, ExternalLink, Pencil, Plus, Trash2, Upload } from
 import { evalRequest } from "./api";
 import { Action, Badge, DataTable, DefinitionList, EmptyState, Field, InlineSelect, PageHeading, Progress, SearchInput, SelectField, Status, TableSkeleton, TextArea, Toolbar, formatDate } from "./primitives";
 import { Modal, SidePanel, notify } from "./overlays";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { SOURCE_FRESHNESS_DAYS } from "@/lib/evals/sector-packs/flags";
 import { SECTOR_LABELS, isSector } from "@/lib/evals/sector-packs/sectors";
 

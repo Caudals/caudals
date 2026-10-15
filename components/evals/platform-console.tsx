@@ -37,7 +37,7 @@ import { usePlatformAction } from "./platform-action";
 import { EntitlementForm } from "./entitlement-form";
 import { OpsBilling, type BillingView } from "./ops-billing";
 import { accountHref, credits as fmtCredits, euros, planLabel } from "./ops-billing-shared";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 
 export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit" | "billing";
 const ROLES = ["target", "generator", "context_analyzer", "judge", "adjudicator", "report_writer", "embedding"] as const;
@@ -49,7 +49,7 @@ const list = (value: FormDataEntryValue | null) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const SECTIONS: Array<{ id: PlatformSection; href: string; label: string }> = [
+const SECTIONS = (): Array<{ id: PlatformSection; href: string; label: string }> => [
   { id: "providers", href: "/ops/platform", label: t("providersModels") },
   { id: "inference", href: "/ops/platform/inference", label: t("inference") },
   { id: "usage", href: "/ops/platform/usage", label: t("usageBudgets") },
@@ -70,7 +70,7 @@ export function PlatformConsole({ section, admin, billingView = "accounts", user
       <PageHeading title={t("platform")} meta={scoped && workspace ? <span>{t("clientContext")} <strong>{workspace.name}</strong></span> : undefined}>
         {t("platformConsoleHelp")}
       </PageHeading>
-      <TabLinks label={t("platformSections")} current={section} options={SECTIONS} />
+      <TabLinks label={t("platformSections")} current={section} options={SECTIONS()} />
       {!admin && section !== "billing" && <Status>{t("platformReadOnly")}</Status>}
       {section === "providers" ? <Providers admin={admin} /> : section === "inference" ? <Inference /> : section === "usage" ? <Usage admin={admin} />
         : section === "accounts" ? <Accounts admin={admin} /> : section === "billing" ? <OpsBilling view={billingView} admin={admin} userId={userId} initialOrgId={initialOrgId} /> : <Audit />}

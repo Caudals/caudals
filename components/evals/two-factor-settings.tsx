@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { betterAuthClient } from "./auth-client";
 import { AuthFrame } from "./auth-frame";
 import { Action, ActionLink, Check, Field, Status } from "./primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type Step = "status" | "password" | "setup" | "done";
 type ApiError = { status?: number } | null | undefined;

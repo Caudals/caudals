@@ -24,7 +24,7 @@ import { TopUpDialog } from "./billing-top-up";
 import { formatCount, formatCredits, useBilling } from "./billing-state";
 import { billingHref } from "./workspace-billing";
 import { useWorkspace } from "./workspace-context";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
 /** POST /api/evals/v1/billing/estimates (lib/billing/estimate.ts, lib/billing/api.ts). */

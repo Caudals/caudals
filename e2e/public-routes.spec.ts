@@ -489,6 +489,34 @@ test.describe("methodology (launch L-20)", () => {
   });
 });
 
+// Launch L-24c: a URL that matches no page is answered on the server
+// (app/global-not-found.tsx) with the localized 404 and its free-test link in
+// the HTML, not Next's empty error shell that fills in once JavaScript runs.
+// PLAYWRIGHT_APP_URL adds the app host's own misses.
+test.describe("404 without JavaScript (launch L-24c)", () => {
+  const appURL = process.env.PLAYWRIGHT_APP_URL ?? "";
+  const misses: Array<[string, "en" | "es"]> = [
+    ["/en/no-such-page-l24c", "en"],
+    ["/es/no-such-page-l24c", "es"],
+    ["/en/sectors/no-such-sector", "en"],
+    ["/es/legal/no-such-page", "es"],
+    ...(appURL ? ([[`${appURL}/workspace/no-such-page`, "en"], [`${appURL}/no-such-page`, "en"]] as Array<[string, "en" | "es"]>) : []),
+  ];
+  for (const [path, locale] of misses) {
+    test(`${path} is a server-rendered ${locale} 404`, async ({ request }) => {
+      const response = await request.get(path, { headers: { "accept-language": locale === "es" ? "es-ES" : "en-US" } });
+      expect(response.status()).toBe(404);
+      const html = await response.text();
+      expect(html).not.toContain('id="__next_error__"');
+      expect(html).toContain(`<html lang="${locale}"`);
+      const heading = html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]?.replace(/&#x27;|&#39;/g, "'") ?? "";
+      expect(heading).toMatch(refreshCopy[locale].missing);
+      if (demoPublic) expect(html).toContain(`href="/${locale}/demo"`);
+      expect(html).toContain(`href="/${locale}"`);
+    });
+  }
+});
+
 // Launch L-31: public results pages and index editions exist only for a
 // published, consented record (and PUBLIC_RESULTS_ENABLED); anything else is a miss.
 test.describe("public results stay dark without a record", () => {

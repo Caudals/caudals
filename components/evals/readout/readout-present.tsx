@@ -11,7 +11,7 @@ import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import type { ReadoutNextStep } from "@/lib/evals/reports/readout";
 import { readoutCopy } from "@/lib/evals/reports/readout-copy";
 import { readoutAccess, type ReadoutAccess, type ReadoutMode } from "@/lib/evals/readout/access";
-import { getLocale } from "@/lib/evals/messages/en";
+import { getLocale } from "@/lib/evals/messages/runtime";
 import { evalRequest } from "../api";
 import { notify } from "../overlays";
 import { Action, ActionLink, Loading, PageHeading, Status } from "../primitives";

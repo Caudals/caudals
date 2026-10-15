@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Globe } from "lucide-react";
 import { SECTOR_LABELS } from "@/lib/evals/sector-packs/sectors";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import { localizePathname } from "@/lib/i18n/routing";
 import { CONSENT_VERSION, INDEX_SECTORS, RESULTS_PATH, type IndexSector, type PublicationConsentView, type PublicationStatus } from "@/lib/publication/contracts";
 import { evalRequest, EvalRequestError } from "./api";

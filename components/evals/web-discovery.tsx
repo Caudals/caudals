@@ -11,7 +11,7 @@ import { Globe, Search } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, Badge, Status } from "./primitives";
 import { notify } from "./overlays";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 
 type Suggestion = { url: string; title: string; why: string; same_site: boolean };
 type Discovery = { id: string; status: "queued" | "completed" | "failed" | "skipped"; reason_code: string | null; suggestions: Suggestion[]; created_at: string } | null;

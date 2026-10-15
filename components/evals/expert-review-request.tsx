@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { UserCheck } from "lucide-react";
 import { trackProductEvent } from "@/lib/analytics/funnel-events";
 import { REVIEW_SCOPES, REVIEW_SECTORS, type CustomerReviewRequest, type ReviewScope, type ReviewSector } from "@/lib/evals/experts/review-contracts";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { evalRequest } from "./api";
 import { Modal } from "./overlays";
 import { Action, Field, SelectField, Status, TextArea, formatDate } from "./primitives";

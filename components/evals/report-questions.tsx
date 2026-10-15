@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquareText, Trash2 } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { methodologyUrl } from "@/lib/evals/public-links";
 import { trackProductEvent } from "@/lib/analytics/funnel-events";
 import { evalRequest, EvalRequestError } from "./api";

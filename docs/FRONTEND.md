@@ -89,7 +89,30 @@ fails on one); fixed labels in data tables go through `tr()` in
 `lib/evals/messages/phrases.ts` (marked `phrase("…")` where they are defined),
 and API errors through `apiErrorText()` (`lib/evals/messages/api-errors.ts`, launch L-23b; see
 below). Spanish pages render on the client only, so the server
-never sends English text they would replace. PDF and Word exports are written
+never sends English text they would replace.
+
+The browser never loads the app's catalogues (launch L-24c). Client code
+imports `t`, `tv` and `getLocale` from `lib/evals/messages/runtime.ts`, never
+from `en.ts` (which registers both catalogues there when it loads: server,
+tests, workers). Each page sends its messages in the reader's language in its
+RSC payload with `<EvalsMessages>` (`components/evals/messages.tsx`), which
+registers them while it renders, before the components that read them: the
+evaluation layout sends the frame's keys (`shell`: errors, loading, language
+menu); the signed-in layout (`(authenticated)/layout.tsx`) sends every key once,
+so client-side navigation inside the app needs nothing more; each page outside
+it (sign-in, sign-up, password reset, invitations, unsubscribe, two-factor
+set-up, shared report, fix list) sends its own list with
+`await evalsPageMessages(["workspace/start"])`. The lists are generated from
+the code (`npm run i18n:evals-client-keys` → `lib/evals/messages/client-keys.ts`:
+key literals, label tables, props such as `contextKey`, and template heads
+such as `` `sheetProblem_${code}` ``). Two rules follow: never call `t`/`tv`
+when a module loads (build label tables in a function), and regenerate the
+lists after changing what one of those pages shows.
+`tests/i18n/evals-client-messages.test.ts` (in the image build) fails on a
+stale list, a module-scope call, a client import of the catalogues, a page
+without an entry, and on any key a page reads but does not send (it renders
+each one in both languages with only its keys). A missing key renders as the
+key and logs `Missing evals message` outside production. PDF and Word exports are written
 in the requester's language (`lib/evals/reports/i18n.ts`); recorded questions,
 answers and model-written text keep their own words. Retained `/auth/*`
 routes remain English-only; `/admin` is removed and returns 404.
@@ -254,10 +277,22 @@ routes remain English-only; `/admin` is removed and returns 404.
 - There is no `app/layout.tsx`. `app/[locale]/layout.tsx` is a root layout that
   renders `<html lang={locale}>`, so the served HTML declares its language; the
   internal groups `(app)`, `(auth)` and `(evaluation)` have separate root
-  layouts; the evaluation surface applies its own per-person locale contract. All of them render `components/document/root-document.tsx`. A URL
-  under a locale that matches no page renders the localized
-  `app/[locale]/not-found.tsx` (via `app/[locale]/[...missing]`); anything
-  outside every root layout gets `app/global-not-found.tsx`.
+  layouts; the evaluation surface applies its own per-person locale contract. The public layout renders `components/document/public-root.tsx` (document, shell messages, front door, cookie notice); the internal ones `components/document/root-document.tsx`.
+- **404 (launch L-24c).** A URL that matches no page, on either host
+  (`/en/nada`, `/es/sectores/nada`, `app.caudals.com/workspace/nada`,
+  `app.caudals.com/nada`), is answered by `app/global-not-found.tsx`: Next
+  renders it on the server with status 404, so the localized Paper 404 and its
+  free-test link (L-30) are in the HTML without JavaScript. Its language comes
+  from the path the proxy saw (`x-caudals-pathname`), else the app's language
+  cookie, the site's, then Accept-Language; it reads the request, so it is
+  rendered per request. Do not add a catch-all page or call `notFound()` in a
+  layout for a miss: Next 16 can only render a `notFound()` thrown while the
+  page renders as an empty error shell (`<html id="__next_error__">`) that the
+  browser fills in. Unknown values of a static dynamic segment use
+  `dynamicParams = false` instead (`[locale]` on the landing page, sectors).
+  Pages that must check a record (`results/[slug]`, `sector-index/[quarter]`)
+  still call `notFound()`: they answer 404 and `app/[locale]/not-found.tsx`
+  appears once the page's script runs.
 - The internal surfaces declare `export const dynamic = "force-dynamic"` in
   their own group layouts, because they are authenticated and per-request.
 
@@ -304,6 +339,7 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`
 ### Accessibility and performance budgets (launch L-24)
 
 - **Accessibility gate (P-46).** `e2e/evals/a11y.contract.ts` (in `ui.config.ts`) runs axe (`e2e/evals/axe.ts`: WCAG 2.0–2.2 A/AA plus best practices, serious and critical only, colours checked at rest) on the core screens: landing (EN/ES), demo start, live and report, sign-up from the demo, direct sign-up, sign-in, evaluations list, new evaluation, the evaluation page (running and paused for credits), the report's overview and results, billing, top up and the estimate and top-up dialogs. It also checks that dialogs take, keep and return focus, that progress is announced (`aria-live`, `progressbar` values), that nothing moves under reduced motion, and that the funnel (landing → demo → report → sign-up) can be completed with the keyboard alone, with a visible focus indicator on every stop. `e2e/a11y-public.spec.ts` runs the same axe pass on served pages (a production build in CI, or production with `PLAYWRIGHT_BASE_URL`/`PLAYWRIGHT_APP_URL`). The harness serves the landing at `/en` and `/es` and the demo at `/en/demo` and `/es/demo` with the front door on.
+- **App pages carry one language (L-24c).** The evaluation app's catalogues never reach the browser (see the app's i18n contract above): sign-up and sign-in send ~1 KB of messages instead of a 147 KB chunk of both catalogues, and the signed-in app gets its whole catalogue in the reader's language once per page load, in the RSC payload.
 - **Performance budgets (P-47).** `lighthouserc.js`: the landing (`/en`), the demo (`/en/demo`) and direct sign-up (`/workspace/start`), mobile (default) and desktop (`LHCI_FORM_FACTOR=desktop`), three runs, median asserted. CLS < 0.1 is an error everywhere; LCP < 2.5 s and TBT < 200 ms are errors for sign-up and on desktop; on mobile the landing (LCP and TBT) and the demo (LCP) still miss the targets after L-24b (landing ~3.4 s, demo 3.5–4.3 s, landing TBT 170–210 ms), so those are warnings at the target plus errors at regression ceilings (4.5 s, 5.0 s, 300 ms; L-24b.md). CI's `budgets` job builds the app and runs both, only when files that reach those pages change.
 - **Public pages stay light.** Everything on the public site is paid for on a phone's first visit: no animation or motion library (CSS keyframes, as the cookie notice), and the largest text renders on the server at full opacity (`.lp-lift` for the hero headline and standfirst; the demo's start view is server-rendered, and a run's private link hides it before the first paint). Launch L-24b: a layout loads the script of every client component its server modules import, rendered or not, so the public layout uses `PublicDocument` (no session client, Better Auth or toast host; the contact form mounts its own `Toaster`) and imports `rootMetadata` from `components/document/root-metadata.ts`; the 404 view (`app/[locale]/not-found.tsx`) is part of every public page's script, so it stays small. The landing, sector pages, hub and demo frame render on the server (`LandingShell` is not a client component; `MomentumScroll` is its effect); only the header, footer, cookie notice, hero chat, animated figures and the demo hydrate. The header's mobile sheet (`components/ui/mobile-menu-sheet.tsx`) loads on first use. Only Geist is preloaded (the largest paint); Newsreader and Geist Mono load when first used and swap in. The browser Sentry SDK loads only with a build-time `NEXT_PUBLIC_SENTRY_DSN` (none in production, so it never reached Sentry anyway).
 - **The demo's proof of work** runs in a Blob worker built from `powKernel`'s source and read back by property name (`components/demo/pow.ts`), so minification cannot break it; it starts when the visitor engages with the form, and the main-thread fallback works in slices of at most 8 ms. `lib/demo/demo.test.ts` runs the worker source from an esbuild-minified bundle.

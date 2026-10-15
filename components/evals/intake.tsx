@@ -20,7 +20,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Action, Badge, Field, Progress, SelectField, Status, TextArea } from "./primitives";
 import { Modal, notify } from "./overlays";
 import { checkIntake, duplicateVerdicts, INTAKE_ACCEPT, sha256Hex, type IntakeRejection } from "@/lib/evals/intake/upload-plan";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 /* -------------------------------------------------------------- shared --- */
 

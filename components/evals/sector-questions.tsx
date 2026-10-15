@@ -5,7 +5,7 @@ import { BookCheck, CalendarClock } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, Badge, Check, SectionHeading, SelectField, Status, codeText } from "./primitives";
 import { notify } from "./overlays";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import { SECTOR_LABELS, isSector, type Sector } from "@/lib/evals/sector-packs/sectors";
 
 /**

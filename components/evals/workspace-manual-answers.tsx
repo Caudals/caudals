@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, ActionAnchor, Progress, Status } from "./primitives";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 /** A row problem of the answer sheet in the reader's language; an unknown code stays as written (it names a column). */
 function sheetProblem(code: string): string {

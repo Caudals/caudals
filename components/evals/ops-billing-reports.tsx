@@ -18,7 +18,7 @@ import {
 import { Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { accountHref, credits, euros, newKey, short, treatmentLabel, useOpsAction } from "./ops-billing-shared";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 const error = (reason: unknown) => (reason instanceof Error ? reason.message : t("error"));
 const pct = (value: number) => `${Math.round(value * 1000) / 10} %`;

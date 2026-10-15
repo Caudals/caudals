@@ -6,7 +6,7 @@
  * snapshots without a label fall back to the stored outcome.
  */
 import type { ReportSnapshot, ResultLabel } from "@/lib/evals/reports/contracts";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 import { Badge } from "./primitives";
 
 type Result = ReportSnapshot["results"][number];

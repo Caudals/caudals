@@ -4,7 +4,8 @@ import { seriousAxeViolations } from "./evals/axe";
 /**
  * Launch L-24 (P-46): axe on the served pages (no fixtures), with no serious
  * or critical violation: the landing and the demo in English and Spanish on
- * the public host, sign-in and sign-up on the app host. Read-only: it loads
+ * the public host, sign-in and sign-up on the app host, and the 404 on both
+ * (L-24c). Read-only: it loads
  * pages and never submits a form, so it can run against production:
  *
  *   PLAYWRIGHT_BASE_URL=https://caudals.com PLAYWRIGHT_APP_URL=https://app.caudals.com \
@@ -23,6 +24,9 @@ const pages: Array<{ name: string; path: string; app?: boolean; ready: (page: im
   { name: "demo (es)", path: "/es/demo", ready: async (page) => { await expect(page.locator("main h1").first()).toBeVisible(); } },
   { name: "sign-in", path: "/workspace/sign-in", app: true, ready: async (page) => { await expect(page.getByLabel("Email")).toBeVisible(); } },
   { name: "direct sign-up", path: "/workspace/start", app: true, ready: async (page) => { await expect(page.getByLabel("Work email")).toBeVisible(); } },
+  // Launch L-24c: the 404 for a URL that matches no page, rendered on the server on both hosts.
+  { name: "404 (es)", path: "/es/no-such-page-l24c", ready: async (page) => { await expect(page.getByRole("heading", { level: 1, name: "Esta página no existe" })).toBeVisible(); } },
+  { name: "404 (app host)", path: "/workspace/no-such-page-l24c", app: true, ready: async (page) => { await expect(page.locator("main h1")).toBeVisible(); } },
 ];
 
 for (const item of pages) {

@@ -37,7 +37,7 @@ import {
   creditsUp, formatCount, formatCreditEuros, formatCredits, formatEuroCents, ucr, useBilling, type BillingSummary,
 } from "./billing-state";
 import { useWorkspace } from "./workspace-context";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 export type BillingView = "overview" | "top-up" | "usage" | "invoices" | "details" | "limits";
 const VIEWS: readonly BillingView[] = ["overview", "top-up", "usage", "invoices", "details", "limits"];

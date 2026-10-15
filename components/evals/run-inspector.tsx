@@ -13,7 +13,7 @@ import { Action, DataTable, DefinitionList, FilterChips, PageHeading, RowTitle, 
 import { OutcomeBar } from "./charts";
 import { RunJudgments } from "./run-judgments";
 import { usePageCrumb } from "./workspace-context";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 
 type RunData = {
   run: { status: string; phase: string; created_at?: string; execution_mode?: string; reason_code?: string | null };

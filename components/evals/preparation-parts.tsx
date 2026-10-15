@@ -12,7 +12,7 @@ import { SPOT_CHECK_SIZE, spotCheckRequired, spotCheckSample, type ReviewMode } 
 import { evalRequest } from "./api";
 import { Action, ActionLink, Badge, Chip, FilterChips, InlineSelect, SearchInput, Status, StatusBadge, TextArea } from "./primitives";
 import { Modal, SidePanel, notify } from "./overlays";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 /* ------------------------------------------------------------- excerpts --- */
 

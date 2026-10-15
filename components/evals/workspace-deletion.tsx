@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { evalRequest } from "./api";
 import { Action, Field, SettingsRow, Status, StatusBadge, Time } from "./primitives";
 import { Modal } from "./overlays";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 
 /** What deleting a workspace does, in the order it happens (launch L-32 spells it out; the workflow is unchanged). */
 const CONSEQUENCES: MessageKey[] = [

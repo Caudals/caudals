@@ -8,7 +8,7 @@ import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SelectField, Sta
 import { CopyField, Modal, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { WorkspaceMemberRoles } from "./workspace-member-roles";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type Invitation = {
   id: string;

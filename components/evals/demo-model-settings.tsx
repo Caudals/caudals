@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 import { evalRequest } from "./api";
 import { Action, Field, Section, SelectField, Status } from "./primitives";
 import { notify } from "./overlays";

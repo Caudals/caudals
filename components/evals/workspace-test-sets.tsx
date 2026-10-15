@@ -32,7 +32,7 @@ import { ExcerptSnippet } from "./preparation-parts";
 import { NoWorkspace } from "./workspace-evaluations";
 import { MonthlyQuestionsPanel, SectorQuestionsCard } from "./sector-questions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type TestSetRow = {
   suite_id: string;

@@ -15,7 +15,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, Eye, EyeOff, Presentation } from "lucide-react";
 import type { ExampleView } from "@/lib/evals/example";
 import type { ResultLabel } from "@/lib/evals/reports/contracts";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import { readoutCopy } from "@/lib/evals/reports/readout-copy";
 import { readoutAccess, type ReadoutMode } from "@/lib/evals/readout/access";
 import { Action, ActionAnchor, ActionLink, Badge, SectionHeading, Stat, StatGrid, Status } from "./primitives";

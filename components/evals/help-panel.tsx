@@ -14,7 +14,7 @@ import { SidePanel } from "./overlays";
 import { formatReviewDate, HelpBody, HelpListItemText, HelpSearchList, useHelpArticles, type HelpTarget } from "./help";
 import { useWorkspace } from "./workspace-context";
 import { helpArticlePath } from "@/lib/evals/help/articles";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import { marketingUrl, methodologyUrl } from "@/lib/evals/public-links";
 
 const CONTACT_EMAIL = "hello@caudals.com";

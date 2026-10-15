@@ -6,7 +6,7 @@ import { Action, Badge, Check, Field, SettingsRow, Status } from "./primitives";
 import { Modal, notify } from "./overlays";
 import { localizePathname } from "@/lib/i18n/routing";
 import { LEGAL_DOCUMENT_PATHS, dpaTemplateFileName } from "@/lib/legal/versions";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 
 /** `GET/POST /workspaces/:id/dpa` (lib/legal/dpa.ts). */
 export type DpaStatus = {

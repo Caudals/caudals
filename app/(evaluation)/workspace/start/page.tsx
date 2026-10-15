@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { evalsPageMessages } from "@/components/evals/page-messages";
 import { SignupStart } from "@/components/evals/signup-start";
 import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
@@ -17,7 +18,12 @@ export default async function StartPage() {
     await requireIdentity(undefined, { allowMfaEnrolment: true });
   } catch (error) {
     if (!(error instanceof EvalError) || error.code !== "SESSION_REQUIRED") throw error;
-    return <SignupStart marketingOrigin={getMarketingSiteOrigin()} />;
+    return (
+      <>
+        {await evalsPageMessages(["workspace/start"])}
+        <SignupStart marketingOrigin={getMarketingSiteOrigin()} />
+      </>
+    );
   }
   redirect("/evaluation-entry");
 }

@@ -16,7 +16,7 @@ import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import { settingsTabs } from "./settings-tabs";
 import { useBilling } from "./billing-state";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export type PaletteLink = { href: string; label: string; icon: ReactNode; group: string };
 type Summary = {

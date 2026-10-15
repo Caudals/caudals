@@ -6,7 +6,7 @@ import {
   SessionRecovery,
   Status,
 } from "@/components/evals/primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export default function EvaluationError({ reset }: { reset: () => void }) {
   return (

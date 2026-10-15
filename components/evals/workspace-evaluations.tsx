@@ -32,7 +32,7 @@ import { scoreHistory, trendPoints } from "@/lib/evals/workspace/health";
 import { ExampleEvaluationCard, ExampleEvaluationLink } from "./example-evaluation-links";
 import { OnboardingChecklist, OnboardingWelcome, useOnboardingEnabled, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { openLimitDialog, usePlanSummary } from "./limit-dialog";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 
 /* ------------------------------------------------------------- listing --- */
 

@@ -6,7 +6,7 @@ import { evalRequest } from "./api";
 import { Action, Badge, DataTable, Field, RowTitle, SectionHeading, SelectField, Status } from "./primitives";
 import { Modal } from "./overlays";
 import { usePlatformAction } from "./platform-action";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type Role = "owner" | "editor" | "viewer" | "operator";
 type Member = { user_id: string; email: string; role: Role };

@@ -1,4 +1,4 @@
-import { getLocale } from "./en";
+import { getLocale } from "./runtime";
 import { serverPhrase } from "./phrases";
 
 /**

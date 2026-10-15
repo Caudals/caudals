@@ -1,4 +1,4 @@
-import { getLocale, t, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, type MessageKey } from "@/lib/evals/messages/runtime";
 import { API_ERROR_REFERENCE, apiCodeMessage, apiErrorText } from "@/lib/evals/messages/api-errors";
 import { planLimitKind, type PlanLimitKind } from "@/lib/billing/plans";
 export class EvalRequestError extends Error {

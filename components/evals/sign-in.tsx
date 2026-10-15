@@ -7,7 +7,7 @@ import { useAuthDestination } from "./use-auth-destination";
 import { evaluationRecoveryPath } from "./auth-path";
 import { AuthFrame } from "./auth-frame";
 import { Action, Field, Status } from "./primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 /**
  * With `directSignup` (SELF_SERVE_DIRECT_SIGNUP, read on the server; launch
  * L-05) the footer offers "New here? Create a free account"; otherwise it

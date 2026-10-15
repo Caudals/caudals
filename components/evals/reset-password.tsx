@@ -9,7 +9,7 @@ import {
 } from "./auth-path";
 import { AuthFrame } from "./auth-frame";
 import { Action, Field, Status } from "./primitives";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 export function EvaluationResetPassword({
   next,
   token,

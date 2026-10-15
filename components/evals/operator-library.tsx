@@ -7,7 +7,7 @@ import { Badge, DataTable, DefinitionList, EmptyState, PageHeading, RowTitle, Se
 import { SidePanel } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { SectorPackLibrary } from "./sector-packs";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 import type { DomainPack } from "@/lib/evals/generation/pack-registry";
 
 export type LibrarySection = "test-sets" | "sources" | "domain-packs" | "sector-packs" | "improvements";

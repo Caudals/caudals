@@ -1,4 +1,5 @@
 import { Geist, Newsreader } from "next/font/google";
+import { evalsPageMessages } from "@/components/evals/page-messages";
 import { VendorFixListPage } from "@/components/evals/vendor-fix-list";
 import { getMarketingSiteOrigin } from "@/lib/seo";
 
@@ -12,9 +13,10 @@ const newsreader = Newsreader({ subsets: ["latin"], style: ["normal"], variable:
  * sent from a report, in the Paper language. No shell: the vendor has no
  * account here. The token stays in the URL fragment.
  */
-export default function Page() {
+export default async function Page() {
   return (
     <div className={`${geist.variable} ${newsreader.variable}`}>
+      {await evalsPageMessages(["share/fixes"])}
       <VendorFixListPage marketingOrigin={getMarketingSiteOrigin()} />
     </div>
   );

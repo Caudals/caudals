@@ -5,7 +5,7 @@ import { KeyRound } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, Badge, Field, SectionHeading, Status, Time } from "./primitives";
 import { notify } from "./overlays";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type CredentialList = {
   targetId: string;

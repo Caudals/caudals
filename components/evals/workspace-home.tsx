@@ -18,7 +18,7 @@ import { useWorkspace } from "./workspace-context";
 import { connectionLabel, evaluationRows, useWorkspaceSummary, type WorkspaceSummary, type WorkspaceSystem } from "./workspace-data";
 import { nextStep } from "./evaluation-stage";
 import { HEALTH_LABEL, scoreHistory, systemHealth, trendPoints, type ScorePoint } from "@/lib/evals/workspace/health";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { useBilling } from "./billing-state";
 import { PlanBalance } from "./workspace-billing";
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowLeft, ArrowRight, Globe, RotateCw, Sparkles, Square, Wrench } from "lucide-react";
 import type { RemoteAction, RemoteInputEvent, RemoteState, RemoteStreamMessage, TeachPart } from "@/lib/evals/contracts/remote-browser";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 import { evalRequest } from "./api";
 import { Action, Badge, Loading, SectionHeading, Status, Steps } from "./primitives";
 import { Workspace } from "./overlays";

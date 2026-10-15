@@ -11,7 +11,7 @@ import { formatReviewDate, HelpBody, HelpListItemText, HelpSearchList, useHelpAr
 import { HelpContact } from "./help-panel";
 import { usePageCrumb, useWorkspace } from "./workspace-context";
 import { helpArticlePath, type HelpArticle, type HelpSlug } from "@/lib/evals/help/articles";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 
 export function HelpCentre() {
   const { withOrg } = useWorkspace();

@@ -4,7 +4,7 @@
  * The report's share dialog and the vendor fix-list dialog both use them.
  */
 import { formatDate } from "./primitives";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 import { shareScope } from "@/lib/evals/reports/share-sections";
 
 /** `open_count` and `last_opened_at` count page opens only (launch L-17); `access_count` also counts downloads. */

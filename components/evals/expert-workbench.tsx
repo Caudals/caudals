@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, ClipboardCheck } from "lucide-react";
 import { slaState } from "@/lib/evals/experts/review-contracts";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { methodologyUrl } from "@/lib/evals/public-links";
 import { evalRequest, EvalRequestError } from "./api";
 import {

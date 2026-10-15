@@ -25,7 +25,7 @@ import {
   type CustomerScope,
   type WebhookEventKind,
 } from "@/lib/evals/monitoring/customer-api";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 const DEFAULT_ORIGIN = "https://app.caudals.com";
 const noSubscription = () => () => undefined;

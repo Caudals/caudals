@@ -20,7 +20,7 @@ import { Action, ActionLink, Badge, Card, Check, EmptyState, Field, Loading, Pag
 import { Modal } from "./overlays";
 import { announceBillingChanged, formatCredits, useBilling } from "./billing-state";
 import { useWorkspace } from "./workspace-context";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 
 type Treatment = "es_vat" | "eu_reverse_charge" | "non_eu_not_subject";
 export type Profile = {

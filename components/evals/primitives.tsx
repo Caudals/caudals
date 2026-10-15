@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { evaluationSignInPath, evaluationRecoveryPath } from "./auth-path";
-import { getLocale, t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/runtime";
 import { hasPhrase, phrase, tr, type Phrase } from "@/lib/evals/messages/phrases";
 
 /* ---------------------------------------------------------------- buttons -- */

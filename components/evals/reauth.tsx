@@ -11,7 +11,7 @@ import { Action, Field, Status } from "./primitives";
 import { Modal } from "./overlays";
 import { betterAuthClient } from "./auth-client";
 import { useWorkspace } from "./workspace-context";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export function useReauth() {
   const { userEmail } = useWorkspace();

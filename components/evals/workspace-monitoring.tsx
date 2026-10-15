@@ -29,7 +29,7 @@ import type { RunEstimate } from "./run-estimate-dialog";
 import { comparisonReasons, scorePercent } from "./run-comparison";
 import { monthlyProjection } from "@/lib/evals/monitoring/projection";
 import { DESTINATION_TYPES, type DestinationType } from "@/lib/evals/monitoring/customer-api";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 type Schedule = {
   id: string;

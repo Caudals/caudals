@@ -17,7 +17,7 @@ import {
   Status, StatusBadge, Steps, Tabs, TextArea, Time, formatDate,
 } from "./primitives";
 import { notify } from "./overlays";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 
 type Basis = "public_information" | "owner_permission";
 type Limits = { dailyCap: number; maxQuestions: number; requestsPerMinute: number; concurrentSessions: number; runsPerMonth: number; helpPages: number };

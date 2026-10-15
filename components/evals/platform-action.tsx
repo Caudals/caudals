@@ -5,7 +5,7 @@ import { EvalRequestError } from "./api";
 import { Status } from "./primitives";
 import { notify } from "./overlays";
 import { useReauth } from "./reauth";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export function usePlatformAction() {
   const [error, setError] = useState<{ message: string } | null>(null);

@@ -4,7 +4,7 @@
  * Every graphic carries its numbers as text as well — colour and length are
  * never the only encoding.
  */
-import { tv } from "@/lib/evals/messages/en";
+import { tv } from "@/lib/evals/messages/runtime";
 import { tr } from "@/lib/evals/messages/phrases";
 
 export type OutcomeCounts = { pass: number; partial: number; fail: number; unscorable: number };

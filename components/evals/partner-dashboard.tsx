@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Copy, Download, ImageUp, Link2, Plus, Trash2, Users } from "lucide-react";
-import { getLocale } from "@/lib/evals/messages/en";
+import { getLocale } from "@/lib/evals/messages/runtime";
 import { partnerCopy } from "@/lib/evals/partners/copy";
 import type { PartnerOverview } from "@/lib/evals/partners/repository";
 import { evalRequest, EvalRequestError } from "./api";

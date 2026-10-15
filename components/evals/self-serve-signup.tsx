@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { localizePathname } from "@/lib/i18n/routing";
-import { getLocale, t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/runtime";
 import { AuthFrame } from "./auth-frame";
 import { betterAuthClient } from "./auth-client";
 import { Action, Check, Field, Status } from "./primitives";

@@ -31,7 +31,7 @@ import {
 import { useWorkspace } from "./workspace-context";
 import type { WorkspaceSummary } from "./workspace-data";
 import { evaluationStage, type StageKey } from "./evaluation-stage";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 import { tr, type Phrase } from "@/lib/evals/messages/phrases";
 import type { OpsKpis } from "@/lib/analytics/ops-kpis";
 

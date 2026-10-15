@@ -5,7 +5,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Action, ActionAnchor, Badge, SelectField, SettingsRow, Status, formatDate } from "./primitives";
 import { Modal, notify } from "./overlays";
 import { OBSERVATION_RETENTION_DAYS, WORKSPACE_EXPORT_LINK_DAYS, type ObservationRetentionDays } from "@/lib/evals/data-controls/flags";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 
 /** `GET/PUT /workspaces/:id/retention` (lib/evals/data-controls/retention.ts). */
 type RetentionPreview = { days: ObservationRetentionDays; due: number; pinned: number; purged: number };
@@ -31,7 +31,7 @@ type WorkspaceExport = {
 };
 
 const KEEP = "keep";
-const loadingLine = (
+const LoadingLine = () => (
   <p className="p-loading" role="status">
     <span className="p-spinner" aria-hidden="true" />
     {t("loading")}
@@ -144,7 +144,7 @@ function RetentionSetting({ orgId }: { orgId: string }) {
           </Action>
         </>
       ) : !status ? (
-        loadingLine
+        <LoadingLine />
       ) : status.canChange ? (
         <form className="p-stack p-stack-tight" onSubmit={submit}>
           {error && !confirming && <Status error>{error}</Status>}
@@ -303,7 +303,7 @@ function ExportSetting({ orgId, owner }: { orgId: string; owner: boolean }) {
           </Action>
         </>
       ) : !exports ? (
-        loadingLine
+        <LoadingLine />
       ) : (
         <span className="p-stack p-stack-tight">
           {error && <Status error>{error}</Status>}

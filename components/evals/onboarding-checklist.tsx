@@ -28,7 +28,7 @@ import {
   CHECKLIST_STEPS, GOALS, SYSTEM_TYPES,
   type ChecklistStep, type FirstEvaluation, type Goal, type SystemType, type WorkspaceOnboarding,
 } from "@/lib/evals/onboarding/config";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 /* ----------------------------------------------------------- availability --- */
 

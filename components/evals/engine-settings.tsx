@@ -13,7 +13,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Action, Badge, Check, Chip, DataTable, Field, RowTitle, Section, SelectField, Status, Switch, Tabs } from "./primitives";
 import { ActionMenu, Modal, notify } from "./overlays";
 import { useReauth } from "./reauth";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 import { apiLabelText, apiResultText } from "@/lib/evals/messages/api-errors";
 import { DemoModelSettings } from "./demo-model-settings";
 
@@ -33,21 +33,21 @@ type Settings = { roles: Role[]; dgxAvailable: boolean; connections: Connection[
 type Model = { id: string; label: string; detail: string | null };
 type Scope = "platform" | "workspace";
 
-const ROLE_COPY: Record<Role, { title: string; help: string }> = {
+const ROLE_COPY = (): Record<Role, { title: string; help: string }> => ({
   context_analyzer: { title: t("roleContextAnalyzer"), help: t("roleContextAnalyzerHelp") },
   generator: { title: t("roleGenerator"), help: t("roleGeneratorHelp") },
   judge: { title: t("roleJudge"), help: t("roleJudgeHelp") },
   report_writer: { title: t("roleReportWriter"), help: t("roleReportWriterHelp") },
-};
+});
 
 /** Roles that can use public web search, and what the web does for each. */
 const WEB_ROLES = ["context_analyzer", "generator", "judge"] as const satisfies readonly Role[];
-const WEB_ROLE_COPY: Record<(typeof WEB_ROLES)[number], { help: string; Icon: typeof Globe }> = {
+const WEB_ROLE_COPY = (): Record<(typeof WEB_ROLES)[number], { help: string; Icon: typeof Globe }> => ({
   context_analyzer: { help: t("engineWebRoleContext"), Icon: FileSearch },
   generator: { help: t("engineWebRoleGenerator"), Icon: PenLine },
   judge: { help: t("engineWebRoleJudge"), Icon: Scale },
-};
-const SEARCH_ENGINES: Array<{ id: SearchEngineId; name: string; help: string }> = [
+});
+const SEARCH_ENGINES = (): Array<{ id: SearchEngineId; name: string; help: string }> => [
   { id: "tavily", name: "Tavily", help: t("engineWebTavily") },
   { id: "exa", name: "Exa", help: t("engineWebExa") },
 ];
@@ -165,7 +165,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
             const { route, inherited } = effective(role);
             return (
               <tr key={role}>
-                <RowTitle meta={ROLE_COPY[role].help}>{ROLE_COPY[role].title}</RowTitle>
+                <RowTitle meta={ROLE_COPY()[role].help}>{ROLE_COPY()[role].title}</RowTitle>
                 <td>
                   {route ? (
                     <span className="p-stack p-stack-tight">
@@ -386,7 +386,7 @@ export function RouteDialog({
     <Modal
       open
       onOpenChange={(open) => !open && onClose()}
-      title={`${t("engineChooseModel")} · ${ROLE_COPY[role].title}`}
+      title={`${t("engineChooseModel")} · ${ROLE_COPY()[role].title}`}
       description={scope === "evaluation" ? t("evaluationModelsApply") : scope === "platform" ? t("engineAppliesPlatform") : `${t("engineAppliesWorkspace")} ${workspaceName}.`}
       alert={<>{saving.message}{listing.message}</>}
       footer={
@@ -578,8 +578,8 @@ function WebResearch({
   const [disconnecting, setDisconnecting] = useState<SearchEngineId | null>(null);
   const [tests, setTests] = useState<Partial<Record<SearchEngineId, { ok: boolean; text: string }>>>({});
   const connected = engines.filter((item) => item.enabled);
-  const primary = SEARCH_ENGINES.find((item) => item.id === connected[0]?.engine);
-  const nameOf = (id: SearchEngineId) => SEARCH_ENGINES.find((item) => item.id === id)?.name ?? id;
+  const primary = SEARCH_ENGINES().find((item) => item.id === connected[0]?.engine);
+  const nameOf = (id: SearchEngineId) => SEARCH_ENGINES().find((item) => item.id === id)?.name ?? id;
   const switchable = WEB_ROLES.filter((role) => {
     const { route, inherited } = effective(role);
     return route && !inherited && route.web_capable && !route.web_research;
@@ -615,7 +615,7 @@ function WebResearch({
         {WEB_ROLES.map((role) => {
           const { route, inherited } = effective(role);
           const on = !!route?.web_research;
-          const { Icon, help } = WEB_ROLE_COPY[role];
+          const { Icon, help } = WEB_ROLE_COPY()[role];
           const note = !route ? t("engineWebNeedsModel")
             : inherited ? t("engineWebAllWorkspaces")
             : !route.web_capable ? t("engineWebNeedsEngine")
@@ -624,7 +624,7 @@ function WebResearch({
             <div key={role} className="p-web-role" data-on={on ? "true" : undefined}>
               <div className="p-web-role-head">
                 <Icon aria-hidden="true" />
-                <h3 id={`web-role-${role}`}>{ROLE_COPY[role].title}</h3>
+                <h3 id={`web-role-${role}`}>{ROLE_COPY()[role].title}</h3>
                 <Switch
                   aria-labelledby={`web-role-${role}`}
                   checked={on}
@@ -645,7 +645,7 @@ function WebResearch({
           <p>{t("engineWebEnginesHelp")}</p>
         </div>
         <DataTable caption={t("engineWebEngines")} headers={[t("engineWebEngine"), t("engineWebStatus"), { label: t("actions"), align: "end", hidden: true }]}>
-          {SEARCH_ENGINES.map((engine) => {
+          {SEARCH_ENGINES().map((engine) => {
             const row = engines.find((item) => item.engine === engine.id && item.enabled);
             const rank = row ? connected.indexOf(row) : -1;
             const result = tests[engine.id];
@@ -751,7 +751,7 @@ function ConnectSearchDialog({ orgId, engine, name, onClose, onSaved }: { orgId:
       open
       onOpenChange={(value) => !value && onClose()}
       title={tv("engineWebConnectTitle", { engine: name })}
-      description={SEARCH_ENGINES.find((item) => item.id === engine)?.help}
+      description={SEARCH_ENGINES().find((item) => item.id === engine)?.help}
       alert={action.message}
       size="sm"
       footer={

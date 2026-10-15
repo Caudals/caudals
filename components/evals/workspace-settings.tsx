@@ -22,7 +22,7 @@ import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary, type WorkspaceSummary } from "./workspace-data";
 import { rememberTab, rememberedTab, settingsTabs, type SettingsTab } from "./settings-tabs";
-import { getLocale, t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/runtime";
 
 type Tab = SettingsTab;
 

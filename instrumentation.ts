@@ -7,6 +7,10 @@ export async function register() {
     );
     registerOpenTelemetry();
     await import("./sentry.server.config");
+    // The evaluation app's message lookup (lib/evals/messages/runtime.ts) is
+    // shared by every server module graph; registering both catalogues at
+    // start-up means no route can read it before a layout loaded them (L-24c).
+    await import("./lib/evals/messages/en");
     // Resume durable demo work and pending notifications after a restart,
     // even when the visitor closed the report page. Build workers never run it.
     if (process.env.DEMO_ENABLED === "true" && process.env.NEXT_PHASE !== "phase-production-build") {

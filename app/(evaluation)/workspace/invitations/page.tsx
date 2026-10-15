@@ -4,6 +4,7 @@ import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
 import { EvalShell } from "@/components/evals/shell";
 import { PublicFrame } from "@/components/evals/public-frame";
+import { evalsPageMessages } from "@/components/evals/page-messages";
 export default async function InvitationPage() {
   let identity;
   try {
@@ -16,9 +17,16 @@ export default async function InvitationPage() {
       throw error;
   }
   const content = <InvitationAcceptance authenticated={!!identity} />;
+  // Signed in, the page is inside the app's shell and gets every message (L-24c).
   return identity ? (
-    <EvalShell identity={identity}>{content}</EvalShell>
+    <>
+      {await evalsPageMessages("all")}
+      <EvalShell identity={identity}>{content}</EvalShell>
+    </>
   ) : (
-    <PublicFrame contextKey="invitations">{content}</PublicFrame>
+    <>
+      {await evalsPageMessages(["workspace/invitations"])}
+      <PublicFrame contextKey="invitations">{content}</PublicFrame>
+    </>
   );
 }

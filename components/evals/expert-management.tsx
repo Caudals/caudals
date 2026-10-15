@@ -6,7 +6,7 @@ import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import { SidePanel } from "./overlays";
 import { ExpertBench, ReviewRequestList } from "./expert-reviews";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 import {
   Action, Card, DataTable, EmptyState, Field, PageHeading, RowTitle,
   Stat, StatGrid, Status, StatusBadge, Tabs, Toolbar,

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { evaluationSignInPath, invitationPath, invitationTokenFromFragment } from "./auth-path";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 import { Action, ActionLink, Field, Status, SessionRecovery } from "./primitives";
 import { evalRequest, EvalRequestError } from "./api";
 

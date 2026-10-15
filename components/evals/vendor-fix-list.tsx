@@ -13,7 +13,7 @@ import Image from "next/image";
 import { ArrowUpRight, Download, FileText } from "lucide-react";
 import { VerdictMark } from "@/components/demo/verdict";
 import type { Verdict } from "@/lib/demo/judge";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { answerCount, buildFixes, fixesCsv, fixesMarkdown, type Fix, type FixEvidence } from "@/lib/evals/reports/fixes";
 import { isFixListShare, type FixListShare } from "@/lib/evals/reports/fix-list-share";
 import { fill, summaryCopy } from "@/lib/evals/reports/summary-copy";

@@ -6,7 +6,7 @@ import { EvalRequestError } from "./api";
 import { Status, formatMoney } from "./primitives";
 import { notify } from "./overlays";
 import { useReauth } from "./reauth";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 /** Credits as people read them (grouped, at most two decimals). */
 export const credits = (value: string | number | null | undefined) => (value == null ? "—" : formatMoney(value));

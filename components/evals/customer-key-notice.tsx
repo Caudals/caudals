@@ -10,7 +10,7 @@ import { KeyRound } from "lucide-react";
 import { ActionLink, Status } from "./primitives";
 import { useWorkspace } from "./workspace-context";
 import { BYOK_FIX_PATH, type CustomerKeyReason } from "@/lib/evals/byok/shared";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 export function customerKeyReasonText(reason: CustomerKeyReason) {
   return t(`keyReason_${reason}` as MessageKey);

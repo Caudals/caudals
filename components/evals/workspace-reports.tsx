@@ -9,7 +9,7 @@ import { ActionMenu } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { useWorkspaceSummary } from "./workspace-data";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export function WorkspaceReports() {
   const { orgId, workspace, withOrg, canWrite } = useWorkspace();

@@ -17,7 +17,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import Link from "next/link";
 import { EyeOff, FlaskConical } from "lucide-react";
 import { EXAMPLE_EVALUATION_PATH } from "@/lib/evals/example/public";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 import { Action, ActionLink, Badge, Card, SettingsRow } from "./primitives";
 import { notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { evalRequest } from "./api";
 import { evaluationStage, type Stage } from "./evaluation-stage";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 export type WorkspaceEvaluation = {
   id: string;

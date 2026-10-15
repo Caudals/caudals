@@ -5,7 +5,7 @@ import type { GrowthData } from "@/lib/analytics/growth";
 import { Action, Badge, DataTable, PageHeading, Stat, StatGrid, Time, humanize, Section } from "./primitives";
 import { evalRequest } from "./api";
 import { notify } from "./overlays";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/runtime";
 import { tr, type Phrase } from "@/lib/evals/messages/phrases";
 /** Connection kinds as people say them (launch L-21). */
 const CONNECTION: Record<string, Phrase> = { website: "Website chatbot", openai_compatible: "OpenAI-compatible API", https_json: "HTTPS JSON API", provider_native: "Provider API", imported_responses: "Uploaded answers", private_runner: "Private runner" };

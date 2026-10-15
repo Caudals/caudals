@@ -14,7 +14,7 @@ import { Action, DataTable, FilterChips, RowTitle, SectionHeading, Status, Time 
 import { CopyField, Modal, SidePanel, notify } from "./overlays";
 import { SHARE_EXPIRY_PRESETS, isFixListLink, openedLabel, type ShareExpiry, type ShareLink } from "./share-links";
 import { VendorFixList } from "./vendor-fix-list";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { answerCount, buildFixes } from "@/lib/evals/reports/fixes";
 import { projectFixList } from "@/lib/evals/reports/fix-list-share";

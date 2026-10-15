@@ -23,7 +23,7 @@ import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type 
 import type { ReviewMode } from "@/lib/evals/review/spot-check";
 import { ContextConfirmation, DocumentIntake, HelpCentreImport, ScanNotice, scanInfo, type ScanInfo } from "./intake";
 import { CONFIRMATION_REASON } from "@/lib/evals/intake/constants";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { isCustomerKeyReason } from "@/lib/evals/byok/shared";
 import { CustomerKeyNotice, customerKeyReasonText } from "./customer-key-notice";
 

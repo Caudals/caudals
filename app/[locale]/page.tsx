@@ -23,6 +23,12 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+// Only `/en` and `/es`. Any other single segment (`app.caudals.com/nada`) is
+// a miss answered by `app/global-not-found.tsx`, rendered on the server,
+// instead of a layout that calls `notFound()` and leaves the 404 to the
+// browser (launch L-24c).
+export const dynamicParams = false;
+
 type HomePageProps = { params: Promise<{ locale: string }> };
 
 /** Where an offer starts: the free test, the app (account, credits) or the contact form. */

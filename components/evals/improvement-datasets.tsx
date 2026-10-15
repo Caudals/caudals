@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DatabaseZap } from "lucide-react";
-import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import {

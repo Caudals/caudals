@@ -47,7 +47,7 @@ import { ModelRates, RunEstimateDialog } from "./run-estimate-dialog";
 import { TopUpDialog } from "./billing-top-up";
 import { CompareRunsDialog, RunComparisonPanel } from "./run-comparison";
 import { billingHref } from "./workspace-billing";
-import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import { isCustomerKeyReason } from "@/lib/evals/byok/shared";
 import { CustomerKeyNotice } from "./customer-key-notice";
 import type { HelpContextKey } from "@/lib/evals/help/articles";

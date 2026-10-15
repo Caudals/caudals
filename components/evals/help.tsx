@@ -13,7 +13,7 @@ import { useWorkspace } from "./workspace-context";
 import { Action, SearchInput, Status } from "./primitives";
 import { CONTEXT_HELP, helpArticlePath, loadHelpIndex, searchHelp, type HelpArticle, type HelpContextKey, type HelpIndex, type HelpSlug } from "@/lib/evals/help/articles";
 import { parseMarkdown, type Inline } from "@/lib/evals/help/markdown";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 
 export type HelpTarget = { slug: HelpSlug; section?: string };
 

@@ -6,7 +6,7 @@ import {
   REVIEW_SECTORS, missingOnboarding, slaState,
   type ExpertOnboardingInput, type ReviewScope, type ReviewSector,
 } from "@/lib/evals/experts/review-contracts";
-import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { expertReviewLabel } from "@/lib/evals/reports/summary";
 import { evalRequest } from "./api";
 import { SECTOR_LABEL } from "./expert-review-request";

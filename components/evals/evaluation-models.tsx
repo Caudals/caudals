@@ -4,7 +4,7 @@ import { ChevronDown, Cpu, RotateCcw } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, Badge, Status } from "./primitives";
 import { RouteDialog, type Connection, type Role, type Route } from "./engine-settings";
-import { t } from "@/lib/evals/messages/en";
+import { t } from "@/lib/evals/messages/runtime";
 
 type Settings={roles:Role[];connections:Connection[];evaluation:Route[];workspace:Route[];platform:Route[]};
 const titles:Record<Role,()=>string>={context_analyzer:()=>t("roleContextAnalyzer"),generator:()=>t("roleGenerator"),judge:()=>t("roleJudge"),report_writer:()=>t("roleReportWriter")};

@@ -14,7 +14,7 @@ import { Action, Badge, Check, DataTable, DefinitionList, EmptyState, Field, Pag
 import { SidePanel, notify } from "./overlays";
 import { useClientSummaries } from "./operator-overview";
 import { useWorkspace } from "./workspace-context";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/runtime";
 import type { ResultLabel } from "@/lib/evals/reports/contracts";
 import { ResultBadge, labelOf } from "./result-labels";
 
