@@ -20,6 +20,9 @@
  * {@link SAME_IN_BOTH}). Labels shown through `tr("…")` or `phrase("…")`
  * must have an entry in the Spanish phrase table.
  *
+ * The API's error codes and messages (`scripts/i18n/api-errors.ts`) each need
+ * English and Spanish in `lib/evals/messages/api-errors.ts`.
+ *
  * Last, it runs the `caudals/no-ui-literals` lint rule (scripts/lint) over
  * the evaluation app, the demo, the email templates and the public site, so a
  * string written straight into a component fails here as well as in
@@ -39,11 +42,13 @@ import { INVOICE_COPY } from "@/lib/billing/invoicing/copy";
 import { messages as appEn } from "@/lib/evals/messages/en";
 import { es as appEs } from "@/lib/evals/messages/es";
 import { hasPhrase } from "@/lib/evals/messages/phrases";
+import { API_CODES, API_ERROR_FALLBACK, API_ERROR_PAGE, API_ERROR_REFERENCE, API_MESSAGES_ES, API_PATTERNS_ES, spanishApiMessage } from "@/lib/evals/messages/api-errors";
 import { reportStrings } from "@/lib/evals/reports/i18n";
 import { READOUT_COPY } from "@/lib/evals/reports/readout-copy";
 import { SUMMARY_COPY } from "@/lib/evals/reports/summary-copy";
 import { ESLint } from "eslint";
 import { ALLOWED_TERMS, hasProse, termsPattern, UI_LITERAL_DIRS } from "./lint/no-ui-literals.mjs";
+import { apiErrorProblems, collectApiErrors } from "./i18n/api-errors";
 
 /**
  * Words spelled the same in English and Spanish, accepted when a value is
@@ -202,8 +207,22 @@ comparePair("legal pages (content/legal)", readJson("content/legal/en.json"), re
   summary.push(`phrase table: ${calls} fixed labels`);
 }
 
+// 4. API errors (launch L-23b): every code and sentence the server can send
+// has a message in both languages; the app shows the Spanish one.
+{
+  const inventory = collectApiErrors();
+  const catalogue = { spanish: (message: string) => spanishApiMessage(message), patterns: API_PATTERNS_ES, codes: API_CODES, owned: API_MESSAGES_ES };
+  for (const { kind, items } of apiErrorProblems(inventory, catalogue)) report("API errors (lib/evals/messages/api-errors.ts)", kind, items);
+  const side = (locale: "en" | "es") => ({
+    codes: Object.fromEntries(Object.entries(API_CODES).map(([code, text]) => [code, text[locale]])),
+    fallback: API_ERROR_FALLBACK[locale], page: API_ERROR_PAGE[locale], reference: API_ERROR_REFERENCE[locale],
+  });
+  comparePair("API error messages (lib/evals/messages/api-errors.ts)", side("en"), side("es"));
+  summary.push(`API errors: ${inventory.codes.size} codes, ${inventory.messages.size} messages, ${inventory.patterns.size} patterns from ${inventory.files} files`);
+}
+
 async function main() {
-  // 4. No text in the app, the demo, the email templates or the public site
+  // 5. No text in the app, the demo, the email templates or the public site
   // bypasses the catalogues (the lint rule, without the rest of `npm run lint`).
   {
     const eslint = new ESLint({ overrideConfigFile: "scripts/lint/ui-literals.config.mjs" });

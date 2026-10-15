@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { evaluationSignInPath, evaluationRecoveryPath } from "./auth-path";
 import { getLocale, t } from "@/lib/evals/messages/en";
-import { phrase, tr, type Phrase } from "@/lib/evals/messages/phrases";
+import { hasPhrase, phrase, tr, type Phrase } from "@/lib/evals/messages/phrases";
 
 /* ---------------------------------------------------------------- buttons -- */
 
@@ -378,7 +378,19 @@ export function humanize(value: string) {
   const known = STATUS[value];
   if (known) return tr(known.label);
   const words = value.replaceAll("_", " ").trim();
-  return words ? tr(words[0].toUpperCase() + words.slice(1)) : value;
+  if (!words) return value;
+  const label = words[0].toUpperCase() + words.slice(1);
+  // A code with no Spanish label shows as the code itself, never as English words (launch L-23b).
+  return getLocale() === "es" && !hasPhrase(label) ? value : tr(label);
+}
+
+/**
+ * A machine code (a reason or error code) with no label of its own: words in
+ * English, the code itself in Spanish (an identifier, never an English
+ * sentence; launch L-23b).
+ */
+export function codeText(code: string): string {
+  return getLocale() === "es" ? code : code.replaceAll("_", " ");
 }
 
 export function toneFor(value: string): Tone {

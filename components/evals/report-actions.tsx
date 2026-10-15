@@ -10,7 +10,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Rea
 import { useRouter } from "next/navigation";
 import { BadgeCheck, ChevronDown, Download, Eye, FileText, GitCompare, History, Pencil, RefreshCcw, Share2, Sparkles, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
-import { Action, ActionAnchor, Badge, Check, DataTable, Field, FilterChips, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
+import { Action, ActionAnchor, Badge, Check, DataTable, Field, FilterChips, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time, codeText } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
@@ -607,7 +607,7 @@ function TakeawaysDialog({ open, onOpenChange, orgId, reportId, revision, onChan
               <span className="p-keys-main">
                 <span className="p-keys-name">{t("draft")}</span>
                 <span className="p-cell-meta">
-                  {item.reason_code?.replaceAll("_", " ") ?? ""}
+                  {item.reason_code ? codeText(item.reason_code) : ""}
                   {item.rejected_count ? ` · ${item.rejected_count} ${t("claimsRejected")}` : ""}
                 </span>
               </span>

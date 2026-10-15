@@ -14,6 +14,7 @@ import { Action, Badge, Check, Chip, DataTable, Field, RowTitle, Section, Select
 import { ActionMenu, Modal, notify } from "./overlays";
 import { useReauth } from "./reauth";
 import { t, tv } from "@/lib/evals/messages/en";
+import { apiLabelText, apiResultText } from "@/lib/evals/messages/api-errors";
 import { DemoModelSettings } from "./demo-model-settings";
 
 export type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
@@ -423,7 +424,7 @@ export function RouteDialog({
                   <input type="radio" name="engine-model" value={item.id} checked={item.id === modelId} onChange={() => setModelId(item.id)} />
                   <span>
                     <span className="p-check-label">{item.label}</span>
-                    {item.detail && <span className="p-check-desc">{item.detail}</span>}
+                    {item.detail && <span className="p-check-desc">{apiLabelText(item.detail)}</span>}
                   </span>
                 </label>
               ))}
@@ -459,7 +460,7 @@ export function RouteDialog({
         {commercial && <p className="p-field-hint">{t("engineDataNotice")}</p>}
         {test && (
           <Status error={!test.ok}>
-            {test.message} ({Math.round(test.latencyMs / 100) / 10} s)
+            {apiResultText(test.message)} ({Math.round(test.latencyMs / 100) / 10} s)
           </Status>
         )}
       </form>
@@ -594,7 +595,7 @@ function WebResearch({
     setTests((current) => ({ ...current, [engine]: undefined }));
     await action.run(async () => {
       const result = await evalRequest<{ ok: boolean; latencyMs: number; results: Array<{ url: string; title: string }>; message?: string }>("/engine/web-search/test", "POST", { orgId, engine });
-      setTests((current) => ({ ...current, [engine]: { ok: result.ok, text: result.ok ? tv("engineWebTestOk", { count: result.results.length, seconds: Math.round(result.latencyMs / 100) / 10 }) : result.message ?? t("error") } }));
+      setTests((current) => ({ ...current, [engine]: { ok: result.ok, text: result.ok ? tv("engineWebTestOk", { count: result.results.length, seconds: Math.round(result.latencyMs / 100) / 10 }) : result.message ? apiResultText(result.message) : t("error") } }));
     });
   }
 

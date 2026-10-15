@@ -51,4 +51,28 @@ describe("evaluation API failures", () => {
     expect(log).toHaveBeenCalledWith("eval_api_request_failed", expect.objectContaining({ database_code: "42501" }));
     expect(JSON.stringify(log.mock.calls)).not.toContain("customer table");
   });
+
+  it("answers a link opened in the browser with a page in the reader's language (launch L-23b)", async () => {
+    mocks.requireIdentity.mockResolvedValue({ user: { id: "fixture-user", name: "Fixture", email: "fixture@example.test" }, platformRole: null, workspaces: [] });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { EvalError } = await import("@/lib/evals/domain/errors");
+    const handler = api(async () => { throw new EvalError("INPUT_INVALID", 422, "Approve the test set before downloading the grading sheet."); });
+    const navigate = (extra: Record<string, string>) => new Request("https://evals.test/api/evals/v1/evaluations/1/graded-results", { headers: { "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", ...extra } });
+
+    const spanish = await handler(navigate({ cookie: "caudals_locale=es" }));
+    expect(spanish.status).toBe(422);
+    expect(spanish.headers.get("content-type")).toContain("text/html");
+    expect(spanish.headers.get("cache-control")).toContain("no-store");
+    const page = await spanish.text();
+    expect(page).toContain('lang="es"');
+    expect(page).toContain("Aprueba el conjunto de pruebas antes de descargar la hoja de calificación.");
+    expect(page).not.toContain("Approve the test set");
+
+    const english = await (await handler(navigate({ "accept-language": "en-GB" }))).text();
+    expect(english).toContain("Approve the test set before downloading the grading sheet.");
+
+    // The app's own requests and integrations keep the JSON contract.
+    const json = await handler(new Request("https://evals.test/api/evals/v1/evaluations/1/graded-results", { headers: { "sec-fetch-mode": "cors", cookie: "caudals_locale=es" } }));
+    expect((await json.json()).error).toMatchObject({ code: "INPUT_INVALID", message: "Approve the test set before downloading the grading sheet." });
+  });
 });

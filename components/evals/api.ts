@@ -1,5 +1,5 @@
-import { t, type MessageKey } from "@/lib/evals/messages/en";
-import { trServer } from "@/lib/evals/messages/phrases";
+import { getLocale, t, type MessageKey } from "@/lib/evals/messages/en";
+import { API_ERROR_REFERENCE, apiCodeMessage, apiErrorText } from "@/lib/evals/messages/api-errors";
 import { planLimitKind, type PlanLimitKind } from "@/lib/billing/plans";
 export class EvalRequestError extends Error {
   constructor(
@@ -9,17 +9,32 @@ export class EvalRequestError extends Error {
     serverMessage?: string,
   ) {
     const message = getSafeErrorMessage(status, code, serverMessage);
-    super(status >= 500 && requestId && !["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code) ? `${message} Reference: ${requestId}.` : message);
+    super(status >= 500 && requestId && !["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code) ? `${message} ${API_ERROR_REFERENCE[getLocale()].replace("{id}", requestId)}` : message);
     this.name = "EvalRequestError";
   }
+}
+
+/** The error of a direct `fetch` to the API (uploads), shown like any other. */
+export function evalResponseError(status: number, body: unknown): EvalRequestError {
+  const error = (body as { error?: { code?: unknown; message?: unknown; request_id?: unknown } } | null)?.error;
+  return new EvalRequestError(
+    status,
+    typeof error?.code === "string" ? error.code : "UNKNOWN",
+    typeof error?.request_id === "string" ? error.request_id : undefined,
+    typeof error?.message === "string" ? error.message : undefined,
+  );
 }
 
 /**
  * The API only ever returns curated messages (a known EvalError sentence or a
  * generic fallback), so a 4xx message is safe to show and far more useful than
  * a generic one. Sessions, permissions and server faults keep fixed wording.
+ * Sentences reach the reader in their language (launch L-23b): a Spanish
+ * reader sees the Spanish sentence, or the code's own message, never English.
  */
 function getSafeErrorMessage(status: number, code: string, serverMessage?: string): string {
+  // No answer at all (offline, DNS, a dropped connection).
+  if (status === 0) return apiCodeMessage(code);
   if (code === "REAUTHENTICATION_REQUIRED") return t("reauthRequired");
   // A typed plan limit (launch L-14): the upgrade dialog explains it; the inline message names it.
   const limit = planLimitKind(code);
@@ -28,7 +43,7 @@ function getSafeErrorMessage(status: number, code: string, serverMessage?: strin
   if (status === 401) return t("expired");
   if (status === 403) return t("forbidden");
   if (status === 404) return t("notFound");
-  if (status >= 400 && status < 500 && serverMessage && !/^Check the supplied fields\.?$/.test(serverMessage) && !code.startsWith("INVITATION_")) return trServer(serverMessage);
+  if (status >= 400 && status < 500 && serverMessage && !/^Check the supplied fields\.?$/.test(serverMessage) && !code.startsWith("INVITATION_")) return apiErrorText(code, serverMessage);
   if (
     [
       "INVITATION_INVALID",
@@ -40,7 +55,7 @@ function getSafeErrorMessage(status: number, code: string, serverMessage?: strin
   if (status === 409) return t("reloadAndRetry");
   if (status === 429) return t("tryAgainShortly");
   // Configuration gaps (no model, no budget) carry a curated sentence that tells the person what to do.
-  if (status === 503 && serverMessage && ["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code)) return trServer(serverMessage);
+  if (status === 503 && serverMessage && ["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code)) return apiErrorText(code, serverMessage);
   if (status >= 500) return t("error");
   return t("checkDetails");
 }
@@ -56,16 +71,22 @@ export async function evalRequest<T>(
   body?: unknown,
   idempotencyKey?: string,
 ): Promise<T> {
-  const response = await fetch(`/api/evals/v1${path}`, {
-    method,
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: {
-      ...(body ? { "Content-Type": "application/json" } : {}),
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`/api/evals/v1${path}`, {
+      method,
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    // The browser's own text ("Failed to fetch") is English whatever the reader's language.
+    throw new EvalRequestError(0, "NETWORK_ERROR");
+  }
   if (response.status === 204) return undefined as T;
   const result = await response.json().catch(() => null);
   // A request for a fresh confirmation is not an expired session.

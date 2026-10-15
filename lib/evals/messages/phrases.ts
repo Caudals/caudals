@@ -36,6 +36,11 @@ const ES = {
   Disabled: "Desactivado", Revoked: "Revocado", "Token expired": "Token caducado", Unsupported: "No admitido", "Needs assistance": "Necesita ayuda",
   "System error": "Error del sistema", "Network error": "Error de red", "Timed out": "Tiempo agotado", "Capture incomplete": "Captura incompleta",
   "Needs attention": "Requiere atención", Checking: "Comprobando",
+  // A system's last connection error, shown through humanize() (launch L-23b).
+  "Invalid credentials": "Credenciales no válidas", "Connection unsupported": "Conexión no admitida", "Connection check failed": "La comprobación de la conexión ha fallado",
+  "Destination denied": "Destino no permitido", "Destination invalid": "Destino no válido", "Target unreachable": "Sistema inaccesible",
+  "Captcha present": "La página muestra un captcha", "Recipe not found": "No se encuentra la receta", "Website completion unverified": "No se ha podido verificar el final de la respuesta",
+  "Browser probe outcome unknown": "Resultado desconocido de la prueba del navegador",
   "Unknown outcome": "Resultado desconocido", "Pairing required": "Emparejamiento pendiente", "Awaiting runner": "Esperando al ejecutor",
   "Website chatbot": "Chatbot web", "OpenAI-compatible API": "API compatible con OpenAI", "Provider API": "API del proveedor",
   "HTTPS JSON API": "API JSON HTTPS", "Uploaded answers": "Respuestas subidas", "Private runner": "Ejecutor privado",
@@ -273,7 +278,15 @@ const SERVER_ES: Record<string, string> = {
   "A countersigned copy is already attached. Remove it first.": "Ya hay una copia firmada adjunta. Quítala primero.",
 };
 
-/** Translate a curated server sentence; evaluation- or model-specific details keep their wording. */
+/** The Spanish of a curated server sentence in the table above, or null (read by `api-errors.ts`, launch L-23b). */
+export function serverPhrase(message: string): string | null {
+  return Object.hasOwn(SERVER_ES, message) ? SERVER_ES[message] : null;
+}
+
+/**
+ * Translate a curated server sentence; evaluation- or model-specific details keep their wording.
+ * API errors go through `apiErrorText` (`api-errors.ts`), which never leaves English in Spanish.
+ */
 export function trServer(message: string): string {
   if (getLocale() !== "es") return message;
   if (SERVER_ES[message]) return SERVER_ES[message];

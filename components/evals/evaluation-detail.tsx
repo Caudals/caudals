@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Activity, ArrowRight, CreditCard, Download, FileCheck2, GitCompare, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
-import { evalRequest, EvalRequestError } from "./api";
+import { evalRequest, EvalRequestError, evalResponseError } from "./api";
 import {
   Action,
   ActionAnchor,
@@ -286,7 +286,7 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
       const key = `graded-${evaluation.id}-${[...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
       const response = await fetch(`/api/evals/v1/evaluations/${evaluation.id}/graded-results`, { method: "POST", headers: { "Idempotency-Key": key }, body: form });
       const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(body?.error?.message ?? t("gradedResultsFailed"));
+      if (!response.ok) throw body?.error ? evalResponseError(response.status, body) : new Error(t("gradedResultsFailed"));
       notify(t("gradedResultsSaved"));
       router.push(withOrg(`/workspace/reports/${body.data.reportId}`));
     } catch (value) {

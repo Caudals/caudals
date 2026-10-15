@@ -87,7 +87,8 @@ browser keeps the `#token` fragment. Strings live in `lib/evals/messages/en.ts` 
 (a missing Spanish key would fall back to English, so `npm run i18n:check-parity`
 fails on one); fixed labels in data tables go through `tr()` in
 `lib/evals/messages/phrases.ts` (marked `phrase("…")` where they are defined),
-and curated server messages through `trServer()`. Spanish pages render on the client only, so the server
+and API errors through `apiErrorText()` (`lib/evals/messages/api-errors.ts`, launch L-23b; see
+below). Spanish pages render on the client only, so the server
 never sends English text they would replace. PDF and Word exports are written
 in the requester's language (`lib/evals/reports/i18n.ts`); recorded questions,
 answers and model-written text keep their own words. Retained `/auth/*`
@@ -170,6 +171,37 @@ routes remain English-only; `/admin` is removed and returns 404.
   (`spanish.contract.ts` and the Spanish tests of the other contracts). The
   image build runs the parity script and these tests, because the
   general CI workflow is disabled.
+- API errors in the reader's language (launch L-23b). The API keeps its
+  contract: `{ error: { code, message } }` with a stable code and an English
+  sentence. `evalRequest`/`EvalRequestError` (`components/evals/api.ts`) show
+  the sentence through `apiErrorText(code, message)`: in Spanish its entry in
+  `API_MESSAGES_ES` (or the older `SERVER_ES` table in `phrases.ts`), a
+  sentence with run-time parts through `API_PATTERNS_ES`, sentences joined
+  into one message one by one, otherwise the code's own message
+  (`API_CODES`, EN and ES), and for an unknown code a generic message with the
+  code — never English prose. A failed `fetch` (offline) is `NETWORK_ERROR`
+  and the 5xx support reference is localized. Direct `fetch` uploads build
+  their error with `evalResponseError(status, body)`. Results the app shows
+  (connection and web-search tests) go through `apiResultText()`, which
+  quotes a model provider's own words as such. A reason or error code without
+  a label of its own is shown by `codeText()`/`humanize()` as the code itself
+  in Spanish, not as English words. A GET opened in the browser (a download
+  link, a file in a new tab: `Sec-Fetch-Mode: navigate`) that fails gets a
+  small page in the reader's language (`errorPage` in
+  `lib/evals/domain/http.ts`, cookie then `Accept-Language`) with the API's
+  status, instead of raw JSON. Token APIs for integrators
+  (`/api/evals/v1/integrations/*`, the CI trigger, token estimates) and the
+  private runner keep English codes and messages by contract.
+- `scripts/i18n/api-errors.ts` lists every code and sentence the server can
+  send (each `new EvalError(code, status, message)`, its default message,
+  message tables, destructured tuples, helpers and subclasses that forward a
+  message, route bodies outside `api()`, the sector-pack database messages
+  the API passes through, and the platform admin's test results). `npm run
+  i18n:check-parity` and `tests/i18n/api-errors.test.ts` (both in the image
+  build) fail on a code or sentence without both languages, on a Spanish entry
+  nothing sends any more, and on a message built at run time that is not
+  reviewed in `DYNAMIC_SITES`. A new server message therefore needs its
+  Spanish in `API_MESSAGES_ES` (or `API_PATTERNS_ES`) in the same change.
 
 ### SEO
 

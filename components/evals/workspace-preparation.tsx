@@ -13,7 +13,7 @@ import { BookOpen, FileText, Globe, Plus, Search, Sparkles, Upload, X } from "lu
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { AUTOMATIC_PROMPT_REVISION } from "@/lib/evals/onboarding/config";
 import { evalRequest } from "./api";
-import { Action, Badge, Field, Progress, SectionHeading, SelectField, Status, TextArea } from "./primitives";
+import { Action, Badge, Field, Progress, SectionHeading, SelectField, Status, TextArea, codeText } from "./primitives";
 import { notify } from "./overlays";
 import { WebDiscovery } from "./web-discovery";
 import { HelpLink } from "./help";
@@ -926,5 +926,5 @@ function humanizeReason(reason: string, intakeV2 = false) {
     website_url_invalid: "reasonWebsiteUrl",
     website_worker_interrupted: "reasonWebsiteInterrupted",
   };
-  return known[reason] ? t(known[reason]) : reason.replaceAll("_", " ");
+  return known[reason] ? t(known[reason]) : codeText(reason);
 }

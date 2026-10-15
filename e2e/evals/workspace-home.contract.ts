@@ -243,6 +243,37 @@ test("Fix opens the system at its key, Check now reports the limit, and viewers 
   await expect(page.getByRole("link", { name: /Fix/ })).toHaveCount(0);
 });
 
+test("API errors read in Spanish: a known sentence, an unknown one and a dropped connection (launch L-23b)", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await routeWorkspace(page, summary());
+  const answers = [
+    { status: 429, json: { error: { code: "RATE_LIMITED", message: "Too many connection checks. Try again in 7 min.", request_id: "r", retryable: true } } },
+    { status: 409, json: { error: { code: "VERSION_CONFLICT", message: "A sentence the server added later, without Spanish yet.", request_id: "r", retryable: false } } },
+    { status: 409, json: { error: { code: "BRAND_NEW_CODE", message: "Another sentence without Spanish.", request_id: "r", retryable: false } } },
+  ];
+  let call = 0;
+  await page.route(`**/api/evals/v1/targets/${SYSTEMS.api.target_revision_id}/checks`, (route) => {
+    const answer = answers[call++];
+    return answer ? route.fulfill(answer) : route.abort("internetdisconnected");
+  });
+  await page.goto(`/workspace/systems?orgId=${ORG}&editor&system=${SYSTEMS.api.id}&fix=1`);
+  const panel = page.getByRole("dialog", { name: "Claims API" });
+  await expect(panel).toBeVisible();
+  // The system's last connection error is a code with its Spanish label.
+  await expect(panel).toContainText("Credenciales no válidas");
+  const check = panel.getByRole("button", { name: /Comprobar ahora/ });
+  await check.click();
+  await expect(panel.getByRole("alert")).toContainText("Demasiadas comprobaciones de conexión. Vuelve a intentarlo dentro de 7 min.");
+  await check.click();
+  await expect(panel.getByRole("alert")).toHaveText("Esto ha cambiado mientras tanto. Vuelve a cargar la página e inténtalo de nuevo.");
+  await check.click();
+  await expect(panel.getByRole("alert")).toContainText("(código BRAND_NEW_CODE)");
+  await check.click();
+  await expect(panel.getByRole("alert")).toHaveText("No se ha podido conectar con Caudals. Comprueba tu conexión y vuelve a intentarlo.");
+  await expectSpanishOnly(page, "systems API errors");
+  await page.screenshot({ path: "/tmp/evals-ui-test-results/spanish/api-errors.png", fullPage: true });
+});
+
 test("Systems empty state explains the three connection types with examples (EN and ES)", async ({ page }) => {
   await routeWorkspace(page, summary({ systems: [], evaluations: [], reports: [] }));
   await page.setViewportSize({ width: 390, height: 844 });

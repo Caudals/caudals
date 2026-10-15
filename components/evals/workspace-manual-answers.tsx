@@ -4,7 +4,13 @@ import { useRef, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { evalRequest } from "./api";
 import { Action, ActionAnchor, Progress, Status } from "./primitives";
-import { t, tv } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
+
+/** A row problem of the answer sheet in the reader's language; an unknown code stays as written (it names a column). */
+function sheetProblem(code: string): string {
+  const text: string | undefined = t(`sheetProblem_${code}` as MessageKey);
+  return text ?? code;
+}
 
 export async function publishPreliminaryManualReport(orgId: string, runId: string, evaluationTitle?: string) {
   await evalRequest(`/runs/${runId}/score`, "POST", { orgId, graderRevisionId: "caudals-grader-v2" });
@@ -82,9 +88,9 @@ export function ManualAnswers({
       setFile(null);
       if (input.current) input.current.value = "";
       if (!applied.complete) {
-        const rows = applied.errors.slice(0, 5).map((item) => `row ${item.rowNumber}: ${item.errors.join(", ")}`).join("; ");
+        const rows = applied.errors.slice(0, 5).map((item) => tv("sheetRowProblem", { row: item.rowNumber, problems: item.errors.map(sheetProblem).join(", ") })).join("; ");
         setMessage(
-          `${applied.saved} ${applied.saved === 1 ? t("answerSaved") : t("answersSaved")}. ${applied.missing.length} ${applied.missing.length === 1 ? t("questionStillOpen") : t("questionsStillOpen")}.${rows ? ` ${t("check")} ${rows}.` : ""}`,
+          `${applied.saved} ${applied.saved === 1 ? t("answerSaved") : t("answersSaved")}. ${applied.missing.length} ${applied.missing.length === 1 ? t("questionStillOpen") : t("questionsStillOpen")}.${rows ? ` ${tv("sheetRowsToCheck", { rows })}` : ""}`,
         );
         await onSaved();
         return;

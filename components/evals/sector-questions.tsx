@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BookCheck, CalendarClock } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, Badge, Check, SectionHeading, SelectField, Status } from "./primitives";
+import { Action, Badge, Check, SectionHeading, SelectField, Status, codeText } from "./primitives";
 import { notify } from "./overlays";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import { SECTOR_LABELS, isSector, type Sector } from "@/lib/evals/sector-packs/sectors";
@@ -120,7 +120,7 @@ function refreshLine(refresh: Refresh) {
     case "drafting": return tv("monthlyRefreshDrafting", values);
     case "unchanged": return tv("monthlyRefreshUnchanged", values);
     case "skipped": return tv("monthlyRefreshSkipped", values);
-    case "failed": return tv("monthlyRefreshFailed", { ...values, reason: (refresh.reasonCode ?? "error").replaceAll("_", " ") });
+    case "failed": return tv("monthlyRefreshFailed", { ...values, reason: codeText(refresh.reasonCode ?? "error") });
     default: return tv("monthlyRefreshSummary", { ...values, newPages: refresh.pages.new, changed: refresh.pages.changed, proposals: refresh.proposalCount });
   }
 }

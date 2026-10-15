@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { evalRequest } from "./api";
-import { Action, SectionHeading, Status, StatusBadge, Time } from "./primitives";
+import { Action, SectionHeading, Status, StatusBadge, Time, codeText } from "./primitives";
 import { notify } from "./overlays";
 import { t } from "@/lib/evals/messages/en";
 
@@ -76,7 +76,7 @@ export function WebsiteLoginSessions({ orgId, targetId }: { orgId: string; targe
             {data.captures.map((capture) => (
               <li key={capture.id}>
                 <a className="p-link" href={`/api/evals/v1/browser-captures/${capture.id}?orgId=${encodeURIComponent(orgId)}`} target="_blank" rel="noreferrer">
-                  {capture.reason_code.replaceAll("_", " ")}
+                  {codeText(capture.reason_code)}
                 </a>{" "}
                 <span className="p-cell-meta">
                   <Time value={capture.created_at} />

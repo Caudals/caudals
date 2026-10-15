@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarClock, KeyRound, Plus, Webhook } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
+import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time, codeText } from "./primitives";
 import { ActionMenu, CopyField, Modal, notify } from "./overlays";
 import type { WorkspaceSummary } from "./workspace-data";
 import { openLimitDialog, usePlanSummary } from "./limit-dialog";
@@ -62,7 +62,7 @@ const REASON: Record<string, MessageKey> = {
   suite_changed: "scheduleReasonSuiteChanged", sources_stale: "scheduleReasonSourcesStale", monthly_budget_exhausted: "scheduleReasonBudget",
   schedule_not_funded: "scheduleReasonNotIncluded", dispatch_failed: "scheduleReasonFailed", manual_pause: "scheduleReasonPaused",
 };
-const reasonText = (code: string) => (REASON[code] ? t(REASON[code]) : code.replaceAll("_", " "));
+const reasonText = (code: string) => (REASON[code] ? t(REASON[code]) : codeText(code));
 /** "€2.70–€3.40" in the interface language. */
 function euroRange(euros: { p50: string; p90: string }) {
   const format = new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB", { style: "currency", currency: "EUR" });
@@ -324,7 +324,7 @@ export function MonitoringSchedules({ orgId, canManage, summary, integrationsV2 
                       ? (s.baseline ? `${t("monitorNotComparable")}: ${comparisonReasons(s.reasons)}` : t("monitorFirstRun"))
                       : s && s.newlyBrokenTotal
                         ? (s.newlyBrokenTotal === 1 ? t("monitorNewlyBrokenOne") : tv("monitorNewlyBroken", { n: s.newlyBrokenTotal }))
-                        : item.reason_codes.map((code) => code.replaceAll("_", " ")).join(", ") || "—"}
+                        : item.reason_codes.map(codeText).join(", ") || "—"}
                   </td>
                 </tr>
               );

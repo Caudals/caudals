@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AlertTriangle, Bell, BellRing, Check, CheckCircle2, CircleDot, CreditCard, Loader2, MessageCircleQuestion, RefreshCw } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, Chip, EmptyState, Progress, Status, Tabs, formatDate, relativeTime } from "./primitives";
+import { Action, Chip, EmptyState, Progress, Status, Tabs, codeText, formatDate, relativeTime } from "./primitives";
 import { SidePanel, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
@@ -59,7 +59,7 @@ export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["p
   if (notice.kind === "report_published" && Number(notice.payload?.expertReviewers) > 0) return t("noticeReportReviewed");
   if (notice.kind === "report_published" && notice.payload?.supersedes) return t("noticeResultsUpdated");
   const key = KIND_LABEL[notice.kind];
-  return key ? t(key) : notice.kind.replaceAll("_", " ");
+  return key ? t(key) : codeText(notice.kind);
 }
 const count = (value: number | undefined) => new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB").format(Number(value ?? 0));
 function billingDetail(notice: Notice): string | null {
