@@ -96,6 +96,18 @@ const nextConfig = {
     // one per internal surface), so a URL that matches none of them needs a
     // 404 page of its own: `app/global-not-found.tsx`.
     globalNotFound: true,
+    // Fewer, larger client chunks per page (launch L-24d). Lighthouse's
+    // simulated mobile LCP models production's HTTP/3 as one round trip per
+    // request, and an entry page used to load 13–16 script chunks before its
+    // first paint. The thresholds are in bytes of unminified code (about five
+    // times the minified size): React DOM and the Next runtime may merge with
+    // the rest of a page's code, and a page gets at most five chunks.
+    turbopackChunking: {
+      minChunkSize: 150000,
+      maxChunkCountPerGroup: 5,
+      maxMergeChunkSize: 1500000,
+      requestCost: 500000,
+    },
   },
   images: {
     remotePatterns,
