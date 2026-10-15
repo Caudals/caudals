@@ -51,7 +51,7 @@ export function EmailUnsubscribe() {
   const done = state === "done";
   return (
     <AuthFrame
-      title={done ? t("unsubscribeDoneTitle") : t("unsubscribeTitle")}
+      title={done ? t("unsubscribeDoneTitle") : state === "invalid" ? t("unsubscribeInvalidTitle") : t("unsubscribeTitle")}
       description={done ? t("unsubscribeDoneHelp") : state === "invalid" ? t("unsubscribeInvalid") : t("unsubscribeHelp")}
     >
       {state === "error" && <Status error>{t("unsubscribeError")}</Status>}

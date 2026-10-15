@@ -174,7 +174,7 @@ test("evidence links on the sample report point at numbered results", async ({ p
 const EMPTY_STATES = [
   { path: "/workspace/evaluations", title: "Run your first evaluation" },
   { path: "/workspace/systems", title: "No connected systems yet" },
-  { path: "/workspace/test-sets", title: "No frozen test sets" },
+  { path: "/workspace/test-sets", title: "No test sets yet" },
   { path: "/workspace/reports", title: "No published reports yet" },
 ] as const;
 const onboardingState = (exampleHidden: boolean) => ({ data: { enabled: false, tracked: false, dismissed: false, complete: false, firstEvaluationId: null, steps: { connect: false, sources: false, run: false, results: false, invite: false }, welcome: { pending: false, systemType: null, goal: null }, exampleHidden }, meta: {} });

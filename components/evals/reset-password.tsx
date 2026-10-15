@@ -8,7 +8,7 @@ import {
   evaluationRecoveryPath,
 } from "./auth-path";
 import { AuthFrame } from "./auth-frame";
-import { Action, Field, Status } from "./primitives";
+import { Action, ActionLink, Field, Status } from "./primitives";
 import { t } from "@/lib/evals/messages/runtime";
 export function EvaluationResetPassword({
   next,
@@ -84,9 +84,9 @@ export function EvaluationResetPassword({
       {done ? (
         <>
           <Status>{t("passwordUpdated")}</Status>
-          <Link href={evaluationSignInPath(destination)}>
+          <ActionLink block href={evaluationSignInPath(destination)}>
             {t("signInAccount")}
-          </Link>
+          </ActionLink>
         </>
       ) : (
         <form className="p-auth-form" onSubmit={submit} aria-busy={pending}>
@@ -162,9 +162,9 @@ export function EvaluationResetPassword({
               {t("requestNewLink")}
             </Action>
           )}
-          <Link href={evaluationSignInPath(destination)}>
-            {t("backToSignIn")}
-          </Link>
+          <p className="p-auth-note">
+            <Link href={evaluationSignInPath(destination)}>{t("backToSignIn")}</Link>
+          </p>
         </form>
       )}
     </AuthFrame>

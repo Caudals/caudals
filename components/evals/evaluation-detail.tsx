@@ -6,7 +6,7 @@
  * switching devices never loses progress (spec §5.2, §5.3).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Activity, ArrowRight, CreditCard, Download, FileCheck2, GitCompare, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, CreditCard, Download, FileCheck2, GitCompare, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest, EvalRequestError, evalResponseError } from "./api";
@@ -330,7 +330,7 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
     return (
       <>
         <PageHeading title={t("evaluation")} />
-        <EmptyState title={t("evaluationNotFound")}>
+        <EmptyState title={t("evaluationNotFound")} action={<ActionLink variant="secondary" href={withOrg("/workspace/evaluations")}>{t("evaluationsAll")}</ActionLink>}>
           <p>{t("evaluationNotFoundHelp")}</p>
         </EmptyState>
       </>
@@ -414,7 +414,7 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
         {system && <ConnectionHealth system={system} orgId={orgId} onChecked={reload} fixHref={withOrg(`/workspace/systems?system=${system.id}&fix=1`)} />}
         {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} />}
         {platformAdmin ? <EvaluationModels expanded orgId={orgId} evaluationId={evaluationId} /> : <ModelRates evaluationId={evaluationId} />}
-        <div className="p-row"><Action variant="secondary" onClick={() => setConnectOpen(false)}>{t("backToEvaluation")}<ArrowRight aria-hidden="true" /></Action></div>
+        <div className="p-row"><Action variant="secondary" onClick={() => setConnectOpen(false)}><ArrowLeft aria-hidden="true" />{t("backToEvaluation")}</Action></div>
       </Panel>}
 
       {actionError && (
@@ -572,6 +572,14 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
         ) : runStatus === "canceled" ? (
           <Panel title={t("runCanceledTitle")}>
             <p>{t("runCanceledHelp")}</p>
+            {canWrite && evaluation.selected_suite_version_id && (
+              <div className="p-row">
+                <Action variant="secondary" onClick={requestStart} disabled={pending}>
+                  <RotateCcw aria-hidden="true" />
+                  {t("runAgain")}
+                </Action>
+              </div>
+            )}
           </Panel>
         ) : canPrepareManualReport ? (
           <Panel title={t("answersReceivedTitle")}>
@@ -608,7 +616,7 @@ function EvaluationJourneyContent({ evaluationId, intakeV2, expertReview }: { ev
             </Action>
           </>
         }>
-        <p>{tv("rerunConfirmBody", { n: caseCount ?? "—" })}</p>
+        <p>{caseCount === 1 ? t("rerunConfirmBodyOne") : tv("rerunConfirmBody", { n: caseCount ?? "—" })}</p>
         {focus.length > 0 && <p className="p-cell-meta">{tv("rerunConfirmFocus", { k: focus.length })}</p>}
       </Modal>
     </>
@@ -753,7 +761,8 @@ function ResultsSummary({
             {t("strictPassRate")}
           </p>
           <p className="p-score" data-empty={m.strict_pass_rate == null ? "true" : undefined}>{m.strict_pass_rate == null ? t("noScoreYet") : percent(m.strict_pass_rate, 1)}</p>
-          <p className="p-headline">{tv("answersCorrectOf", { pass: m.n_pass, scored: m.n_scorable })}</p>
+          {/* With nothing scored, "No score yet" says it; "0 of 0 answers correct" would only repeat it. */}
+          {m.n_scorable > 0 && <p className="p-headline">{tv("answersCorrectOf", { pass: m.n_pass, scored: m.n_scorable })}</p>}
           {m.n_scorable > 0 && (
             <p className="p-cell-meta">
               {t("qualityScore")} {percent((m.n_pass + m.n_partial / 2) / m.n_scorable)}

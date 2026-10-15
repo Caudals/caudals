@@ -195,7 +195,7 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
             {t("restartSignIn")}
           </Action>
         )}
-        <p className="p-auth-note" style={{ marginTop: 0 }}>
+        <p className="p-auth-note">
           <Link href={evaluationRecoveryPath(destination)}>{t("recovery")}</Link>
         </p>
       </form>

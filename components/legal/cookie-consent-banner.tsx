@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { LocaleLink } from "@/components/i18n/locale-link";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/context";
 import {
@@ -51,12 +51,13 @@ export function CookieConsentBanner() {
         <p className="text-[13px] leading-snug text-gray-600 sm:text-sm sm:leading-relaxed">
           {t("body")}{" "}
           {t("readOur")}{" "}
-          <Link
+          {/* Localized, and absolute on the app host's 404, where /legal/* does not exist (LinkOriginProvider in PublicRoot). */}
+          <LocaleLink
             href="/legal/cookies"
             className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
           >
             {t("policy")}
-          </Link>
+          </LocaleLink>
           .
         </p>
         <div className="flex shrink-0 gap-2 sm:gap-3">

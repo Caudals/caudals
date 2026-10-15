@@ -46,6 +46,7 @@ import {
   Settings,
   Unplug,
   Users,
+  X,
 } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { betterAuthClient } from "./auth-client";
@@ -629,11 +630,19 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
               <DialogPrimitive.Portal>
                 <DialogPrimitive.Overlay className="p-scrim" />
                 <DialogPrimitive.Content className="p-root p-drawer" aria-describedby={undefined}>
-                  <DialogPrimitive.Title asChild>
-                    <div className="p-sidebar-head">
-                      <Brand />
-                    </div>
-                  </DialogPrimitive.Title>
+                  <div className="p-sidebar-head">
+                    <DialogPrimitive.Title asChild>
+                      <div className="p-drawer-title">
+                        <Brand />
+                      </div>
+                    </DialogPrimitive.Title>
+                    {/* A visible way out on touch screens, where there is no Escape key. */}
+                    <DialogPrimitive.Close asChild>
+                      <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" aria-label={t("closeNavigation")} title={t("closeNavigation")}>
+                        <X aria-hidden="true" />
+                      </button>
+                    </DialogPrimitive.Close>
+                  </div>
                   <SidebarBody {...sidebarProps} collapsed={false} onNavigate={() => setDrawer(false)} onHelp={() => { setDrawer(false); openHelp(); }} />
                 </DialogPrimitive.Content>
               </DialogPrimitive.Portal>

@@ -109,6 +109,14 @@ export function nextStep(evaluation: Input, stage: Stage): MessageKey | null {
   return null;
 }
 
+/**
+ * The next step as a second line under the stage badge: none while the badge
+ * already names it ("Add reference material", "Generate the test set").
+ */
+export function nextStepHint(evaluation: Input, stage: Stage): MessageKey | null {
+  return stage.key === "setup" ? null : nextStep(evaluation, stage);
+}
+
 export const STEP_LABELS = ["Connect", "Prepare tests", "Run", "Results"] as const satisfies readonly Phrase[];
 
 export function stepStates(stage: Stage) {

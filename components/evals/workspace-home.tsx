@@ -16,7 +16,7 @@ import { ExampleEvaluationLink, useExampleEvaluation } from "./example-evaluatio
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, evaluationRows, useWorkspaceSummary, type WorkspaceSummary, type WorkspaceSystem } from "./workspace-data";
-import { nextStep } from "./evaluation-stage";
+import { nextStepHint } from "./evaluation-stage";
 import { HEALTH_LABEL, scoreHistory, systemHealth, trendPoints, type ScorePoint } from "@/lib/evals/workspace/health";
 import { t, tv, type MessageKey } from "@/lib/evals/messages/runtime";
 import { useBilling } from "./billing-state";
@@ -101,7 +101,7 @@ function NeedsAction({ summary }: { summary: WorkspaceSummary }) {
     <HomeCard
       id="home-action"
       title={t("homeNeedsAction")}
-      count={rows.length}
+      count={rows.length || undefined}
       icon={<FlaskConical />}
       wide
       action={rows.length > LIMIT ? <Link className="p-link" href={withOrg("/workspace/evaluations?filter=action")}>{tv("homeSeeAll", { n: rows.length })}</Link> : undefined}
@@ -109,7 +109,7 @@ function NeedsAction({ summary }: { summary: WorkspaceSummary }) {
       {rows.length ? (
         <ul className="p-home-list" aria-label={t("homeNeedsAction")}>
           {rows.slice(0, LIMIT).map(({ evaluation, system, stage }) => {
-            const step = nextStep(evaluation, stage);
+            const step = nextStepHint(evaluation, stage);
             return (
               <li key={evaluation.id} className="p-home-item">
                 <span className="p-home-item-main">
@@ -292,7 +292,7 @@ function Shortcuts({ summary }: { summary: WorkspaceSummary }) {
           </li>
         ))}
       </ul>
-      <p className="p-cell-meta">{t("homePaletteHint")}</p>
+      <p className="p-cell-meta p-keyboard-hint">{t("homePaletteHint")}</p>
       {example.visible && <p><ExampleEvaluationLink /></p>}
     </HomeCard>
   );

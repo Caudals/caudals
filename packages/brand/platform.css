@@ -301,7 +301,8 @@
   box-shadow: var(--p-shadow-overlay);
   font-size: var(--p-text-label);
   font-weight: 500;
-  transform: translateY(-200%);
+  /* Far enough up that its overlay shadow does not peek into the top bar. */
+  transform: translateY(calc(-100% - 48px));
   transition: transform var(--p-dur-pop) var(--p-ease-out);
 }
 .p-skip:focus {
@@ -633,6 +634,29 @@
 .p-crumbs li:last-child {
   color: var(--p-text);
 }
+/* A crumb is one line: a long name ends in an ellipsis instead of wrapping
+   over its neighbours in the 48px bar. Parents give way to the current page. */
+.p-crumbs :where(a, span) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.p-crumbs li:not(:last-child) {
+  max-width: 16rem;
+}
+/* Phones: the parent and the current page only. */
+@media (max-width: 639px) {
+  .p-crumbs li:not(:nth-last-child(-n + 2)) {
+    display: none;
+  }
+  .p-crumbs li:nth-last-child(2) {
+    max-width: 40%;
+  }
+  .p-crumbs li:nth-last-child(2) .p-crumb-sep {
+    display: none;
+  }
+}
 .p-crumb-sep {
   color: var(--p-text-tertiary);
   flex: none;
@@ -732,6 +756,11 @@
 .p-root.p-drawer .p-nav {
   flex: 1;
 }
+.p-drawer-title {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
 
 /* -----------------------------------------------------------------------------
    4. Page furniture
@@ -812,6 +841,10 @@
 .p-stack {
   display: grid;
   gap: 16px;
+}
+/* The welcome and checklist cards above a list; nothing when both are hidden. */
+.p-onboarding-stack:not(:empty) {
+  margin-bottom: 16px;
 }
 .p-row {
   display: flex;
@@ -1664,6 +1697,23 @@
   color: var(--p-text-secondary);
   font-weight: 400;
 }
+/* `DataTable stack` additions (R1): a lone dash hides once its column header
+   is gone, and a row whose actions are more than a menu (Systems: Check now,
+   Fix, menu) keeps them on the title's line, then breaks before the values. */
+@media (max-width: 639px) {
+  .p-table-wrap[data-stack] td[data-empty="true"] {
+    display: none;
+  }
+  .p-table-wrap[data-stack] tbody tr:has(> [data-cell="menu"][data-actions="wide"]) > th {
+    flex: 1 1 0;
+  }
+  .p-table-wrap[data-stack] tbody tr:has(> [data-cell="menu"][data-actions="wide"])::after {
+    content: "";
+    order: 0;
+    flex: 1 0 100%;
+    margin-top: -6px;
+  }
+}
 .p-table-action {
   width: 1%;
   white-space: nowrap;
@@ -1676,6 +1726,63 @@
 .p-table th.p-num {
   text-align: right;
   white-space: nowrap;
+}
+/* `DataTable stack`: under 640px each row is a block, never a table clipped at the edge. */
+@media (max-width: 639px) {
+  .p-table-wrap[data-stack] {
+    margin-inline: 0;
+    overflow-x: visible;
+  }
+  .p-table-wrap[data-stack] thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .p-table-wrap[data-stack] .p-table,
+  .p-table-wrap[data-stack] tbody {
+    display: block;
+  }
+  .p-table-wrap[data-stack] tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--p-border-hairline);
+  }
+  .p-table-wrap[data-stack] tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .p-table-wrap[data-stack] tbody :is(th, td) {
+    display: block;
+    order: 1;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .p-table-wrap[data-stack] tbody th {
+    order: 0;
+    flex: 1 0 100%;
+  }
+  .p-table-wrap[data-stack] tbody tr:has(> [data-cell="menu"]) > th {
+    flex-basis: calc(100% - 52px);
+  }
+  .p-table-wrap[data-stack] [data-cell="menu"] {
+    order: 0;
+    margin-left: auto;
+  }
+  .p-table-wrap[data-stack] [data-cell="wide"] {
+    order: 2;
+    flex: 1 0 100%;
+  }
+  .p-table-wrap[data-stack] td[data-label]::before {
+    content: attr(data-label) ": ";
+  }
 }
 .p-link {
   color: var(--p-text);
@@ -1723,6 +1830,12 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+/* Several linked values (a system's evaluations): one per line, never a run-on sentence. */
+.p-defs dd .p-defs-links {
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* --- Empty state ------------------------------------------------------------ */
@@ -1786,13 +1899,18 @@
   margin-top: 1px;
   stroke-width: 1.75;
 }
+/* The action keeps its own line when the sentence would be squeezed to a word
+   per line beside it (phones). */
+.p-status:has(> .p-status-action) {
+  flex-wrap: wrap;
+}
 .p-status-text {
-  flex: 1;
+  flex: 1 1 12rem;
   min-width: 0;
 }
 .p-status-action {
   flex: none;
-  margin: -4px -6px -4px 0;
+  margin: -4px -6px -4px auto;
 }
 .p-status[data-tone="info"] {
   background: var(--p-info-soft);
@@ -2479,6 +2597,10 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* A quiet link closing an auth form ("Recover account", "Back to sign in"): the form's gap spaces it. */
+.p-auth-form > .p-auth-note {
+  margin-top: 0;
+}
 /* Two-factor setup (launch L-08): setup key and one-time recovery codes. */
 .p-auth-subhead {
   font-size: var(--p-text-label);
@@ -2966,6 +3088,12 @@
   font-size: var(--p-text-body);
   outline: none;
 }
+/* The palette is the focused surface: its caret and the open dialog show
+   where typing goes, so the field takes no ring of its own (it was clipped by
+   the dialog's rounded edge). */
+.p-palette-input input:focus-visible {
+  outline: none;
+}
 .p-palette-list {
   max-height: min(56vh, 440px);
   overflow-y: auto;
@@ -3004,7 +3132,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Context gives way to the item's own name on narrow screens. */
 .p-palette-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--p-text-micro);
   color: var(--p-text-tertiary);
 }
@@ -5210,6 +5345,11 @@
     min-width: 0;
     margin-left: 0;
   }
+  /* A lone "?" help link stays beside the title instead of taking a line. */
+  .p-section-head > .p-head-actions:last-child:not(:first-child):has(> .p-help-link:only-child) {
+    flex: none;
+    margin-left: auto;
+  }
 }
 .p-head-actions > .p-row {
   flex-wrap: wrap;
@@ -5505,10 +5645,13 @@
 .p-notice-center .p-job[data-stage="failed"] .p-job-head > svg { color: var(--p-fail); }
 .p-notice-center .p-job:is([data-stage="paused"], [data-stage="needs_input"]) .p-job-head > svg { color: var(--p-warn); }
 .p-notice-bell { position: relative; }
+/* The count sits on the bell's upper-right shoulder, ringed in the chrome, so
+   the bell itself stays readable with two or three digits. */
 .p-notice-count {
-  position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px;
+  position: absolute; top: 1px; left: 17px; min-width: 16px; height: 16px; padding: 0 4px;
   border-radius: var(--p-radius-pill); background: var(--p-action); color: var(--p-action-text);
-  font-size: var(--p-text-nano); line-height: 16px; font-weight: 600;
+  box-shadow: 0 0 0 2px var(--p-chrome);
+  font-size: var(--p-text-nano); line-height: 16px; font-weight: 600; text-align: center;
 }
 .p-notice-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .p-notice-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -5780,6 +5923,9 @@
    a sticky bar to return to the list or step to the previous/next result. */
 .p-result-page {
   display: grid;
+  /* One column that never grows past the canvas: a long toolbar or question
+     wraps inside it instead of widening the page (Spanish at 390px). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   animation: p-result-in var(--p-dur-modal) var(--p-ease-out);
 }
@@ -5800,6 +5946,14 @@
 }
 .p-result-page .p-bubble {
   max-width: min(92%, 72rem);
+}
+/* Its toolbar wraps rather than widening the page; "Prueba 1 de 1" stays whole. */
+.p-result-page > .p-review-nav {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.p-result-page .p-review-position {
+  white-space: nowrap;
 }
 .p-review-nav {
   position: sticky;
@@ -6039,6 +6193,12 @@
 .p-home-shortcut:focus-visible {
   outline: 2px solid var(--p-focus);
   outline-offset: 2px;
+}
+/* Keyboard shortcuts mean nothing on a touch-only device. */
+@media (hover: none) and (pointer: coarse) {
+  .p-keyboard-hint {
+    display: none;
+  }
 }
 
 /* Systems: the health block (also on the evaluation's Connect step) and the empty state's three kinds. */

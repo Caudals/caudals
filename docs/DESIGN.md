@@ -178,7 +178,7 @@ The content measure is wide on purpose: these are evidence tables with four to s
 | `Toolbar` | `.p-toolbar` | Filter row under the heading |
 | `Badge` | `.p-badge` | `tone`, `dot`, `live` |
 | `StatusBadge` | `.p-badge` | **Use for every domain status.** See §8 |
-| `Status` | `.p-status` | Inline banner, `tone` error·success·warn·info |
+| `Status` | `.p-status` | Inline banner, `tone` error·success·warn·info. With an `action`, the action drops to its own line (end-aligned) before the sentence is squeezed below 12rem |
 | `Loading` | `.p-status` + spinner | Indeterminate wait, reads as a sentence |
 | `Progress` | `.p-progress` | Determinate, needs `label` |
 | `Stat` / `StatGrid` | `.p-stat` | `label`, `value`, `meta`, `hero` |
@@ -186,7 +186,7 @@ The content measure is wide on purpose: these are evidence tables with four to s
 | `DefinitionList` | `.p-defs` | Term/value rows |
 | `Field` / `TextArea` / `SelectField` | `.p-field` | Label always present, `hint` optional |
 | `InlineSelect` | `.p-toolbar-label` + `.p-field` | Toolbar-width select |
-| `DataTable` / `RowTitle` | `.p-table` | Header may be `{ label, align: "end" }` |
+| `DataTable` / `RowTitle` | `.p-table` | Header may be `{ label, align: "end" }`. `stack` (list tables: Evaluations, Systems, Test sets, Reports): under 640px each row is a block — the title first with the `data-cell="menu"` cell beside it (`data-actions="wide"` when the actions are more than a menu), the other cells wrapping under it named by `data-label` where a bare value is ambiguous, `data-cell="wide"` last on its own line, and a `data-empty` cell (a lone dash) hidden. Evidence tables keep scrolling sideways |
 | `EmptyState` | `.p-empty` | Icon in a rounded mark, title, copy, one CTA |
 | `SessionRecovery` | — | Sign-in + recovery pair |
 | `CodeBlock` (overlays) | `.p-code-block` | Labelled multi-line code with a copy button; lines scroll sideways instead of wrapping |
@@ -239,7 +239,7 @@ The evaluation detail page exposes **AI models** in a compact, keyboard-accessib
 - `notify()` for outcomes that need no decision. Toasts use the `platform` toaster id so the document's global toaster never duplicates them.
 - `CopyField` for a value shown once (invitation links, share links, pairing codes, tokens).
 
-**Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab), and `⌘K` for the command palette. Help (how an evaluation works, what each result label means, data handling, contact) is a `SidePanel` opened from the account menu and `⌘K`; the top bar carries no help button. There are no in-page back links: breadcrumbs carry the hierarchy.
+**Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab; each crumb is one line ending in an ellipsis, parents capped at 16rem, and under 640px only the parent and the current page show), and `⌘K` for the command palette. On phones the sidebar is a drawer with its own close button. A page inside the app that is not found (`notFound()`) stays in the shell: "Page not found" with one way back to Home (`app/(evaluation)/(authenticated)/not-found.tsx`). Help (how an evaluation works, what each result label means, data handling, contact) is a `SidePanel` opened from the account menu and `⌘K`; the top bar carries no help button. There are no in-page back links: breadcrumbs carry the hierarchy.
 
 **Notification centre** — the topbar bell opens a `SidePanel` with Notifications and Activity tabs. Both show the latest changes first. Quiet filter chips narrow notices to unread or activity to work in progress, attention and completed work. Notices use `.p-notice-*` from the platform kit: semantic icon plus a written outcome, evaluation name, exact timestamp on hover, and an independent mark-as-read action. The badge counts all unread notices; older history loads in place. Refresh and write errors render inside the panel. Closing returns focus to its bell or work-in-progress trigger.
 
@@ -371,6 +371,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-15 | UI review R1: one-line breadcrumbs (parent and page on phones), the unread count on the bell's shoulder, `DataTable stack` for list tables on phones, `Status` actions wrap, the drawer's close button, the in-shell "Page not found", draft badges neutral. |
 | 2026-10-15 | Billing gaps (G2): the run pipeline's stages not reached yet use `--p-text-secondary` like finished ones (tertiary failed AA on the paused run's panel and is 3.7:1 under the authored dark theme); the current stage stands out by full-strength 500-weight text, its count and its bar. The billing contracts no longer exclude `.p-pipeline` from axe. Ops console: a *Provider-price check* panel under the price book and a *Tax reviews* view, both from the kit (badge, table, definition list in a `Modal`, radio `p-check` choices with descriptions). Limits and alerts: the low-balance threshold is a select (default or own) plus a credits field, like the caps above it. |
 | 2026-10-14 | "Send to my vendor" (P-54): the Paper fix-list page for vendors (`.vf`) in §13, and the owner's "Send to my vendor" button and dialog from the kit. |
 | 2026-10-14 | Partner dashboard (L-28): stats strip, tables and dialogs from the kit; `.p-partner-links` (ghost copy buttons per referral link), `.p-partner-logo` (bordered logo preview), `.p-partner-statement`, `.p-partner-subhead`. White-label PDF cover: a hairline row under the Caudals brand bar, "Delivered by" + logo (≤ 28 px high) + partner name, and "Evaluation and methodology by Caudals"; the Caudals brand stays first. |

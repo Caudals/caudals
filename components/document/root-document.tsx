@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
 import "@/app/globals.css";
 import { Toaster } from "sonner";
-import { AuthProvider } from "@/lib/auth/provider";
+import { SessionKeepAlive } from "@/lib/auth/session-keep-alive";
 import { SiteAnalytics } from "@/components/legal/site-analytics";
 
 export { rootMetadata } from "./root-metadata";
 
 /**
  * The `<html>` and `<body>` of the internal surfaces' root layouts (`(app)`,
- * `(auth)`, `(evaluation)`): the signed-in session and toasts around the page.
+ * `(auth)`, `(evaluation)`): toasts and the session renewal around the page
+ * (`SessionKeepAlive`; it replaced an unread `useSession` provider that asked
+ * for the session on every load, R1).
  * The public site uses `PublicDocument`, which loads neither (launch L-24b).
  *
  * `lang` is fixed per layout, so the served HTML declares the right language
@@ -34,10 +36,9 @@ export function RootDocument({
       {/* eslint-disable-next-line @next/next/no-head-element */}
       {head ? <head>{head}</head> : null}
       <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-          <Toaster richColors position="top-right" closeButton={false} />
-        </AuthProvider>
+        {children}
+        <Toaster richColors position="top-right" closeButton={false} />
+        <SessionKeepAlive />
         <SiteAnalytics />
       </body>
     </html>

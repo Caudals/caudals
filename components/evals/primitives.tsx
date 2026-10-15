@@ -753,13 +753,21 @@ export function DataTable({
   caption,
   headers,
   children,
+  stack = false,
 }: {
   caption: string;
   headers: Array<string | { label: string; align?: "end"; hidden?: boolean }>;
   children: ReactNode;
+  /**
+   * Under 640px each row becomes a block instead of the table scrolling
+   * sideways: the row title on its own line (a `data-cell="menu"` cell beside
+   * it), the other cells wrapping under it, a `data-cell="wide"` cell last on
+   * a line of its own, and a `data-label` naming a cell whose value needs it.
+   */
+  stack?: boolean;
 }) {
   return (
-    <div className="p-table-wrap" role="region" aria-label={caption} tabIndex={0}>
+    <div className="p-table-wrap" role="region" aria-label={caption} tabIndex={0} data-stack={stack ? "true" : undefined}>
       <table className="p-table">
         <caption className="sr-only">{caption}</caption>
         <thead>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { PublicRoot } from "@/components/document/public-root";
-import { LinkOriginProvider } from "@/components/i18n/locale-link";
 import { NotFoundView } from "@/components/public/not-found-view";
 import type { Locale } from "@/lib/i18n/config";
 import { getScopedTranslator } from "@/lib/i18n/server";
@@ -67,10 +66,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GlobalNotFound() {
   const [locale, origin] = await Promise.all([requestLocale(), linkOrigin()]);
   return (
-    <PublicRoot locale={locale} fontClassName={`${geist.variable} ${geistMono.variable} ${newsreader.variable}`}>
-      <LinkOriginProvider origin={origin}>
-        <NotFoundView />
-      </LinkOriginProvider>
+    <PublicRoot locale={locale} fontClassName={`${geist.variable} ${geistMono.variable} ${newsreader.variable}`} linkOrigin={origin}>
+      <NotFoundView />
     </PublicRoot>
   );
 }

@@ -33,7 +33,12 @@ import { NoWorkspace } from "./workspace-evaluations";
 import { MonthlyQuestionsPanel, SectorQuestionsCard } from "./sector-questions";
 import { ExampleEvaluationLink, useExampleEvaluation } from "./example-evaluation-links";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
-import { t } from "@/lib/evals/messages/runtime";
+import { t, tv } from "@/lib/evals/messages/runtime";
+
+/** "1 test" / "12 tests" (and the Spanish equivalents). */
+function testsCount(n: number) {
+  return n === 1 ? t("testsCountOne") : tv("testsCount", { n });
+}
 
 type TestSetRow = {
   suite_id: string;
@@ -121,7 +126,7 @@ export function WorkspaceTestSets() {
         <TableSkeleton columns={4} />
       ) : !items.length ? (
         // The example evaluation (L-33) shows a finished test set and its results (launch L-06, P-02).
-        <EmptyState title={t("noTestSets")} icon={<ListChecks />} action={example.visible ? <ExampleEvaluationLink variant="button" /> : undefined}>
+        <EmptyState title={t("noTestSetsCustomer")} icon={<ListChecks />} action={example.visible ? <ExampleEvaluationLink variant="button" /> : undefined}>
           <p>{t("noTestSetsCustomerHelp")}</p>
         </EmptyState>
       ) : (
@@ -137,25 +142,25 @@ export function WorkspaceTestSets() {
               </InlineSelect>
             )}
           </Toolbar>
-          <DataTable caption={t("testSets")} headers={[t("testSet"), { label: t("tests"), align: "end" }, t("statusLabel"), t("frozenAt"), { label: t("actions"), align: "end", hidden: true }]}>
+          <DataTable stack caption={t("testSets")} headers={[t("testSet"), { label: t("tests"), align: "end" }, t("statusLabel"), t("frozenAt"), { label: t("actions"), align: "end", hidden: true }]}>
             {visible.map((item) => (
               <tr key={item.suite_id}>
                 <RowTitle href={withOrg(`/workspace/test-sets/${item.suite_id}`)} meta={[item.project_title, item.used_by ? `${item.used_by} ${item.used_by === 1 ? t("evaluationLower") : t("evaluationsLower")}` : null].filter(Boolean).join(" · ")}>{item.title}</RowTitle>
-                <td className="p-num">{item.case_count}</td>
+                <td className="p-num" data-label={t("tests")}>{item.case_count}</td>
                 <td>
-                  {item.has_draft ? <Badge tone="warn" dot>{t("draftEditable")}</Badge> : <Badge tone="pass" dot>{t("frozenLabel")}</Badge>}
+                  {item.has_draft ? <Badge tone="neutral" dot>{t("draftEditable")}</Badge> : <Badge tone="pass" dot>{t("frozenLabel")}</Badge>}
                 </td>
-                <td className="p-cell-meta">
+                <td className="p-cell-meta" data-label={t("frozenAt")} {...(item.frozen_at ? {} : { "data-empty": "true" })}>
                   {item.frozen_at ? <Time value={item.frozen_at} withTime={false} /> : "—"}
                 </td>
-                <td className="p-table-action">
+                <td className="p-table-action" data-cell="menu">
                   {canWrite && (
                     <ActionMenu
                       label={`${t("moreActions")}: ${item.title}`}
                       items={[
                         { label: t("viewTestSet"), icon: <Eye />, href: withOrg(`/workspace/test-sets/${item.suite_id}`) },
                         ...(item.latest_version_id
-                          ? [{ label: t("fork"), icon: <GitFork />, onSelect: () => { setForking({ suite_id: item.suite_id, version_id: item.latest_version_id!, title: item.title }); setForkTitle(`Copy of ${item.title}`.slice(0, 200)); } }]
+                          ? [{ label: t("fork"), icon: <GitFork />, onSelect: () => { setForking({ suite_id: item.suite_id, version_id: item.latest_version_id!, title: item.title }); setForkTitle(tv("copyOfTitle", { title: item.title }).slice(0, 200)); } }]
                           : []),
                         { label: t("rename"), icon: <Pencil />, onSelect: () => actions.rename("test-sets", item.suite_id, item.title) },
                         { separator: true },
@@ -291,8 +296,8 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
     );
 
   const versionOptions = [
-    ...(view.draft ? [{ value: "draft", label: `${t("draftEditable")} · ${view.draft.caseCount} ${t("tests").toLowerCase()}` }] : []),
-    ...view.versions.map((item, index) => ({ value: item.id, label: `${index === 0 ? t("latestVersion") : t("version")} · ${formatDate(item.created_at)} · ${item.case_count} ${t("tests").toLowerCase()}` })),
+    ...(view.draft ? [{ value: "draft", label: `${t("draftEditable")} · ${testsCount(view.draft.caseCount)}` }] : []),
+    ...view.versions.map((item, index) => ({ value: item.id, label: `${index === 0 ? t("latestVersion") : t("version")} · ${formatDate(item.created_at)} · ${testsCount(item.case_count)}` })),
   ];
 
   return (
@@ -301,8 +306,8 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
         title={view.suite.title}
         meta={
           <>
-            {isDraft ? <Badge tone="warn" dot>{t("draftEditable")}</Badge> : <Badge tone="pass" dot>{t("frozenLabel")}</Badge>}
-            <span>{view.cases.length} {t("tests").toLowerCase()}</span>
+            {isDraft ? <Badge tone="neutral" dot>{t("draftEditable")}</Badge> : <Badge tone="pass" dot>{t("frozenLabel")}</Badge>}
+            <span>{testsCount(view.cases.length)}</span>
             {view.usedBy.length > 0 && (
               <span>
                 {t("usedBy")} {view.usedBy.map((item) => item.title).join(", ")}
@@ -514,7 +519,7 @@ function CaseCard({ index, item, actions }: { index: number; item: CaseView; act
             <div>
               <dt>{t("keyFacts")}</dt>
               <dd>
-                <ul className="p-stack" style={{ margin: 0, paddingLeft: 18 }}>
+                <ul className="p-bullets">
                   {keyFactsOf(document.reference).map((fact) => <li key={fact}>{fact}</li>)}
                 </ul>
               </dd>
@@ -524,7 +529,7 @@ function CaseCard({ index, item, actions }: { index: number; item: CaseView; act
             <div>
               <dt>{t("acceptableAlternatives")}</dt>
               <dd>
-                <ul className="p-stack" style={{ margin: 0, paddingLeft: 18 }}>
+                <ul className="p-bullets">
                   {document.reference.acceptable_alternatives.map((value) => <li key={expectedText(value)}>{expectedText(value)}</li>)}
                 </ul>
               </dd>

@@ -143,7 +143,8 @@ export function OnboardingChecklist({ onboarding, variant = "card" }: { onboardi
                 </span>
                 {stepState !== "done" && link && (
                   <span className="p-checklist-action">
-                    <ActionLink variant={stepState === "current" ? "primary" : "secondary"} size="sm" href={link}>
+                    {/* Under the empty state, whose "New evaluation" is the page's one primary action, every step is secondary. */}
+                    <ActionLink variant={stepState === "current" && variant === "card" ? "primary" : "secondary"} size="sm" href={link}>
                       {step === "connect" && !state.firstEvaluationId ? t("onbActionStart") : t(STEP_COPY[step].action)}
                     </ActionLink>
                   </span>

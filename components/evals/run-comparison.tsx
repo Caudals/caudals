@@ -61,6 +61,11 @@ export function scorePercent(score: Score | null | undefined) {
   return new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-GB", { style: "percent", maximumFractionDigits: 0 }).format(score.pass / score.scored);
 }
 
+/** "Score 62%, was 50%." — or, when this run has no scored answer, "No score in this run; was 50%." instead of a dash. */
+function comparisonScoreText(now: Score | null | undefined, before: Score | null | undefined) {
+  return now?.scored ? tv("comparisonScore", { now: scorePercent(now), before: scorePercent(before) }) : tv("comparisonScoreNone", { before: scorePercent(before) });
+}
+
 function OutcomeBadge({ outcome }: { outcome: Outcome | null }) {
   if (!outcome || outcome === "unscorable") return <Badge tone="neutral">{t("comparisonNotScored")}</Badge>;
   return <ResultBadge result={{ outcome }} />;
@@ -174,7 +179,7 @@ export function RunComparisonView({ runId, data, error, loading, openResult, bas
         <Status tone="info">{tv("comparisonNotComparable", { reasons: comparisonReasons(data.reasons) })}</Status>
       ) : (
         <>
-          <p className="p-comparison-score" data-testid="comparison-score">{tv("comparisonScore", { now: scorePercent(data.candidate.score), before: scorePercent(data.baseline.score) })}</p>
+          <p className="p-comparison-score" data-testid="comparison-score">{comparisonScoreText(data.candidate.score, data.baseline.score)}</p>
           <StatGrid>
             <Stat label={t("improved")} value={data.counts?.improved ?? 0} />
             <Stat label={t("regressed")} value={data.counts?.regressed ?? 0} />
@@ -274,7 +279,7 @@ export function CompareRunsDialog({ open, onOpenChange, orgId, runId, openResult
           ) : <p className="p-cell-meta">{tv("comparisonNotComparable", { reasons: comparisonReasons(stored.reasons ?? []) })}</p>}
           {details.data?.comparable && (
             <>
-              <p className="p-cell-meta">{tv("comparisonScore", { now: scorePercent(details.data.candidate.score), before: scorePercent(details.data.baseline?.score) })}</p>
+              <p className="p-cell-meta">{comparisonScoreText(details.data.candidate.score, details.data.baseline?.score)}</p>
               {details.data.changes.length ? <ChangeList items={details.data.changes} label={t("comparisonChanged")} open={openResult} /> : <p className="p-cell-meta">{t("comparisonNoChanges")}</p>}
             </>
           )}

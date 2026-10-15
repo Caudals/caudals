@@ -27,7 +27,7 @@ import { ActionMenu, CopyField } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, evaluationRows, useWorkspaceSummary } from "./workspace-data";
-import { nextStep } from "./evaluation-stage";
+import { nextStepHint } from "./evaluation-stage";
 import { scoreHistory, trendPoints } from "@/lib/evals/workspace/health";
 import { ExampleEvaluationCard, ExampleEvaluationLink } from "./example-evaluation-links";
 import { OnboardingChecklist, OnboardingWelcome, useOnboardingEnabled, useWorkspaceOnboarding } from "./onboarding-checklist";
@@ -86,9 +86,9 @@ export function WorkspaceEvaluations() {
         </Status>
       )}
       {!summary ? (
-        loading ? <TableSkeleton columns={4} /> : null
+        loading ? <TableSkeleton columns={canWrite ? 5 : 4} /> : null
       ) : !rows.length ? (
-        <>
+        <div className="p-stack">
           <OnboardingWelcome onboarding={onboarding} />
           <EmptyState title={t("firstEvaluationTitle")} icon={<FlaskConical />} action={newAction || <ExampleEvaluationLink variant="button" />}>
             <p>{t("firstEvaluationBody")}</p>
@@ -96,11 +96,13 @@ export function WorkspaceEvaluations() {
             {newAction && <p><ExampleEvaluationLink /></p>}
           </EmptyState>
           <OnboardingChecklist onboarding={onboarding} variant="empty" />
-        </>
+        </div>
       ) : (
         <>
-          <OnboardingWelcome onboarding={onboarding} />
-          <OnboardingChecklist onboarding={onboarding} />
+          <div className="p-stack p-onboarding-stack">
+            <OnboardingWelcome onboarding={onboarding} />
+            <OnboardingChecklist onboarding={onboarding} />
+          </div>
           <Toolbar>
             <SearchInput value={query} onChange={setQuery} label={t("searchEvaluations")} />
           </Toolbar>
@@ -119,6 +121,7 @@ export function WorkspaceEvaluations() {
           </div>
           {visible.length ? (
             <DataTable
+              stack
               caption={t("product")}
               headers={[t("evaluation"), t("statusLabel"), t("latestResult"), { label: t("updated"), align: "end" }, ...(canWrite ? [{ label: t("actions"), align: "end" as const, hidden: true }] : [])]}
             >
@@ -137,11 +140,11 @@ export function WorkspaceEvaluations() {
                           {stage.label}
                         </Badge>
                       </span>
-                      {/* The next move on rows that need one (launch L-22). */}
-                      {nextStep(evaluation, stage) && <span className="p-cell-meta">{t(nextStep(evaluation, stage)!)}</span>}
+                      {/* The next move on rows that need one (launch L-22), unless the status already says it. */}
+                      {nextStepHint(evaluation, stage) && <span className="p-cell-meta">{t(nextStepHint(evaluation, stage)!)}</span>}
                     </span>
                   </td>
-                  <td>
+                  <td data-label={t("latestResult")} {...(report?.strict_pass_rate == null ? { "data-empty": "true" } : {})}>
                     {report?.strict_pass_rate != null ? (
                       <span className="p-table-primary">
                         <Meter value={report.strict_pass_rate} label={`${t("strictPassRate")} ${percent(report.strict_pass_rate)}`} />
@@ -156,7 +159,7 @@ export function WorkspaceEvaluations() {
                     <Time value={evaluation.updated_at ?? evaluation.created_at ?? null} />
                   </td>
                   {canWrite && (
-                    <td className="p-table-action">
+                    <td className="p-table-action" data-cell="menu">
                       <ActionMenu
                         label={`${t("moreActions")}: ${evaluation.title}`}
                         items={[

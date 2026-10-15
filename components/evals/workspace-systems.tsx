@@ -105,7 +105,7 @@ export function ConnectionHealth({ system, orgId, onChecked, fixHref }: { system
               {t(FIX_LABEL[fix])}
             </ActionLink>
           )}
-          <span className="p-cell-meta">{t("checkConnectionHelp")}</span>
+          {canCheckConnection(system.document.kind) && <span className="p-cell-meta">{t("checkConnectionHelp")}</span>}
         </div>
       )}
     </div>
@@ -209,7 +209,7 @@ export function WorkspaceSystems() {
       {!summary ? (
         loading ? <TableSkeleton columns={5} /> : null
       ) : summary.systems.length ? (
-        <DataTable caption={t("systems")} headers={[t("system"), t("statusLabel"), t("lastSuccessfulCheck"), t("lastScore"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable stack caption={t("systems")} headers={[t("system"), t("statusLabel"), t("lastSuccessfulCheck"), t("lastScore"), { label: t("actions"), align: "end", hidden: true }]}>
           {summary.systems.map((item) => {
             const health = systemHealth(item);
             const evaluations = usedBy(item);
@@ -233,15 +233,15 @@ export function WorkspaceSystems() {
                   <StatusBadge value={health} label={t(HEALTH_LABEL[health])} />
                   {item.error_code && health === "needs_attention" && <span className="p-cell-meta p-cell-note">{humanize(item.error_code.toLowerCase())}</span>}
                 </td>
-                <td className="p-cell-meta">{health === "manual" ? "—" : <Time value={lastHealthy(item)} />}</td>
-                <td>
+                <td className="p-cell-meta" data-label={t("lastSuccessfulCheck")} {...(health === "manual" || !lastHealthy(item) ? { "data-empty": "true" } : {})}>{health === "manual" ? "—" : <Time value={lastHealthy(item)} />}</td>
+                <td data-label={t("lastScore")} {...(report?.strict_pass_rate == null ? { "data-empty": "true" } : {})}>
                   {report?.strict_pass_rate != null ? (
                     <Link className="p-link" href={withOrg(`/workspace/reports/${report.id}`)}>{percent(report.strict_pass_rate)}</Link>
                   ) : (
                     <span className="p-cell-meta">—</span>
                   )}
                 </td>
-                <td className="p-table-action">
+                <td className="p-table-action" data-cell="menu" data-actions="wide">
                   {fix && fixAllowed && (
                     <ActionLink variant="ghost" size="sm" href={fixHref(item)}>
                       <Wrench aria-hidden="true" />
@@ -289,11 +289,24 @@ export function WorkspaceSystems() {
         {system && (
           <>
             {panelError && <Status error>{panelError}</Status>}
+            {/* The connection type and health are in the panel's heading; "Last checked" only adds something when that check failed. */}
             <DefinitionList
               items={[
-                { term: t("connectionType"), value: connectionLabel(system.document.kind) },
-                { term: t("usedBy"), value: usedBy(system).map((item) => item.title).join(", ") || "—" },
-                { term: t("lastChecked"), value: <Time value={system.connection_checked_at ?? null} /> },
+                {
+                  term: t("usedBy"),
+                  value: usedBy(system).length ? (
+                    <ul className="p-plain-list p-defs-links">
+                      {usedBy(system).map((item) => (
+                        <li key={item.id}>
+                          <Link className="p-link" href={withOrg(`/workspace/evaluations/${item.id}`)}>{item.title}</Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : "—",
+                },
+                ...(system.connection_checked_at && system.connection_checked_at !== lastHealthy(system)
+                  ? [{ term: t("lastChecked"), value: <Time value={system.connection_checked_at} /> }]
+                  : []),
               ]}
             />
             <ConnectionHealth system={system} orgId={orgId} onChecked={reload} />
