@@ -54,7 +54,7 @@ import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { rememberTab, rememberedTab } from "./settings-tabs";
 import { t, tv } from "@/lib/evals/messages/runtime";
 import { shareExportKinds } from "@/lib/evals/reports/share-sections";
-import { tr } from "@/lib/evals/messages/phrases";
+import { engineText, tr } from "@/lib/evals/messages/phrases";
 import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, causeBreakdown, causeLabel, failureBreakdown, labelOf } from "./result-labels";
 import { getLocale } from "@/lib/evals/messages/runtime";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
@@ -80,6 +80,25 @@ const MODE: Record<string, string> = {
 
 /** Outcome bar segments in customer words. A function so the labels follow the page language. */
 const OUTCOME_LABELS = () => ({ pass: t("labelCorrect"), partial: t("labelPartiallyCorrect"), fail: t("labelIncorrect"), unscorable: t("filterNotScored") });
+
+/**
+ * A topic as words: its label when the interface has one, else the code with
+ * spaces and a capital, the same rule as the PDF and Word documents
+ * (lib/evals/reports/document.ts). Topics are the report's own categories,
+ * written in the report's language, so they are never shown as raw codes.
+ */
+function topicLabel(value: string) {
+  const known = humanize(value);
+  if (known !== value) return known;
+  const words = value.replaceAll("_", " ").trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : value;
+}
+
+/** A rate in the interface language: "76.1%" in English, "76,1 %" in Spanish (decimal comma, spaced sign). */
+function rate(value: number | null | undefined, digits = 0) {
+  if (value == null) return "—";
+  return new Intl.NumberFormat(getLocale() === "es" ? "es-ES" : "en-US", { style: "percent", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+}
 
 function bySeverity<T extends { severity: string }>(items: T[]) {
   return [...items].sort((a, b) => SEVERITY.indexOf(a.severity as never) - SEVERITY.indexOf(b.severity as never));
@@ -407,7 +426,7 @@ function Overview({
       map.set(item.topic, [...(map.get(item.topic) ?? []), item]);
     }
     return [...map.entries()]
-      .map(([topic, scoped]) => ({ label: humanize(topic), counts: stack(scoped) }))
+      .map(([topic, scoped]) => ({ label: topicLabel(topic), counts: stack(scoped) }))
       .sort((a, b) => (a.counts.pass / (a.counts.pass + a.counts.partial + a.counts.fail)) - (b.counts.pass / (b.counts.pass + b.counts.partial + b.counts.fail)));
   }, [results]);
   const severity = useMemo(
@@ -425,7 +444,6 @@ function Overview({
   return (
     <div className="p-stack-lg">
       {summary && <SummaryBlock summary={summary} hasResults={results.length > 0} cta={cta} onResults={onResults} />}
-      {intro ? <div className="p-report-intro">{intro}</div> : null}
       {m.headline_status === "incomplete" && (
         <Status tone="warn">
           <strong>{t("incompleteHeadline")}</strong> {t("incompleteReport")}
@@ -446,7 +464,7 @@ function Overview({
           {m.wilson_interval ? (
             <p className="p-scoreboard-caption">
               <span title={t("wilsonHelp")}>
-                95% {t("interval")} {percent(m.wilson_interval.low)}–{percent(m.wilson_interval.high)}
+                {t("interval95")}: {rate(m.wilson_interval.low)}–{rate(m.wilson_interval.high)}
               </span>
             </p>
           ) : null}
@@ -458,12 +476,14 @@ function Overview({
           </details>
         </div>
         <StatGrid>
-          {m.n_scorable > 0 && <Stat label={t("qualityScore")} value={percent((m.n_pass + m.n_partial / 2) / m.n_scorable)} meta={t("qualityScoreHelp")} />}
-          <Stat label={t("assessedCoverage")} value={percent(m.assessed_coverage)} meta={`${m.n_scorable} ${t("of")} ${m.n_eligible} ${t("eligibleTestsLower")}`} />
+          {m.n_scorable > 0 && <Stat label={t("qualityScore")} value={rate((m.n_pass + m.n_partial / 2) / m.n_scorable)} meta={t("qualityScoreHelp")} />}
+          <Stat label={t("assessedCoverage")} value={rate(m.assessed_coverage)} meta={`${m.n_scorable} ${t("of")} ${m.n_eligible} ${t("eligibleTestsLower")}`} />
           <Stat label={t("criticalFailures")} value={criticalFailed.length} meta={m.critical_unassessed ? `${m.critical_unassessed} ${t("criticalUnassessed")}` : t("criticalFailuresHelp")} />
           {m.rubric_score != null ? <Stat label={t("rubricScore")} value={`${Math.round(m.rubric_score)}/100`} meta={t("rubricScoreHelp")} /> : <Stat label={t("findings")} value={findings.length} meta={t("findingsHelp")} />}
         </StatGrid>
       </section>
+      {/* The verdict comes first; the comparison with the previous run (or the example's trend) follows it. */}
+      {intro ? <div className="p-report-intro">{intro}</div> : null}
 
       {summary && summary.fixes.length > 0 && <FixList report={report} fixes={summary.fixes} onRerun={cta?.onRerun} onSendToVendor={cta?.onSendToVendor} onResults={onResults} />}
 
@@ -731,7 +751,7 @@ function Results({
           <InlineSelect id="result-topic" label={t("topic")} value={topic} onChange={(event) => setTopic(event.target.value)}>
             <option value="all">{t("all")}</option>
             {topics.map((item) => (
-              <option key={item} value={item}>{humanize(item)}</option>
+              <option key={item} value={item}>{topicLabel(item)}</option>
             ))}
           </InlineSelect>
         )}
@@ -756,7 +776,7 @@ function Results({
         <FilterChips value={outcome} onChange={setOutcome} label={t("filterOutcome")} options={chips} />
       </div>
       {visible.length ? (
-        <DataTable caption={t("testResults")} headers={[t("question"), t("answerColumn"), t("reasonColumn"), { label: t("severity"), align: "end" }]}>
+        <DataTable stack caption={t("testResults")} headers={[t("question"), t("answerColumn"), t("reasonColumn"), { label: t("severity"), align: "end" }]}>
           {visible.map((item) => (
             <tr key={item.assessment_id}>
               <th scope="row">
@@ -764,16 +784,16 @@ function Results({
                   <button type="button" className="p-row-link p-row-button p-clamp-2" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
                     {item.input || item.title}
                   </button>
-                  {item.topic !== "grounded" && <span className="p-cell-meta">{humanize(item.topic)}</span>}
+                  {item.topic !== "grounded" && <span className="p-cell-meta">{topicLabel(item.topic)}</span>}
                 </span>
               </th>
               <td>
                 <ResultBadge result={item} />
               </td>
-              <td>
-                <span className="p-cell-meta p-clamp-2">{item.rationale}</span>
+              <td data-cell="wide">
+                <span className="p-cell-meta p-clamp-2">{engineText(item.rationale)}</span>
               </td>
-              <td className="p-table-action p-cell-meta">{humanize(item.severity)}</td>
+              <td className="p-table-action p-cell-meta" data-label={t("severity")}>{humanize(item.severity)}</td>
             </tr>
           ))}
         </DataTable>
@@ -856,7 +876,7 @@ function ResultReview({
           {t("allResults")}
         </Action>
         <span className="p-review-position">{tv("resultPosition", { position, total })}</span>
-        <Action variant="ghost" size="sm" onClick={() => void copyQuestion(result.input || result.title)}>
+        <Action variant="ghost" size="sm" data-review-copy onClick={() => void copyQuestion(result.input || result.title)}>
           <Copy aria-hidden="true" />
           {t("copyQuestion")}
         </Action>
@@ -880,7 +900,7 @@ function ResultReview({
             {cause && <span>{t("likelyCause")}: {cause} ({t("hypothesisTag")})</span>}
             <span>{graded}</span>
           </div>
-          <p>{result.rationale || t("noExplanation")}</p>
+          <p>{result.rationale ? engineText(result.rationale) : t("noExplanation")}</p>
         </section>
         <div className="p-transcript">
           <div className="p-bubble" data-role="user">
@@ -979,7 +999,7 @@ function ResultReview({
           <DefinitionList
             items={[
               { term: t("severity"), value: humanize(result.severity) },
-              ...(result.topic !== "grounded" ? [{ term: t("topic"), value: humanize(result.topic) }] : []),
+              ...(result.topic !== "grounded" ? [{ term: t("topic"), value: topicLabel(result.topic) }] : []),
               { term: t("review"), value: humanize(result.review_status) },
               { term: t("caseRevision"), value: <code className="p-code">{result.case_revision_id.slice(0, 12)}</code> },
               { term: t("assessmentId"), value: <code className="p-code">{result.assessment_id.slice(0, 12)}</code> },
@@ -1038,6 +1058,32 @@ function Improvements({ improvements, findings }: { improvements: ReportSnapshot
 
 /* ---------------------------------------------------------- methodology --- */
 
+const subscribeNever = () => () => {};
+/**
+ * When the run took place, with times in the reader's time zone. The server
+ * (UTC) and the first browser render show the days only, so hydration never
+ * disagrees about the hour (React #418 on the example's Methodology tab).
+ */
+function EvaluatedRange({ from, to }: { from: string; to: string }) {
+  const browser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  return <>{`${formatDate(from, browser)} – ${formatDate(to, browser)}`}</>;
+}
+
+/** Language codes as names in the interface language ("es" → "Spanish" / "Español"). */
+function languageNames(codes: readonly string[]) {
+  const locale = getLocale();
+  let names: Intl.DisplayNames | null = null;
+  try {
+    names = new Intl.DisplayNames([locale === "es" ? "es-ES" : "en-GB"], { type: "language" });
+  } catch {
+    // Older engines: show the codes.
+  }
+  return codes.map((code) => {
+    const name = names?.of(code) ?? code;
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }).join(", ");
+}
+
 function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
   const m = report.methodology;
   const metrics = report.metrics;
@@ -1047,14 +1093,15 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
       <section>
         <SectionHeading title={t("scopeAndMethod")} />
         <DefinitionList
+          layout="prose"
           items={[
             ...(report.system ? [{ term: t("executionMode"), value: MODE[report.system.execution_mode] ?? humanize(report.system.execution_mode) }] : []),
             ...(report.scope
               ? [
                   { term: t("evidencePolicy"), value: humanize(report.scope.evidence_policy) },
                   { term: t("reviewStatus"), value: humanize(report.scope.review_status) },
-                  { term: t("evaluated"), value: `${formatDate(report.scope.started_at, true)} – ${formatDate(report.scope.finished_at, true)}` },
-                  { term: t("languages"), value: report.scope.languages.join(", ") || "—" },
+                  { term: t("evaluated"), value: <EvaluatedRange from={report.scope.started_at} to={report.scope.finished_at} /> },
+                  { term: t("languages"), value: languageNames(report.scope.languages) || "—" },
                 ]
               : []),
             { term: t("sampling"), value: gen(m.sampling || "—") },
@@ -1073,15 +1120,15 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
             <SectionHeading title={t("denominators")}>{t("denominatorsHelp")}</SectionHeading>
             <DefinitionList
               items={[
-                ...(metrics.strict_pass_rate != null ? [{ term: t("exactPassRate"), value: `${percent(metrics.strict_pass_rate, 1)} (${metrics.n_pass} ${t("of")} ${metrics.n_scorable})` }] : []),
-                ...(metrics.wilson_interval ? [{ term: `95% ${t("interval")}`, value: `${percent(metrics.wilson_interval.low, 1)}–${percent(metrics.wilson_interval.high, 1)}` }] : []),
+                ...(metrics.strict_pass_rate != null ? [{ term: t("exactPassRate"), value: `${rate(metrics.strict_pass_rate, 1)} (${metrics.n_pass} ${t("of")} ${metrics.n_scorable})` }] : []),
+                ...(metrics.wilson_interval ? [{ term: t("interval95"), value: `${rate(metrics.wilson_interval.low, 1)}–${rate(metrics.wilson_interval.high, 1)}` }] : []),
                 { term: t("planned"), value: metrics.n_planned },
                 { term: t("eligible"), value: metrics.n_eligible },
                 { term: t("executed"), value: metrics.n_executed },
                 { term: t("assessed"), value: metrics.n_scorable },
                 { term: t("notScored"), value: metrics.n_unscorable },
                 { term: t("pendingLabel"), value: metrics.n_pending },
-                ...(metrics.pass_bounds ? [{ term: t("missingResultBounds"), value: `${percent(metrics.pass_bounds.low)}–${percent(metrics.pass_bounds.high)}` }] : []),
+                ...(metrics.pass_bounds ? [{ term: t("missingResultBounds"), value: `${rate(metrics.pass_bounds.low)}–${rate(metrics.pass_bounds.high)}` }] : []),
               ]}
             />
           </>
@@ -1229,21 +1276,25 @@ export function AuthenticatedReport({
   const canWrite = ["owner", "editor", "operator"].includes(role);
   const canManage = ["owner", "operator"].includes(role);
   const isCurrent = revision.id === data.report.current_revision_id;
+  const published = data.report.publication_status === "published";
+  // A withdrawn report no longer stands: it says so first and offers no next steps (no readout, share or review).
+  const withdrawn = data.report.publication_status === "withdrawn";
   const evaluationId = comparison.data?.candidate.evaluationId;
-  const cta: ReportCta = {
-    onShare: canManage ? () => commands.current?.share() : undefined,
+  const cta: ReportCta | undefined = withdrawn ? undefined : {
+    // Only a published report can be shared (the API refuses a draft).
+    onShare: canManage && published ? () => commands.current?.share() : undefined,
     onDownload: canWrite ? () => commands.current?.downloadPdf() : undefined,
     downloading: preparing,
     readoutHref: readoutUrl ? readoutLink(readoutUrl, "report", workspace) : null,
     expertHref: marketingOrigin ? `${marketingOrigin}${localizePathname("/contact", getLocale())}?offer=pilot-evaluation` : null,
     // Owners ask from the current, published report (launch L-26, P-10).
-    expertReview: expertReview && canManage && isCurrent && data.report.publication_status === "published"
+    expertReview: expertReview && canManage && isCurrent && published
       ? <ExpertReviewRequest orgId={orgId} reportId={reportId} surface="report" /> : undefined,
     onRerun: canWrite && evaluationId
       ? (ids) => router.push(withOrg(`/workspace/evaluations/${evaluationId}?rerun=1${ids.length ? `&focus=${ids.slice(0, 50).join(",")}` : ""}`))
       : undefined,
     // Links open only the current published revision (launch P-54), like every share.
-    onSendToVendor: canManage && isCurrent && data.report.publication_status === "published" ? () => commands.current?.sendToVendor() : undefined,
+    onSendToVendor: canManage && isCurrent && published ? () => commands.current?.sendToVendor() : undefined,
   };
   const intro = comparison.data?.baseline ? (
     <RunComparisonView runId={revision.run_id} {...comparison} compact openResult={(id) => ({ onClick: () => openResult(id) })}
@@ -1251,6 +1302,8 @@ export function AuthenticatedReport({
   ) : undefined;
   return (
     <>
+      {withdrawn && <Status tone="warn">{t("reportWithdrawnNotice")}</Status>}
+      {data.report.publication_status === "draft" && <Status tone="info">{t("reportDraftNotice")}</Status>}
       {!isCurrent && (
         <Status tone="warn" action={<Action variant="secondary" size="sm" onClick={() => setRevisionId(null)}>{t("viewCurrent")}</Action>}>
           {t("viewingOlderRevision")}
@@ -1259,6 +1312,7 @@ export function AuthenticatedReport({
       <ReportView
         key={`${revision.id}-${opened.key}`}
         report={revision.snapshot}
+        badge={withdrawn ? <StatusBadge value="withdrawn" /> : data.report.publication_status === "draft" ? <StatusBadge value="draft" /> : undefined}
         initialResult={opened.key ? opened.id : params.get("result")}
         initialTab={opened.key && opened.finding ? "findings" : params.get("tab")}
         initialFinding={opened.finding ?? null}
@@ -1268,17 +1322,17 @@ export function AuthenticatedReport({
         overviewIntro={intro}
         actions={
           <>
-          {readoutAccess(readoutMode, role, operator).present && (
+          {readoutAccess(readoutMode, role, operator).present && !withdrawn && (
             <ActionLink variant="secondary" href={withOrg(`/workspace/reports/${reportId}/present?revision=${revision.id}`)} title={readoutCopy(getLocale()).presentHelp}>
               <Presentation aria-hidden="true" />
               {readoutCopy(getLocale()).present}
             </ActionLink>
           )}
-          {reportQuestions && (
+          {reportQuestions && !withdrawn && (
             <ReportQuestions orgId={orgId} reportId={reportId} revisionId={revision.id} snapshot={revision.snapshot}
               readoutHref={readoutUrl ? readoutLink(readoutUrl, "report", workspace) : null} onOpenResult={openResult} onOpenFinding={openFinding} />
           )}
-          {publicResults && canManage && isCurrent && data.report.publication_status === "published" && (
+          {publicResults && canManage && isCurrent && published && (
             <PublicResultsConsent orgId={orgId} reportId={reportId} revisionId={revision.id} workspaceName={currentWorkspace?.name ?? ""} marketingOrigin={marketingOrigin} />
           )}
           <ReportActions
@@ -1290,7 +1344,7 @@ export function AuthenticatedReport({
             revision={revision}
             currentRevisionId={data.report.current_revision_id}
             canWrite={canWrite}
-            canManage={canManage}
+            canManage={canManage && !withdrawn}
             operator={operator}
             onChanged={load}
             onSelectRevision={setRevisionId}

@@ -268,7 +268,7 @@ export function ReadoutView(props: ReadoutViewProps) {
           </aside>
         </div>
         <footer className="p-readout-bar">
-          <p className="p-readout-hint">{copy.presenterSynced} {copy.keyboardHelp}</p>
+          <p className="p-readout-hint">{copy.presenterSynced} <span className="p-readout-keys">{copy.keyboardHelp}</span></p>
           {nav}
           <Action variant="secondary" size="sm" onClick={exit}>
             <X aria-hidden="true" />

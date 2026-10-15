@@ -221,6 +221,23 @@ describe("readout copy", () => {
   });
 });
 
+describe("cover slide wording and tones", () => {
+  it("says one question in the singular", () => {
+    const report = fixtures[0].report;
+    const one = { ...report, metrics: { ...report.metrics, n_eligible: 1 } };
+    const [en] = only(buildReadoutDeck(one, "en").slides, "cover");
+    const [es] = only(buildReadoutDeck(one, "es").slides, "cover");
+    expect(en.scope).toMatch(/^1 question\b/);
+    expect(es.scope).toMatch(/^1 pregunta\b/);
+  });
+  it("colours review status as the report's badges do: preliminary is info, not a warning", () => {
+    const report = { ...fixtures[0].report, scope: { ...fixtures[0].report.scope, review_status: "preliminary" as const } };
+    const deck = buildReadoutDeck(report, "en");
+    const html = renderReadoutSlide(deck, deck.slides.findIndex((slide) => slide.kind === "cover"));
+    expect(html).toMatch(/data-status="preliminary"><span class="rd-chip" data-tone="info">/);
+  });
+});
+
 describe("readout access and flag", () => {
   it("opens to operators first, then owners and editors, never viewers", () => {
     expect(readoutAccess("off", "operator", true)).toEqual({ present: false, notes: false, edit: false });

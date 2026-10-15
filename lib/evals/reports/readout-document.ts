@@ -16,6 +16,8 @@ import { fill } from "./summary-copy";
 
 const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 const u = (n: number) => `calc(${n} * var(--u))`;
+/** Review-status chips in the tones of the report's status badges (components/evals/primitives.tsx): preliminary is info, not a warning. */
+const STATUS_TONE: Record<string, string> = { reviewed: "pass", complete: "pass", expert_reviewed: "pass", preliminary: "info", incomplete: "warn" };
 
 /**
  * Slide stylesheet, scoped to `.rd-*`. Colours fall back to the platform
@@ -24,7 +26,7 @@ const u = (n: number) => `calc(${n} * var(--u))`;
  */
 export const READOUT_CSS = `
 .rd-frame{container-type:inline-size;width:100%}
-.rd-slide{--u:calc(100cqw / 1280);--rd-text:var(--p-text,#0c0c0b);--rd-muted:var(--p-text-secondary,#6d6d68);--rd-faint:var(--p-text-tertiary,#9a9a94);--rd-surface:#ffffff;--rd-surface-2:var(--p-surface-2,#f7f7f5);--rd-border:rgba(12,12,11,.12);--rd-pass:#15803d;--rd-pass-fill:#f0fdf4;--rd-warn:#b45309;--rd-warn-fill:#fffbeb;--rd-fail:#b91c1c;--rd-fail-fill:#fef2f2;--rd-neutral:#57534e;--rd-neutral-fill:#f5f5f4;
+.rd-slide{--u:calc(100cqw / 1280);--rd-text:var(--p-text,#0c0c0b);--rd-muted:var(--p-text-secondary,#6d6d68);--rd-faint:var(--p-text-tertiary,#9a9a94);--rd-surface:#ffffff;--rd-surface-2:var(--p-surface-2,#f7f7f5);--rd-border:rgba(12,12,11,.12);--rd-pass:#15803d;--rd-pass-fill:#f0fdf4;--rd-warn:#b45309;--rd-warn-fill:#fffbeb;--rd-fail:#b91c1c;--rd-fail-fill:#fef2f2;--rd-info:#1d4ed8;--rd-info-fill:#eff6ff;--rd-neutral:#57534e;--rd-neutral-fill:#f5f5f4;
  position:relative;box-sizing:border-box;width:100%;aspect-ratio:16/9;overflow:hidden;display:flex;flex-direction:column;gap:${u(18)};
  padding:${u(48)} ${u(64)} ${u(72)};background:var(--rd-surface);color:var(--rd-text);
  font-family:"Geist",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:${u(24)};line-height:1.35;letter-spacing:-.006em;font-variant-numeric:tabular-nums;
@@ -44,6 +46,7 @@ export const READOUT_CSS = `
 .rd-chip[data-tone=pass]{background:var(--rd-pass-fill);color:var(--rd-pass)}
 .rd-chip[data-tone=warn]{background:var(--rd-warn-fill);color:var(--rd-warn)}
 .rd-chip[data-tone=fail]{background:var(--rd-fail-fill);color:var(--rd-fail)}
+.rd-chip[data-tone=info]{background:var(--rd-info-fill);color:var(--rd-info)}
 .rd-chip[data-tone=strong]{background:var(--rd-text);color:#fff}
 .rd-meta-text{font-size:${u(18)};color:var(--rd-muted)}
 .rd-cover{justify-content:center;gap:${u(22)}}
@@ -125,7 +128,7 @@ ${slide.purpose.text ? `<p class="rd-purpose">${text(slide.purpose)}</p>` : ""}
 <dl class="rd-facts">
  <div><dt>${esc(copy.evaluated)}</dt><dd data-cover="date">${esc(slide.date)}</dd></div>
  <div><dt>${esc(copy.scope)}</dt><dd data-cover="scope">${esc(slide.scope)}</dd></div>
- <div><dt>${esc(copy.reviewStatus)}</dt><dd class="rd-status">${slide.status.map((item) => `<p data-status="${esc(item.key)}"><span class="rd-chip" data-tone="${item.key === "reviewed" || item.key === "complete" ? "pass" : "warn"}">${esc(item.label)}</span><span class="rd-meta-text">${esc(item.text)}</span></p>`).join("")}</dd></div>
+ <div><dt>${esc(copy.reviewStatus)}</dt><dd class="rd-status">${slide.status.map((item) => `<p data-status="${esc(item.key)}"><span class="rd-chip" data-tone="${STATUS_TONE[item.key] ?? "warn"}">${esc(item.label)}</span><span class="rd-meta-text">${esc(item.text)}</span></p>`).join("")}</dd></div>
 </dl>`;
     case "verdict":
       return `${head(deck, copy.verdictTitle)}

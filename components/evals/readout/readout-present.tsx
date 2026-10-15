@@ -123,7 +123,7 @@ export function ReportReadout({ reportId, mode }: { reportId: string; mode: Read
     return (
       <>
         <PageHeading title={copy.present} />
-        <Status tone="warn" action={<ActionLink variant="secondary" size="sm" href={reportHref}>{copy.exit}</ActionLink>}>{copy.notAllowed}</Status>
+        <Status tone="info" action={<ActionLink variant="secondary" size="sm" href={reportHref}>{copy.backToReport}</ActionLink>}>{copy.notAllowed}</Status>
       </>
     );
   if (error)
@@ -203,7 +203,7 @@ export function ExampleReadout({ snapshot, mode, defaultNextStep = "pilot" }: { 
     return (
       <>
         <PageHeading title={copy.present} />
-        <Status tone="warn" action={<ActionLink variant="secondary" size="sm" href="/workspace/example">{copy.exit}</ActionLink>}>{copy.notAllowed}</Status>
+        <Status tone="info" action={<ActionLink variant="secondary" size="sm" href="/workspace/example">{copy.backToReport}</ActionLink>}>{copy.notAllowed}</Status>
       </>
     );
   if (!local) return <Loading>{copy.loading}</Loading>;

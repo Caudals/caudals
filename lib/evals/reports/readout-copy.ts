@@ -17,7 +17,9 @@ const EN = {
   evaluated: "Evaluated",
   scope: "Scope",
   scopeLine: "{eligible} questions from your sources · {languages}",
+  scopeLineOne: "1 question from your sources · {languages}",
   scopeLineExploratory: "{eligible} questions · {languages}",
+  scopeLineExploratoryOne: "1 question · {languages}",
   reviewStatus: "Review status",
   verdictTitle: "Verdict",
   scoreLabel: "of scored answers matched the sources",
@@ -143,6 +145,7 @@ const EN = {
   transcripts: "Transcripts",
   apply: "Apply",
   notAllowed: "Readout mode is not available for your role in this workspace.",
+  backToReport: "Back to the report",
 };
 export type ReadoutCopy = typeof EN;
 
@@ -151,7 +154,9 @@ const ES: ReadoutCopy = {
   evaluated: "Evaluado",
   scope: "Alcance",
   scopeLine: "{eligible} preguntas a partir de tus fuentes · {languages}",
+  scopeLineOne: "1 pregunta a partir de tus fuentes · {languages}",
   scopeLineExploratory: "{eligible} preguntas · {languages}",
+  scopeLineExploratoryOne: "1 pregunta · {languages}",
   reviewStatus: "Estado de revisión",
   verdictTitle: "Veredicto",
   scoreLabel: "de las respuestas puntuadas coincidieron con las fuentes",
@@ -271,6 +276,7 @@ const ES: ReadoutCopy = {
   transcripts: "Transcripciones",
   apply: "Aplicar",
   notAllowed: "El modo presentación no está disponible para tu rol en este espacio de trabajo.",
+  backToReport: "Volver al informe",
 };
 
 export function readoutCopy(locale: ReportLocale): ReadoutCopy {

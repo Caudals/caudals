@@ -219,7 +219,8 @@
   border-radius: var(--p-radius-lg);
   background: var(--p-surface);
   box-shadow: var(--p-shadow-border);
-  font-size: var(--p-text-subtitle);
+  /* Read at a glance while presenting: one step above body text. */
+  font-size: var(--p-text-title);
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -276,6 +277,10 @@
   }
   .p-readout-bar {
     justify-content: center;
+  }
+  /* Phones and tablets have no keyboard to drive the deck: the key list only pushes the notes off screen. */
+  .p-readout-keys {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

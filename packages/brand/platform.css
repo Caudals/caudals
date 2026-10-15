@@ -814,6 +814,8 @@
   align-items: center;
   gap: 8px;
   flex: none;
+  /* Never wider than the heading: a long action row wraps instead of widening the canvas (390 px). */
+  max-width: 100%;
 }
 
 .p-section {
@@ -1923,6 +1925,21 @@
     overflow-wrap: anywhere;
   }
 }
+/* Values that are sentences (a report's method): a fixed term column and left-aligned prose. */
+.p-defs[data-layout="prose"] > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 34%) minmax(0, 1fr);
+}
+.p-defs[data-layout="prose"] dd {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 639px) {
+  .p-defs[data-layout="prose"] > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
 
 /* --- Empty state ------------------------------------------------------------ */
 
@@ -2348,6 +2365,10 @@
 .p-help-method svg {
   width: 14px;
   height: 14px;
+}
+/* Under a list (a report's limitations) the link needs air above it. */
+.p-bullets + .p-help-method {
+  margin-top: 12px;
 }
 .p-article {
   display: grid;
@@ -3156,7 +3177,7 @@
   overflow-y: auto;
   padding: 20px 22px 28px;
   display: grid;
-  /* A wide table inside scrolls in its own container instead of widening the panel (launch R4). */
+  /* A wide table or a report preview's tabs scroll inside the panel instead of widening it past a phone (launch R4, R2). */
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 20px;
@@ -3717,10 +3738,13 @@
   font-variant-numeric: tabular-nums;
 }
 @media (max-width: 639px) {
-  .p-barlist li {
+  .p-barlist li,
+  .p-stacks li {
     grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
   }
-  .p-barlist-track {
+  .p-barlist-track,
+  .p-stacks-track {
     grid-column: 1 / -1;
     grid-row: 2;
   }
@@ -4112,9 +4136,8 @@
   min-width: 0;
   text-align: left;
 }
-/* Content above a report's overview (the example evaluation's trend and comparison). */
+/* The comparison with the previous run (the example's trend and comparison) under the verdict. */
 .p-report-intro {
-  margin-bottom: 40px;
   padding-bottom: 32px;
   border-bottom: 1px solid var(--p-border-hairline);
 }
@@ -6131,6 +6154,21 @@
   font-size: var(--p-text-micro);
   font-variant-numeric: tabular-nums;
   color: var(--p-text-secondary);
+}
+/* Phones: back and previous/next on the first line, position and copy on the second. */
+@media (max-width: 639px) {
+  .p-review-nav > .p-row {
+    order: 1;
+    margin-left: auto;
+  }
+  .p-review-nav > .p-review-position {
+    order: 2;
+    margin-left: 4px;
+  }
+  .p-review-nav > [data-review-copy] {
+    order: 3;
+    margin-left: auto;
+  }
 }
 .p-support-tag {
   display: inline-block;

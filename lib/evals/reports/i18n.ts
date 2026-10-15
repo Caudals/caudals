@@ -126,6 +126,18 @@ export function reportDate(value: string, locale: ReportLocale) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(locale === "es" ? "es-ES" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+/** The billing limitation the report builder writes for a deployed system (lib/evals/repositories/managed.ts). */
+const TARGET_BILLING = "Customer-owned target API usage is externally billed. Its tariff and total charge are unknown to Caudals; configured invocation and token bounds do not guarantee a cash ceiling.";
+
+/**
+ * Stored engine sentences shown to business readers in plainer English. The
+ * snapshot keeps the original; the web report, the PDF and the Word document
+ * all print this wording (launch UI review R2).
+ */
+const PLAIN_EN: Record<string, string> = {
+  [TARGET_BILLING]: "Your provider bills you for the calls this test made to your system. Caudals doesn't know your rates or the total, and the run's call and token limits don't guarantee a spending cap.",
+};
+
 const FIXED_ES: Record<string, string> = {
   "Inspect the linked evidence, correct the supported system behavior, and validate with the unchanged case revisions.":
     "Revisa la evidencia vinculada, corrige el comportamiento respaldado del sistema y valida con las mismas revisiones de los casos.",
@@ -142,8 +154,8 @@ const FIXED_ES: Record<string, string> = {
     "Valoración preliminar automática; los resultados críticos y los disputados requieren revisión.",
   "Responses were imported; execution identity, latency and usage may be unavailable.":
     "Las respuestas se importaron; la identidad de ejecución, la latencia y el consumo pueden no estar disponibles.",
-  "Customer-owned target API usage is externally billed. Its tariff and total charge are unknown to Caudals; configured invocation and token bounds do not guarantee a cash ceiling.":
-    "El uso de la API del sistema, propiedad del cliente, se factura fuera de Caudals. Su tarifa y su importe total no los conoce Caudals; los límites de llamadas y de tokens configurados no garantizan un tope de gasto.",
+  [TARGET_BILLING]:
+    "Tu proveedor te factura las llamadas que esta prueba hizo a tu sistema. Caudals no conoce tus tarifas ni el importe total, y los límites de llamadas y de tokens de la ejecución no garantizan un tope de gasto.",
   "Execution and measurements were reported by a customer-controlled private runner. Its signature binds submitted bytes to the paired runner key, not to proof that the system produced them.":
     "La ejecución y las mediciones las informó un ejecutor privado controlado por el cliente. Su firma vincula los datos enviados a la clave del ejecutor emparejado, no demuestra que el sistema los produjera.",
   "Follow-up user turns and tool results were scripted from the frozen tests, not written by a person or taken from live systems. Per-turn usage is estimated where the system did not report it.":
@@ -177,11 +189,13 @@ const CAUSE_ES: Record<string, string> = {
 };
 
 /**
- * Translate sentences Caudals generates from templates. Anything else
- * (customer or model text) is returned unchanged.
+ * Translate sentences Caudals generates from templates (and, in English,
+ * give the few in PLAIN_EN plainer words). Anything else (customer or model
+ * text) is returned unchanged.
  */
 export function localizeReportText(text: string, locale: ReportLocale): string {
-  if (locale !== "es" || !text) return text;
+  if (!text) return text;
+  if (locale !== "es") return PLAIN_EN[text] ?? text;
   if (FIXED_ES[text]) return FIXED_ES[text];
   let match = text.match(/^(\d+) assessed results? showed (.+)\.$/);
   if (match) return `${match[1]} ${match[1] === "1" ? "resultado evaluado mostró" : "resultados evaluados mostraron"} ${match[2].replace(/criterion failure/, "incumplimiento de criterios")}.`;

@@ -218,7 +218,7 @@ export function buildReadoutDeck(report: ReportSnapshot, locale: ReportLocale = 
     system: clip(report.system.name, 100).text,
     purpose: clip(report.system.purpose, 200),
     date: dates,
-    scope: fill(grounded ? copy.scopeLine : copy.scopeLineExploratory, { eligible: m.n_eligible, languages: languagesText(report.scope.languages, locale) }),
+    scope: fill(m.n_eligible === 1 ? (grounded ? copy.scopeLineOne : copy.scopeLineExploratoryOne) : (grounded ? copy.scopeLine : copy.scopeLineExploratory), { eligible: m.n_eligible, languages: languagesText(report.scope.languages, locale) }),
     status: summary.status,
   });
   slides.push({

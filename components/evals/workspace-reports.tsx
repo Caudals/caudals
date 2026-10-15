@@ -44,7 +44,7 @@ export function WorkspaceReports() {
             <SearchInput value={query} onChange={setQuery} label={t("searchReports")} />
           </Toolbar>
           {reports.length ? (
-            <DataTable caption={t("reports")} headers={[t("report"), t("strictPassRate"), t("statusLabel"), { label: t("published"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
+            <DataTable stack caption={t("reports")} headers={[t("report"), t("strictPassRate"), t("statusLabel"), { label: t("published"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
               {reports.map((report) => (
                 <tr key={report.id}>
                   <RowTitle href={withOrg(`/workspace/reports/${report.id}`)} meta={[...new Set([report.system_name, evaluationTitle(report.evaluation_id)].filter(Boolean))].join(" · ") || undefined}>
@@ -71,7 +71,7 @@ export function WorkspaceReports() {
                   <td className="p-table-action p-cell-meta">
                     <Time value={report.revision_created_at ?? report.updated_at ?? null} />
                   </td>
-                  <td className="p-table-action">
+                  <td className="p-table-action" data-cell="menu">
                     <ActionMenu
                       label={`${t("moreActions")}: ${report.title}`}
                       items={[

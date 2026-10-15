@@ -122,7 +122,10 @@ export function buildExecutiveSummary(report: Report, locale: ReportLocale = "en
     scored: m.n_scorable,
     eligible: m.n_eligible,
     sentences,
-    sample: fill(copy.sampleLine, { scored: m.n_scorable, eligible: m.n_eligible }),
+    sample: fill(copy.sampleLine, {
+      scored: m.n_scorable === 1 ? copy.sampleScoredOne : fill(copy.sampleScoredMany, { n: m.n_scorable }),
+      eligible: m.n_eligible === 1 ? copy.sampleQuestionsOne : fill(copy.sampleQuestionsMany, { n: m.n_eligible }),
+    }),
     status,
     fixes,
   };

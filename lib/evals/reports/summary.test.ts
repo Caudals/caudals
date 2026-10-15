@@ -104,6 +104,15 @@ describe("executive summary", () => {
     ]);
     expect(perfect.fixes).toEqual([]);
   });
+
+  it("says one answer and one question in the singular", () => {
+    const report = fixtures[1].report;
+    const one = { ...report, metrics: { ...report.metrics, n_scorable: 1, n_eligible: 1, n_pass: 1, n_partial: 0, n_fail: 0, strict_pass_rate: 1 } };
+    expect(buildExecutiveSummary(one, "en")!.sample).toBe("Sample: 1 scored answer out of 1 question.");
+    expect(buildExecutiveSummary(one, "es")!.sample).toBe("Muestra: 1 respuesta puntuada de 1 pregunta.");
+    const none = { ...one, metrics: { ...one.metrics, n_scorable: 0, n_pass: 0, strict_pass_rate: null } };
+    expect(buildExecutiveSummary(none, "en")!.sample).toBe("Sample: 0 scored answers out of 1 question.");
+  });
 });
 
 describe("summary wording", () => {

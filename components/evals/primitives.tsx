@@ -574,9 +574,10 @@ export function StatGrid({ children }: { children: ReactNode }) {
   return <div className="p-stats">{children}</div>;
 }
 
-export function DefinitionList({ items }: { items: Array<{ term: string; value: ReactNode }> }) {
+/** `layout="prose"` for values that are sentences: left-aligned beside a fixed term column, stacked on phones. */
+export function DefinitionList({ items, layout }: { items: Array<{ term: string; value: ReactNode }>; layout?: "prose" }) {
   return (
-    <dl className="p-defs">
+    <dl className="p-defs" data-layout={layout}>
       {items.map((item) => (
         <div key={item.term}>
           <dt>{item.term}</dt>
