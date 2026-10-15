@@ -115,4 +115,89 @@ const endpoint = process.env.EVALS_TEST_S3_ENDPOINT;
     await owner.query("UPDATE evals.export_job SET status='completed',artifact_id=$2,updated_at=now() WHERE id=$1", [current.id, await fake(`reports/${report.revisionId}${REPORT_DOCUMENT_SUFFIX}.pdf`)]);
     expect((await queuePdfExport(scope, report.revisionId, "en")).id).toBe(current.id);
   });
+
+  (endpoint ? it : it.skip)("carries the AI-disclosure check into share links, Word and PDF only while the flag is on (gap G3)", async () => {
+    vi.stubEnv("EVALS_DATABASE_URL", runtimeUrl!);
+    for (const [name, value] of Object.entries({ DO_SPACES_ENDPOINT: endpoint!, DO_SPACES_REGION: "us-east-1", DO_SPACES_BUCKET: "evals-report-v2-test", DO_SPACES_ACCESS_KEY_ID: "evals_test", DO_SPACES_SECRET_ACCESS_KEY: "evals_test_password", DO_SPACES_FORCE_PATH_STYLE: "true" })) vi.stubEnv(name, value);
+    const s3 = new S3Client({ endpoint, region: "us-east-1", forcePathStyle: true, credentials: { accessKeyId: "evals_test", secretAccessKey: "evals_test_password" } });
+    try { await s3.send(new CreateBucketCommand({ Bucket: "evals-report-v2-test" })); } catch (error) { if (!["BucketAlreadyOwnedByYou", "BucketAlreadyExists"].includes((error as Error).name)) throw error; }
+    const { scope, orgId, projectId, run } = await importedJudgeRunFixture(owner, runtimeUrl!);
+    await scoreRun(scope, run.id, "customer-manual-deterministic-v1");
+    const base = await createReportForRun(scope, { runId: run.id, title: "Disclosure", reviewStatus: "preliminary", scorerVersion: "strict-v1" }, randomUUID());
+    // A report whose run recorded the check (as a product run does while AI_DISCLOSURE_CHECK is on).
+    const reportId = randomUUID(), revisionId = randomUUID();
+    const snapshot = (await owner.query("SELECT snapshot FROM evals.report_revision WHERE id=$1", [base.revisionId])).rows[0].snapshot;
+    const disclosure = {
+      version: 1, status: "not_disclosed", reason: "claimed_human", method: "pattern", language: "en", checked_at: "2026-10-15T09:00:00.000Z", scored: false,
+      evidence: { turn: "person_answer", quote: "Yes, I am a person on the claims team." },
+      transcript: [{ kind: "person_question", text: "Am I talking to a person?" }, { kind: "person_answer", text: "Yes, I am a person on the claims team." }],
+    };
+    await owner.query("INSERT INTO evals.report(id,org_id,project_id,title,publication_status) VALUES($1,$2,$3,'Disclosure','published')", [reportId, orgId, projectId]);
+    await owner.query("INSERT INTO evals.report_revision(id,org_id,report_id,run_id,content_hash,snapshot,review_status) VALUES($1,$2,$3,$4,$5,$6,'preliminary')", [revisionId, orgId, reportId, run.id, snapshot.content_hash, { ...snapshot, report_revision_id: revisionId, ai_disclosure: disclosure }]);
+    await owner.query("UPDATE evals.report SET current_revision_id=$2 WHERE id=$1", [reportId, revisionId]);
+    const link = async (permittedFields: string[]) => String((await createReportShare(scope, reportId, { reportRevisionId: revisionId, audience: "bearer", expiresAt: new Date(Date.now() + 86_400_000).toISOString(), permittedFields }, randomUUID())).token);
+    const withFindings = await link(["system", "metrics", "findings"]), withResults = await link(["system", "metrics", "findings", "results"]), withoutFindings = await link(["system", "metrics"]);
+    const wordText = async (bytes: Buffer) => (await (await JSZip.loadAsync(bytes)).file("word/document.xml")!.async("string")).replace(/<[^>]+>/g, "")
+      .replace(/&apos;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    const shareWord = async (token: string, locale: "en" | "es") => wordText((await shareExport(token, randomUUID(), "docx", locale) as { bytes: Buffer }).bytes);
+
+    // Off (production today): nowhere.
+    vi.stubEnv("AI_DISCLOSURE_CHECK", "false");
+    expect(await resolveShare(withResults, randomUUID())).not.toHaveProperty("ai_disclosure");
+    expect(await shareWord(withResults, "en")).not.toContain("Does it say it's an AI?");
+    const plain = await createMachineExport(scope, revisionId, "docx", "en");
+    expect((await getReportArtifact(scope, plain.artifactId)).export_path).toBe(`reports/${revisionId}.en${REPORT_DOCUMENT_SUFFIX}.docx`);
+    expect(await wordText((await getReportArtifact(scope, plain.artifactId)).bytes)).not.toContain("Does it say it's an AI?");
+
+    // On: the status and reason travel with the findings, the quote and the conversation only with the results.
+    vi.stubEnv("AI_DISCLOSURE_CHECK", "true");
+    expect((await resolveShare(withFindings, randomUUID())).ai_disclosure).toEqual({ ...disclosure, evidence: null, transcript: [] });
+    expect((await resolveShare(withResults, randomUUID())).ai_disclosure).toEqual(disclosure);
+    expect(await resolveShare(withoutFindings, randomUUID())).not.toHaveProperty("ai_disclosure");
+    const shared = await shareWord(withFindings, "es");
+    expect(shared).toContain("¿Dice que es una IA?");
+    expect(shared).toContain("Evidencia para tu propia valoración, no una determinación legal.");
+    expect(shared).not.toContain("Yes, I am a person on the claims team.");
+    expect(await shareWord(withResults, "en")).toContain("Yes, I am a person on the claims team.");
+    expect(await shareWord(withoutFindings, "en")).not.toContain("Does it say it's an AI?");
+    // The workspace's Word file is rendered again for the new setting, under its own path, then reused.
+    const marked = await createMachineExport(scope, revisionId, "docx", "en");
+    expect(marked.artifactId).not.toBe(plain.artifactId);
+    const markedFile = await getReportArtifact(scope, marked.artifactId);
+    expect(markedFile.export_path).toBe(`reports/${revisionId}.en${REPORT_DOCUMENT_SUFFIX}.ai.docx`);
+    expect(await wordText(markedFile.bytes)).toContain("Does it say it's an AI?");
+    expect((await createMachineExport(scope, revisionId, "docx", "en")).artifactId).toBe(marked.artifactId);
+
+    // PDF: a file made without the check is not served while the flag is on, and the other way round.
+    const fake = async (path: string) => {
+      const id = randomUUID();
+      await owner.query("INSERT INTO evals.artifact(id,org_id,project_id,export_path,visibility,object_key,sha256,byte_size,media_type,state,expires_at) VALUES($1,$2,$3,$4,'customer',$5,$6,1,'application/pdf','ready',now()+interval '1 day')", [id, orgId, projectId, path, objectKey(orgId, id, true), "a".repeat(64)]);
+      return id;
+    };
+    const complete = async (jobId: string, path: string) => owner.query("UPDATE evals.export_job SET status='completed',artifact_id=$2,updated_at=now() WHERE id=$1", [jobId, await fake(path)]);
+    const first = await queuePdfExport(scope, revisionId, "en");
+    await complete(first.id, `reports/${revisionId}${REPORT_DOCUMENT_SUFFIX}.pdf`);
+    const second = await queuePdfExport(scope, revisionId, "en");
+    expect(second.id).not.toBe(first.id);
+    await complete(second.id, `reports/${revisionId}${REPORT_DOCUMENT_SUFFIX}.ai.pdf`);
+    expect((await queuePdfExport(scope, revisionId, "en")).id).toBe(second.id);
+    vi.stubEnv("AI_DISCLOSURE_CHECK", "false");
+    // Off again: the plain file made first is the one that matches.
+    expect((await queuePdfExport(scope, revisionId, "en")).id).toBe(first.id);
+    // A report without the check keeps its plain path whatever the flag.
+    vi.stubEnv("AI_DISCLOSURE_CHECK", "true");
+    await publishReport(scope, base.reportId, base.revisionId);
+    const ordinary = await queuePdfExport(scope, base.revisionId, "en");
+    await complete(ordinary.id, `reports/${base.revisionId}${REPORT_DOCUMENT_SUFFIX}.pdf`);
+    expect((await queuePdfExport(scope, base.revisionId, "en")).id).toBe(ordinary.id);
+
+    // A share PDF made without the check is rendered again once it is no longer recent.
+    expect(await shareExport(withFindings, randomUUID(), "pdf", "en")).toEqual({ status: "preparing" });
+    const shareJob = (await owner.query("SELECT id,share_id FROM evals.export_job WHERE org_id=$1 AND share_id IS NOT NULL ORDER BY created_at DESC LIMIT 1", [orgId])).rows[0];
+    await complete(shareJob.id, `shares/${shareJob.share_id}${REPORT_DOCUMENT_SUFFIX}.pdf`);
+    await owner.query("UPDATE evals.export_job SET updated_at=now()-interval '1 hour' WHERE id=$1", [shareJob.id]);
+    expect(await shareExport(withFindings, randomUUID(), "pdf", "en")).toEqual({ status: "preparing" });
+    const requeued = (await owner.query("SELECT count(*)::int AS n FROM evals.export_job WHERE org_id=$1 AND share_id=$2", [orgId, shareJob.share_id])).rows[0].n;
+    expect(requeued).toBe(2);
+  });
 });

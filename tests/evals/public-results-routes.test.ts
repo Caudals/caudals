@@ -3,7 +3,10 @@
  * sector index answer 404 unless PUBLIC_RESULTS_ENABLED=true and a live,
  * consented record exists; they stay `noindex` until PUBLIC_RESULTS_INDEXED;
  * the owner's consent API is hidden with the flag off; the rendered pages
- * show the limits and no badge; and the removed routes stay removed.
+ * show the limits and no badge; and the removed routes stay removed. Gap G3:
+ * with PUBLIC_RESULTS_INDEXED on, live pages (the database lists only
+ * published pages whose consent stands, migration 114) join the sitemap and
+ * llms.txt in both languages; otherwise they stay out, without a database read.
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -12,10 +15,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublicResultPage, PublicSectorIndex } from "@/lib/publication/contracts";
 
-const store = vi.hoisted(() => ({ page: null as PublicResultPage | null, index: null as PublicSectorIndex | null, reads: [] as string[] }));
+const store = vi.hoisted(() => ({ page: null as PublicResultPage | null, index: null as PublicSectorIndex | null, reads: [] as string[], listFails: false }));
 vi.mock("@/lib/publication/store", () => ({
   getPublicResultPage: vi.fn(async (slug: string) => { store.reads.push(`page:${slug}`); return store.page && store.page.slug === slug ? store.page : null; }),
   getPublicSectorIndex: vi.fn(async (quarter: string) => { store.reads.push(`index:${quarter}`); return store.index && store.index.quarter === quarter ? store.index : null; }),
+  listPublicResultPages: vi.fn(async () => { store.reads.push("list"); if (store.listFails) throw new Error("database unavailable"); return store.page ? [store.page] : []; }),
   getPublicationStatus: vi.fn(async () => { throw new Error("must not be reached with the flag off"); }),
   recordConsent: vi.fn(async () => { throw new Error("must not be reached with the flag off"); }),
   revokeConsent: vi.fn(async () => { throw new Error("must not be reached with the flag off"); }),
@@ -70,6 +74,7 @@ afterEach(() => {
   store.page = null;
   store.index = null;
   store.reads = [];
+  store.listFails = false;
 });
 
 describe("flag off (the production state)", () => {
@@ -125,14 +130,55 @@ describe("flag on", () => {
     expect(String(indexMeta.title)).toContain("3.º trimestre de 2026");
   });
 
-  it("stays out of the sitemap, llms.txt and agent markdown", async () => {
-    vi.stubEnv("PUBLIC_RESULTS_ENABLED", "true");
-    vi.stubEnv("PUBLIC_RESULTS_INDEXED", "true");
-    const xml = await (await sitemap()).text();
-    const text = await (await llms()).text();
-    for (const output of [xml, text]) expect(output).not.toMatch(/\/results\/|\/resultados\/|sector-index|indice-sectorial/);
+  it("stays out of the sitemap, llms.txt and agent markdown until the founder indexes the pages", async () => {
+    store.page = page;
+    store.index = index;
+    // Off (production today), on but not indexed, and indexed without the pages on: nothing listed, nothing read.
+    for (const [enabled, indexed] of [["false", "false"], ["true", "false"], ["false", "true"]]) {
+      vi.stubEnv("PUBLIC_RESULTS_ENABLED", enabled);
+      vi.stubEnv("PUBLIC_RESULTS_INDEXED", indexed);
+      const xml = await (await sitemap()).text();
+      const text = await (await llms()).text();
+      for (const output of [xml, text]) expect(output, `${enabled}/${indexed}`).not.toMatch(/\/results\/|\/resultados\/|sector-index|indice-sectorial|Resultados publicados/);
+    }
+    expect(store.reads).toEqual([]);
     expect(isStaticMarkdownPage("/results/gestoria-ejemplo-asistente")).toBe(false);
     expect(isStaticMarkdownPage("/sector-index/2026-q3")).toBe(false);
+  });
+
+  it("lists live pages in the sitemap and llms.txt once PUBLIC_RESULTS_INDEXED is on (gap G3)", async () => {
+    vi.stubEnv("PUBLIC_RESULTS_ENABLED", "true");
+    vi.stubEnv("PUBLIC_RESULTS_INDEXED", "true");
+    store.page = page;
+    store.index = index;
+    const xml = await (await sitemap()).text();
+    // One entry per language, each with the full hreflang set and the publication date.
+    const { buildMarketingUrl } = await import("@/lib/seo");
+    const en = buildMarketingUrl("/en/results/gestoria-ejemplo-asistente"), es = buildMarketingUrl("/es/resultados/gestoria-ejemplo-asistente");
+    for (const loc of [en, es]) {
+      const entry = new RegExp(`<url>\\s*<loc>${loc.replaceAll(".", "\\.")}</loc>\\s*<lastmod>2026-10-14</lastmod>[\\s\\S]*?</url>`).exec(xml)?.[0];
+      expect(entry, loc).toBeTruthy();
+      expect(entry).toContain(`hreflang="en" href="${en}"`);
+      expect(entry).toContain(`hreflang="es" href="${es}"`);
+    }
+    const text = await (await llms()).text();
+    expect(text).toContain("## Resultados publicados");
+    expect(text).toContain(`- [Gestoría Ejemplo](${es}): Questions about invoices and VAT from the help centre, in Spanish. Publicado el 2026-10-14.`);
+    expect(text).toMatch(/no una certificación ni una evaluación de conformidad/);
+    expect(text).not.toMatch(/\bcertificad[oa]\b|\bcompliant\b|cumple con/i);
+    // The anonymous index is never listed.
+    for (const output of [xml, text]) expect(output).not.toMatch(/sector-index|indice-sectorial/);
+
+    // Nothing live (withdrawn, taken down, never published): nothing listed.
+    store.page = null;
+    for (const output of [await (await sitemap()).text(), await (await llms()).text()]) expect(output).not.toMatch(/\/results\/|\/resultados\/|Resultados publicados/);
+    // A database failure never breaks the sitemap or llms.txt.
+    store.page = page;
+    store.listFails = true;
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect((await sitemap()).status).toBe(200);
+    expect(await (await llms()).text()).not.toContain("Resultados publicados");
+    errors.mockRestore();
   });
 });
 

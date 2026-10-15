@@ -2,7 +2,8 @@
  * The client report as an editable Word document. Same immutable snapshot and
  * section order as the PDF (./document.ts): a cover with the headline →
  * executive summary and "Fix these first" (launch L-17) → results at a glance
- * → takeaways → findings → improvements → test results → methodology. Text
+ * → takeaways → findings → the AI-disclosure check (when the run has one) →
+ * improvements → test results → methodology. Text
  * only, so the customer can annotate and forward it; the PDF stays the
  * reference copy.
  */
@@ -10,7 +11,9 @@ import {
   AlignmentType, BorderStyle, Document, Footer, HeadingLevel, Packer, PageNumber, Paragraph, ShadingType,
   Table, TableCell, TableRow, TextRun, WidthType,
 } from "docx";
+import { t as appText, type MessageKey } from "../messages/en";
 import { reportSnapshotSchema, type ReportSnapshot } from "./contracts";
+import { AI_DISCLOSURE_STATUS_LABEL, AI_DISCLOSURE_TURN_LABEL, aiDisclosureReason } from "./disclosure";
 import { answerCount, testRefs } from "./fixes";
 import { localizeReportText, reportDate, reportLabel, reportStrings, type ReportLocale } from "./i18n";
 import { buildExecutiveSummary } from "./summary";
@@ -170,6 +173,26 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     children.push(para(tx(finding.observation)));
     if (finding.cause_hypothesis) children.push(new Paragraph({ spacing: { after: 100 }, children: [text(`${S.likelyCause}: `, { bold: true }), text(tx(finding.cause_hypothesis))] }));
     children.push(new Paragraph({ spacing: { after: 160 }, children: [text(`${S.recommendation}: `, { bold: true }), text(tx(finding.recommendation))] }));
+  }
+
+  // The AI-disclosure check (launch L-29, gap G3): the web report's sentences, after the findings.
+  const disclosure = report.ai_disclosure;
+  if (disclosure) {
+    const m = (key: MessageKey) => appText(key, language);
+    children.push(heading(m("aiDisclosureTitle")));
+    children.push(para(m("aiDisclosureNote"), { color: MUTED, size: 18 }));
+    children.push(new Paragraph({ spacing: { after: 100 }, children: [text(m(AI_DISCLOSURE_STATUS_LABEL[disclosure.status]), { bold: true })] }));
+    children.push(para(m(aiDisclosureReason(disclosure))));
+    if (disclosure.evidence) {
+      children.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 360 }, children: [text(disclosure.evidence.quote, { italics: true })] }));
+      children.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 360 }, children: [text(`${m("aiDisclosureEvidence")} · ${m(AI_DISCLOSURE_TURN_LABEL[disclosure.evidence.turn])}`, { color: MUTED, size: 16 })] }));
+    }
+    if (disclosure.transcript.length) {
+      children.push(heading(m("aiDisclosureConversation"), HeadingLevel.HEADING_3));
+      for (const turn of disclosure.transcript)
+        children.push(new Paragraph({ spacing: { after: 80 }, children: [text(`${m(AI_DISCLOSURE_TURN_LABEL[turn.kind])}: `, { bold: true, size: 20 }), turn.error || !turn.text ? text(m("aiDisclosureNotCaptured"), { color: MUTED, size: 20 }) : text(turn.text, { size: 20 })] }));
+    }
+    children.push(para(m("aiDisclosureContext"), { color: MUTED, size: 18 }));
   }
 
   if (improvements.length) {

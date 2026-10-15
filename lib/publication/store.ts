@@ -154,6 +154,25 @@ export async function getPublicResultPage(slug: string): Promise<PublicResultPag
   return { slug: row.slug, projection: projection.data, publishedAt: iso(row.published_at) };
 }
 
+/**
+ * Every live public results page (migration 114, gap G3): the same rule as a
+ * single page, newest first, at most 1,000. For the sitemap and llms.txt,
+ * which list them only while PUBLIC_RESULTS_INDEXED is on (./indexed.ts).
+ */
+export async function listPublicResultPages(): Promise<PublicResultPage[]> {
+  const rows = await withTenant(PUBLIC_SCOPE, async (db) =>
+    (await db.query<{ slug: string; projection: unknown; published_at: Date }>("SELECT slug, projection, published_at FROM evals.public_result_pages(1000)")).rows,
+  );
+  return rows.flatMap((row) => {
+    const projection = resultProjectionSchema.safeParse(row.projection);
+    if (!isResultSlug(row.slug) || !projection.success) {
+      console.error("public_result_projection_invalid", { slug: row.slug });
+      return [];
+    }
+    return [{ slug: row.slug, projection: projection.data, publishedAt: iso(row.published_at) }];
+  });
+}
+
 /** A quarter's live, signed-off index sectors, or null when there are none. */
 export async function getPublicSectorIndex(quarter: string): Promise<PublicSectorIndex | null> {
   if (!QUARTER_PATTERN.test(quarter)) return null;

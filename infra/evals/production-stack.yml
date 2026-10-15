@@ -96,6 +96,9 @@ services:
       # Data controls (L-32): answer retention through the retention jobs and
       # "Export all workspace data" builds, from the app credentials; default off.
       DATA_CONTROLS_ENABLED: "${DATA_CONTROLS_ENABLED:-false}"
+      # AI-disclosure check (L-29, gap G3): the export's readable report shows
+      # it only while it is on, like the web report; from the app credentials.
+      AI_DISCLOSURE_CHECK: "${AI_DISCLOSURE_CHECK:-false}"
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1
@@ -286,6 +289,9 @@ services:
       EVALS_DATABASE_URL_FILE: /run/secrets/evals_document_database_url
       EVALS_DOCUMENT_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
       EVALS_DOCUMENT_ACTOR_ID: service:evals-documents
+      # AI-disclosure check (L-29, gap G3): printed in report PDFs only while it
+      # is on, like the web report; from the app credentials.
+      AI_DISCLOSURE_CHECK: "${AI_DISCLOSURE_CHECK:-false}"
       # Credit ledger flags (spec §6.18), from the app credentials via
       # scripts/deploy-evals-production.sh so web and workers always agree.
       BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"

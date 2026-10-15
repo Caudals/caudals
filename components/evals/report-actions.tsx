@@ -15,6 +15,7 @@ import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
+import { sharedDisclosure } from "@/lib/evals/reports/disclosure";
 import { CompareRunsDialog } from "./run-comparison";
 import { SHARE_EXPIRY_PRESETS, isFixListLink, openedLabel, type ShareLink } from "./share-links";
 import { VendorShareDialog } from "./vendor-share";
@@ -31,8 +32,11 @@ const SHARE_FIELDS = ["system", "scope", "metrics", "takeaways", "findings", "im
 const DEFAULT_FIELDS = new Set(["system", "scope", "metrics", "takeaways", "findings", "improvements", "methodology"]);
 const message = (error: unknown) => (error instanceof EvalRequestError ? error.message : error instanceof Error ? error.message : t("error"));
 
+/** What the recipient will see; the AI-disclosure check travels as the share page carries it (lib/evals/reports/disclosure.ts). */
 function project(snapshot: ReportSnapshot, fields: Set<string>) {
-  return Object.fromEntries(Object.entries(snapshot).filter(([name]) => fields.has(name) || !SHARE_FIELDS.includes(name as (typeof SHARE_FIELDS)[number]))) as Partial<ReportSnapshot>;
+  const projected = Object.fromEntries(Object.entries(snapshot).filter(([name]) => name !== "ai_disclosure" && (fields.has(name) || !SHARE_FIELDS.includes(name as (typeof SHARE_FIELDS)[number])))) as Partial<ReportSnapshot>;
+  const disclosure = sharedDisclosure(snapshot.ai_disclosure, fields);
+  return disclosure ? { ...projected, ai_disclosure: disclosure } : projected;
 }
 
 export function ReportActions({

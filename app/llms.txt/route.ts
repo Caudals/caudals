@@ -4,15 +4,19 @@ import { SAMPLE_REPORT_PATH } from "@/lib/evals/example/public";
 import { getTranslator } from "@/lib/i18n/server";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getPublishedIssues } from "@/lib/newsletter/client";
+import { directSignupEnabled } from "@/lib/evals/signup";
+import { RESULTS_PATH } from "@/lib/publication/contracts";
+import { indexedPublicResultPages } from "@/lib/publication/indexed";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
 import { METHODOLOGY_PATH } from "@/lib/methodology/content";
 import { demoPublicEnabled } from "@/lib/public/front-door";
 import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 import { getSectorCopy } from "@/lib/sectors/content";
-import { buildMarketingUrl } from "@/lib/seo";
+import { buildAppUrl, buildMarketingUrl } from "@/lib/seo";
 
 // Five minutes, so the free test's entry follows the runtime DEMO_PUBLIC flag
-// soon after a restart (launch L-04).
+// soon after a restart (launch L-04), and published results pages follow
+// PUBLIC_RESULTS_INDEXED and their owners' consent (launch L-31, gap G3).
 export const revalidate = 300;
 
 function cleanMarkdownLabel(value: string) {
@@ -20,9 +24,10 @@ function cleanMarkdownLabel(value: string) {
 }
 
 export async function GET() {
-  const [posts, issues] = await Promise.all([
+  const [posts, issues, results] = await Promise.all([
     getBlogPosts("es"),
     getPublishedIssues(20),
+    indexedPublicResultPages(),
   ]);
   // Offers and prices come from the same messages as the landing page.
   const t = getTranslator("es");
@@ -48,9 +53,26 @@ export async function GET() {
     )
     .join("\n");
 
-  // Launch L-04: the free test leads "Empezar" once it is the front door.
+  // "Empezar" lists the offers in the site's order (launch L-04, L-05, L-20,
+  // L-30): the free test, the free account, credits in the app (no prices,
+  // D-06), pilots at a fixed price quoted before we start, and the manual
+  // diagnostic last.
   const demoLink = demoPublicEnabled()
     ? `- [Prueba gratuita](${url("/demo")}): pega la dirección de tu asistente, chatbot o API; escribimos ocho preguntas a partir de tu propia web, se las hacemos y comprobamos cada respuesta con la página de la que sale. Gratis, sin cuenta, unos 3 minutos.\n`
+    : "";
+  const accountLink = directSignupEnabled()
+    ? `- [${t("pricing.offers.freeAccount.name")}](${buildAppUrl("/workspace/start")}): ${t("pricing.offers.freeAccount.price")}, ${t("pricing.offers.freeAccount.duration").toLowerCase()}. ${t("pricing.offers.freeAccount.summary")}\n`
+    : "";
+  // Published results (launch L-31, gap G3): only once the founder indexes them,
+  // and only pages whose owner's written consent still stands.
+  const resultsSection = results.length
+    ? `## Resultados publicados
+
+Páginas de resultados que sus propietarios aceptaron publicar por escrito; desaparecen si retiran el consentimiento. Cada una describe una muestra de preguntas en las fechas indicadas y cuántas respuestas coincidieron con las fuentes del propio sistema. Es evidencia de una muestra, no una certificación ni una evaluación de conformidad.
+
+${results.map((page) => `- [${cleanMarkdownLabel(page.projection.public_name)}](${url(`${RESULTS_PATH}/${page.slug}`)}): ${cleanMarkdownLabel(page.projection.scope_summary)} Publicado el ${page.publishedAt.slice(0, 10)}.`).join("\n")}
+
+`
     : "";
   // Listed once the founder has read the example (SAMPLE_REPORT_INDEXED, launch L-33).
   const sampleReportLink = sampleReportIndexed()
@@ -79,11 +101,15 @@ ${sectorLinks}
 
 ## Empezar
 
-${demoLink}- [Solicitar una evaluación](${url("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
+${demoLink}${accountLink}- [${t("pricing.offers.payAsYouGo.name")}](${buildAppUrl("/workspace/sign-in")}): ${t("pricing.offers.payAsYouGo.summary")} Los precios se muestran en la aplicación.
+- [Solicitar una evaluación piloto](${url("/contact")}?offer=pilot-evaluation): formulario de cinco campos (nombre completo, correo corporativo, empresa, sector y qué debería cubrir el piloto). Un piloto prueba tu asistente con entre 150 y 300 preguntas revisadas por expertos de tu sector, con un precio cerrado que presupuestamos antes de empezar; respondemos en 24 horas.
+- [${t("pricing.offers.realityCheck.name")}](${url("/contact")}?offer=reality-check): ${t("pricing.offers.realityCheck.summary")}
+
+## Hablar con Caudals
+
 - [Reservar una llamada](${url("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
 ${sampleReportLink}
-
-## Información legal
+${resultsSection}## Información legal
 
 - [Términos del servicio](${url("/legal/terms")}): condiciones de uso de Caudals, solo para empresas: plan gratuito, créditos, reembolsos, uso aceptable y ley española.
 - [Política de privacidad](${url("/legal/privacy")}): qué datos personales tratamos, para qué, durante cuánto tiempo y tus derechos.

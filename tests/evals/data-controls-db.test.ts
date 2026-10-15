@@ -3,13 +3,15 @@
  * the answer-retention setting applied through the retention jobs (pins kept,
  * only answers older than the setting purged, audited, replayable) and
  * "Export all workspace data" (owner-only, contents, audited, expiry, a large
- * fixture within limits). The suite runs on its own database copy
+ * fixture within limits; gap G3: publication consents, DPA acceptances and
+ * countersigned references, report questions, source contents or references,
+ * and the audit log, read as the owner who asked). The suite runs on its own database copy
  * (decision I-12): the lifecycle pass is database-wide.
  */
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import JSZip from "jszip";
-import { CreateBucketCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CreateBucketCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 import { createPrefixedId } from "@/lib/operator/ids";
@@ -252,6 +254,7 @@ describe.skipIf(!urls.ownerUrl || !urls.runtimeUrl || !endpoint)("data controls 
       "reports/index.json",
       `runs/${run.id}.cef.jsonl`, "runs/index.json",
       "sources/index.json", "systems/index.json",
+      "legal/publication-consents.json", "legal/dpa.json", "audit/audit-log-001.jsonl",
       `test-sets/001-judge-suite/${suiteVersionId}.cef.jsonl`, "test-sets/index.json",
     ].sort());
     const manifest = JSON.parse(await zip.file("manifest.json")!.async("string"));
@@ -312,7 +315,7 @@ describe.skipIf(!urls.ownerUrl || !urls.runtimeUrl || !endpoint)("data controls 
   it("exports a large workspace within the limits, and fails cleanly past them", async () => {
     const { tickWorkspaceExports, requestWorkspaceExport, processWorkspaceExport, WORKSPACE_EXPORT_LIMITS } = await import("@/lib/evals/operations/workspace-export");
     const { scoreRun, createReportForRun, publishReport } = await import("@/lib/evals/repositories/managed");
-    const { scope, orgId, run, evaluationId, suiteVersionId, cases } = await importedJudgeRunFixture(owner, urls.runtimeUrl!);
+    const { scope, orgId, projectId, run, evaluationId, suiteVersionId, cases } = await importedJudgeRunFixture(owner, urls.runtimeUrl!);
     await scoreRun(scope, run.id, "customer-manual-deterministic-v1");
     const report = await createReportForRun(scope, { runId: run.id, title: "Large", reviewStatus: "preliminary", scorerVersion: "strict-v1" }, randomUUID());
     await publishReport(scope, report.reportId, report.revisionId);
@@ -340,6 +343,55 @@ describe.skipIf(!urls.ownerUrl || !urls.runtimeUrl || !endpoint)("data controls 
       }
     }, scope.actorId, orgId);
 
+    // Gap G3: records only owners read, questions about a report, sources (one each:
+    // customer-owned small and large, Caudals-owned, and one whose file is gone) and a long audit log.
+    const { objectKey } = await import("@/lib/evals/storage/private");
+    const { withContentHash } = await import("@/lib/evals/contracts/hashing");
+    const { createHash } = await import("node:crypto");
+    const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
+    const AUDIT = 12_000;
+    const SOURCES = [
+      { title: "Claims handbook", rights: "customer_owned", media: "text/markdown", bytes: Buffer.from("# Claims handbook\n\nReport a claim within 30 days.\n"), stored: true },
+      { title: "Fees and charges 2026", rights: "customer_owned", media: "text/plain", bytes: Buffer.from("Management fee: 0.40% a year up to EUR 10,000. ".repeat(12_000)), stored: true },
+      { title: "Insurance sector pack", rights: "caudals_owned", media: "text/plain", bytes: Buffer.from("Caudals-owned sector content."), stored: true },
+      { title: "Lost upload", rights: "customer_owned", media: "text/plain", bytes: Buffer.from("This file was never stored."), stored: false },
+    ].map((item) => ({ ...item, sourceId: randomUUID(), revisionId: randomUUID(), artifactId: randomUUID() }));
+    for (const item of SOURCES) if (item.stored) await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: objectKey(orgId, item.artifactId, true).replace(/[^/]+$/, item.artifactId), Body: item.bytes }));
+    const consentId = randomUUID(), acceptanceId = randomUUID();
+    await asOwner(async (db) => {
+      for (const item of SOURCES) {
+        const key = objectKey(orgId, item.artifactId, true).replace(/[^/]+$/, item.artifactId);
+        await db.query("INSERT INTO evals.artifact(id,org_id,project_id,export_path,visibility,object_key,sha256,byte_size,media_type,state,expires_at) VALUES($1,$2,$3,$4,'internal',$5,$6,$7,$8,'ready',now()+interval '1 year')",
+          [item.artifactId, orgId, projectId, `sources/${item.artifactId}`, key, sha(item.bytes), item.bytes.length, item.media]);
+        await db.query("INSERT INTO evals.source(id,org_id,project_id,title,rights) VALUES($1,$2,$3,$4,$5)", [item.sourceId, orgId, projectId, item.title, item.rights]);
+        const document = withContentHash({ schema_version: "1.0", source_id: item.sourceId, revision_id: item.revisionId, title: item.title,
+          artifact: { path: `sources/${item.artifactId}`, sha256: sha(item.bytes), size_bytes: item.bytes.length, media_type: item.media, visibility: "internal" },
+          anchors: [{ id: randomUUID(), excerpt: item.bytes.toString("utf8").slice(0, 80), locator: "utf16:0:80" }], rights: item.rights, created_at: new Date().toISOString(), extensions: {} });
+        await db.query("INSERT INTO evals.source_revision(id,org_id,source_id,artifact_id,content_hash,document,extraction_version) VALUES($1,$2,$3,$4,$5,$6,'plain-text-v1')",
+          [item.revisionId, orgId, item.sourceId, item.artifactId, document.content_hash, document]);
+      }
+      // A consent with its public page, and a withdrawn one (launch L-31).
+      await db.query(`INSERT INTO evals.publication_consent(id,org_id,report_id,report_revision_id,results_page,sector_index,public_name,scope_summary,consent_version,locale,method,signer_user_id,signer_name,signer_role,signed_at,request_id,recorded_by)
+        VALUES($1,$2,$3,$4,true,false,'Claims assistant','Questions about claims from the help centre.','2026-10-14','en','in_app',$5,'Ana Owner','Head of support',now(),'consent-request-1',$5)`, [consentId, orgId, report.reportId, report.revisionId, ownerIdentity.user.id]);
+      await db.query("INSERT INTO evals.public_result_page(org_id,consent_id,report_revision_id,slug,projection,review_note,published_by) VALUES($1,$2,$3,'claims-assistant-g3','{\"schema\":1}','Reviewed for the fixture only.','au_fixture_admin')", [orgId, consentId, report.revisionId]);
+      await db.query(`INSERT INTO evals.publication_consent(org_id,report_id,report_revision_id,results_page,sector_index,index_sector,consent_version,locale,method,signer_user_id,signer_name,signer_role,signed_at,request_id,recorded_by,recorded_at,revoked_at,revoked_by,revocation_reason)
+        VALUES($1,$2,$3,false,true,'insurance','2026-10-14','es','in_app',$4,'Ana Owner','Head of support',now()-interval '2 days','consent-request-0',$4,now()-interval '2 days',now()-interval '1 day',$4,'Changed our mind')`, [orgId, report.reportId, report.revisionId, ownerIdentity.user.id]);
+      // A DPA acceptance (launch L-30) with its signer, and a countersigned copy, later removed (L-32).
+      await db.query("INSERT INTO evals.terms_acceptance(id,user_id,org_id,document,version,context,locale,request_id) VALUES($1,$2,$3,'dpa','2026-10-11','dpa','en','dpa-request-1')", [acceptanceId, ownerIdentity.user.id, orgId]);
+      await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id,details) VALUES($1,$2,'legal.dpa_accepted',$3,$4)", [orgId, ownerIdentity.user.id, acceptanceId, { version: "2026-10-11", signer: { name: "Ana Owner", email: ownerIdentity.user.email } }]);
+      await db.query("INSERT INTO evals.dpa_countersigned(org_id,acceptance_id,version,object_key,sha256,byte_size,file_name,uploaded_by,removed_at,removed_by,removal_reason) VALUES($1,$2,'2026-10-11',$3,$4,148,'DPA countersigned.pdf','au_fixture_ops',now(),'au_fixture_ops','Replaced by a newer copy')",
+        [orgId, acceptanceId, `evals/${orgId}/${randomUUID()}/sealed/${randomUUID()}`, "b".repeat(64)]);
+      await db.query(`INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id,details)
+        SELECT $1,$2,'fixture.event',g::text,jsonb_build_object('n',g) FROM generate_series(1,$3) g`, [orgId, ownerIdentity.user.id, AUDIT]);
+      // Questions about the report (launch L-36): answered, failed, and one the owner erased.
+      await db.query("SET LOCAL session_replication_role = replica");
+      for (const [minutes, status, question, answer, deleted] of [[30, "answered", "Which fee is wrong?", { sentences: [{ text: "The management fee.", refs: ["T1"] }] }, false], [20, "failed", "What changed since last month?", null, false], [10, "answered", null, null, true]] as const) {
+        await db.query(`INSERT INTO evals.report_question(id,org_id,report_id,report_revision_id,run_id,asked_by,question,language,status,answer,cited_result_ids,prompt_revision,ledger_outcome,deadline_at,created_at,finished_at,deleted_at,deleted_by)
+          VALUES($1,$2,$3,$4,$5,$6,$7,'en',$8,$9,$10,'caudals-report-questions-v2',$11,now()+interval '5 minutes',now()-make_interval(mins=>$14),now(),$12,$13)`,
+          [randomUUID(), orgId, report.reportId, report.revisionId, run.id, ownerIdentity.user.id, question, status, answer, answer ? ["a1"] : [], status === "failed" ? "released" : "captured", deleted ? new Date() : null, deleted ? ownerIdentity.user.id : null, minutes]);
+      }
+    }, scope.actorId, orgId);
+
     // Past the limits: the export fails with a reason the owner can act on, audited.
     const tooLarge = await requestWorkspaceExport(ownerIdentity, orgId, "en");
     expect(await processWorkspaceExport(orgId, "service:data-controls-test", { ...WORKSPACE_EXPORT_LIMITS, maxUncompressedBytes: 2 * 1024 * 1024 })).toBe(true);
@@ -358,6 +410,81 @@ describe.skipIf(!urls.ownerUrl || !urls.runtimeUrl || !endpoint)("data controls 
     expect(row.summary.uncompressed_bytes).toBeLessThan(WORKSPACE_EXPORT_LIMITS.maxUncompressedBytes);
     expect(Number(row.byte_size)).toBeLessThan(WORKSPACE_EXPORT_LIMITS.maxZipBytes);
     expect(row.summary.duration_ms).toBeLessThan(WORKSPACE_EXPORT_LIMITS.maxDurationMs);
-    console.info(JSON.stringify({ event: "large_export_fixture", observations: row.summary.counts.observations, entries: row.summary.entries, uncompressed_bytes: row.summary.uncompressed_bytes, zip_bytes: Number(row.byte_size), duration_ms: row.summary.duration_ms, elapsed_ms: elapsed }));
+    console.info(JSON.stringify({ event: "large_export_fixture", observations: row.summary.counts.observations, audit_events: row.summary.counts.audit_events, entries: row.summary.entries, uncompressed_bytes: row.summary.uncompressed_bytes, zip_bytes: Number(row.byte_size), duration_ms: row.summary.duration_ms, elapsed_ms: elapsed }));
+
+    // Gap G3: what the archive now holds.
+    const auditCount = async () => Number((await owner.query("SELECT count(*) AS n FROM evals.audit_event WHERE org_id=$1", [orgId])).rows[0].n);
+    expect(row.summary.counts).toMatchObject({ report_questions: 3, publication_consents: 2, dpa_acceptances: 1, dpa_countersigned: 1, sources: 4, source_revisions: 4, source_files: 2, source_files_referenced: 2 });
+    expect(row.summary.counts.audit_events).toBeGreaterThan(AUDIT);
+    const { openWorkspaceExport } = await import("@/lib/evals/operations/workspace-export");
+    const open = async (id: string) => JSZip.loadAsync(Buffer.from(await new Response((await openWorkspaceExport(ownerIdentity, orgId, id)).stream).arrayBuffer()));
+    const zip = await open(large.id);
+    const json = async (path: string) => JSON.parse(await zip.file(path)!.async("string"));
+    // Publication consents, withdrawn ones too, with the public page (never the staff review note).
+    const consents = await json("legal/publication-consents.json");
+    expect(consents.map((item: { request_id?: string; consent_id: string; revoked_at: string | null }) => item.revoked_at === null)).toEqual([false, true]);
+    expect(consents[1]).toMatchObject({ consent_id: consentId, public_name: "Claims assistant", signer: { user_id: ownerIdentity.user.id, name: "Ana Owner", role: "Head of support" }, public_page: { slug: "claims-assistant-g3", unpublished_at: null } });
+    expect(consents[0]).toMatchObject({ sector_index: true, index_sector: "insurance", revocation_reason: "Changed our mind", public_page: null });
+    expect(JSON.stringify(consents)).not.toContain("Reviewed for the fixture only.");
+    // DPA acceptances with the signer, and countersigned copies by reference (no storage key).
+    const dpa = await json("legal/dpa.json");
+    expect(dpa.acceptances).toEqual([expect.objectContaining({ acceptance_id: acceptanceId, version: "2026-10-11", signer: { user_id: ownerIdentity.user.id, name: "Ana Owner", email: ownerIdentity.user.email } })]);
+    expect(dpa.countersigned_copies).toEqual([expect.objectContaining({ acceptance_id: acceptanceId, file_name: "DPA countersigned.pdf", bytes: 148, sha256: "b".repeat(64), removal_reason: "Replaced by a newer copy" })]);
+    expect(JSON.stringify(dpa)).not.toContain(`evals/${orgId}/`);
+    // Questions in the report's folder: the erased one keeps only its record.
+    const reportIndex = await json("reports/index.json");
+    const folder = reportIndex.find((item: { report_id: string }) => item.report_id === report.reportId).folder;
+    const questions = await json(`${folder}/questions.json`);
+    expect(questions.map((item: { status: string; question: string | null; erased_at: string | null }) => [item.status, item.question, !!item.erased_at])).toEqual([["answered", "Which fee is wrong?", false], ["failed", "What changed since last month?", false], ["answered", null, true]]);
+    expect(questions[0]).toMatchObject({ cited_result_ids: ["a1"], answer: { sentences: [{ text: "The management fee.", refs: ["T1"] }] } });
+    // The whole audit log, in order, each entry once.
+    expect(Object.keys(zip.files).filter((name) => name.startsWith("audit/"))).toEqual(["audit/audit-log-001.jsonl"]);
+    const audit = (await zip.file("audit/audit-log-001.jsonl")!.async("string")).trim().split("\n").map((line) => JSON.parse(line));
+    expect(audit).toHaveLength(row.summary.counts.audit_events);
+    expect(new Set(audit.map((entry: { id: string }) => entry.id)).size).toBe(audit.length);
+    // Entries written in one transaction share a timestamp: the pages still hold each exactly once.
+    expect(audit.filter((entry: { action: string }) => entry.action === "fixture.event").map((entry: { details: { n: number } }) => entry.details.n).sort((a: number, b: number) => a - b)).toEqual(Array.from({ length: AUDIT }, (_, index) => index + 1));
+    expect(audit.map((entry: { at: string }) => entry.at)).toEqual([...audit.map((entry: { at: string }) => entry.at)].sort());
+    expect(audit.some((entry: { action: string }) => entry.action === "workspace.export_requested")).toBe(true);
+    // Sources: CEF records and original files for customer-owned documents; references otherwise.
+    const sources = await json("sources/index.json");
+    const byTitle = Object.fromEntries(sources.map((item: { title: string; revisions: Array<Record<string, unknown>> }) => [item.title, item.revisions[0]]));
+    expect(byTitle["Claims handbook"]).toMatchObject({ original_omitted: null, original: expect.stringMatching(/\/original\.md$/), record: expect.stringMatching(/\.cef\.jsonl$/) });
+    expect(await zip.file(byTitle["Claims handbook"].original as string)!.async("string")).toBe(SOURCES[0].bytes.toString("utf8"));
+    expect(Buffer.from(await zip.file(byTitle["Fees and charges 2026"].original as string)!.async("uint8array")).equals(SOURCES[1].bytes)).toBe(true);
+    expect(byTitle["Insurance sector pack"]).toMatchObject({ original: null, record: null, original_omitted: "not_customer_owned", artifact: { sha256: sha(SOURCES[2].bytes), bytes: SOURCES[2].bytes.length, media_type: "text/plain" } });
+    expect(byTitle["Lost upload"]).toMatchObject({ original: null, original_omitted: "unavailable" });
+    const record = (await zip.file(byTitle["Claims handbook"].record as string)!.async("string")).trim().split("\n").map((line) => JSON.parse(line));
+    expect(record[0]).toMatchObject({ record_type: "manifest", kind: "source", source_revision_id: SOURCES[0].revisionId, record_count: 1 });
+    expect(record[1]).toMatchObject({ record_type: "source", document: { revision_id: SOURCES[0].revisionId, artifact: { sha256: sha(SOURCES[0].bytes) } } });
+    expect(Object.keys(zip.files).some((name) => name.includes("Caudals-owned"))).toBe(false);
+    const manifest = await json("manifest.json");
+    expect(manifest).toMatchObject({ format_version: "1.1", excluded: ["deleted_items", "credentials_and_keys", "countersigned_dpa_files", "staff_only_records"] });
+    expect(await zip.file("README.txt")!.async("string")).toContain("audit-log-001.jsonl");
+
+    // Past the source budget, the large document is listed by reference; the export still completes.
+    const tight = await requestWorkspaceExport(ownerIdentity, orgId, "en");
+    expect(await processWorkspaceExport(orgId, "service:data-controls-test", { ...WORKSPACE_EXPORT_LIMITS, maxSourceBytes: 1024, auditEntriesPerFile: 5_000 })).toBe(true);
+    const tightRow = (await owner.query("SELECT status,summary FROM evals.workspace_export WHERE id=$1", [tight.id])).rows[0];
+    expect(tightRow.status).toBe("completed");
+    expect(tightRow.summary.counts).toMatchObject({ source_files: 1, source_files_referenced: 3 });
+    const tightZip = await open(tight.id);
+    const tightSources = JSON.parse(await tightZip.file("sources/index.json")!.async("string"));
+    // A long audit log is split into numbered files that together hold every entry once, in order.
+    const parts = Object.keys(tightZip.files).filter((name) => name.startsWith("audit/")).sort();
+    expect(parts).toEqual(["audit/audit-log-001.jsonl", "audit/audit-log-002.jsonl", "audit/audit-log-003.jsonl"]);
+    const lines = (await Promise.all(parts.map((name) => tightZip.file(name)!.async("string")))).join("").trim().split("\n").map((line) => JSON.parse(line));
+    expect(lines).toHaveLength(tightRow.summary.counts.audit_events);
+    expect(new Set(lines.map((entry: { id: string }) => entry.id)).size).toBe(lines.length);
+    expect((await Promise.all(parts.slice(0, 2).map((name) => tightZip.file(name)!.async("string")))).map((text) => text.trim().split("\n").length)).toEqual([5_000, 5_000]);
+    expect(tightSources.find((item: { title: string }) => item.title === "Fees and charges 2026").revisions[0]).toMatchObject({ original: null, original_omitted: "size_limit", artifact: { bytes: SOURCES[1].bytes.length } });
+
+    // Owner-only: an export whose requester is no longer an owner stops before reading anything.
+    const before = await auditCount();
+    const demoted = await requestWorkspaceExport(ownerIdentity, orgId, "en");
+    await owner.query("UPDATE evals.membership SET role='editor' WHERE org_id=$1 AND user_id=$2", [orgId, ownerIdentity.user.id]);
+    expect(await processWorkspaceExport(orgId, "service:data-controls-test")).toBe(true);
+    expect((await owner.query("SELECT status,reason_code,object_key FROM evals.workspace_export WHERE id=$1", [demoted.id])).rows[0]).toEqual({ status: "failed", reason_code: "export_owner_required", object_key: null });
+    expect(await auditCount()).toBe(before + 2);
   }, 180_000);
 });

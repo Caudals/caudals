@@ -1,4 +1,5 @@
 import { reportSnapshotSchema, type ReportSnapshot } from "./contracts";
+import { sharedDisclosure } from "./disclosure";
 import { SHARE_SECTIONS, type ShareSection } from "./share-sections";
 
 /**
@@ -7,11 +8,14 @@ import { SHARE_SECTIONS, type ShareSection } from "./share-sections";
  * placeholders (never the real values) and returned in `hidden`, so the
  * renderers skip them instead of printing placeholders. References into
  * hidden sections are dropped. An incomplete headline keeps its limitations:
- * a partial score never travels without its caveat.
+ * a partial score never travels without its caveat. The AI-disclosure check
+ * (launch L-29, gap G3) travels as on the share page (./disclosure.ts), and
+ * only with `disclosure` (AI_DISCLOSURE_CHECK on where the file is rendered).
  */
-export function redactSharedSnapshot(raw: ReportSnapshot, permitted: Iterable<string>): { report: ReportSnapshot; hidden: Set<ShareSection> } {
+export function redactSharedSnapshot(raw: ReportSnapshot, permitted: Iterable<string>, options: { disclosure?: boolean } = {}): { report: ReportSnapshot; hidden: Set<ShareSection> } {
   const source = reportSnapshotSchema.parse(raw);
   const allowed = new Set(permitted);
+  const disclosure = options.disclosure ? sharedDisclosure(source.ai_disclosure, allowed) : undefined;
   const hidden = new Set(SHARE_SECTIONS.filter((section) => !allowed.has(section)));
   const show = (section: ShareSection) => !hidden.has(section);
   const incomplete = show("metrics") && source.metrics.headline_status === "incomplete";
@@ -46,6 +50,7 @@ export function redactSharedSnapshot(raw: ReportSnapshot, permitted: Iterable<st
       : [],
     // The expert-review label (launch L-26) travels with the scope section.
     ...(show("scope") && source.expert_review ? { expert_review: source.expert_review } : {}),
+    ...(disclosure ? { ai_disclosure: disclosure } : {}),
   };
   return { report: reportSnapshotSchema.parse(report), hidden };
 }

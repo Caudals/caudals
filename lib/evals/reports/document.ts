@@ -6,10 +6,13 @@
  *
  * Structure (spec §15.2, launch L-17): a cover with the headline metrics and
  * their denominators → the executive summary, "Fix these first" and the key
- * takeaways → results at a glance → findings → improvements → test results →
- * interaction evidence → methodology, limitations and identifiers.
+ * takeaways → results at a glance → findings → the AI-disclosure check (when
+ * the run has one) → improvements → test results → interaction evidence →
+ * methodology, limitations and identifiers.
  */
+import { t as appText, type MessageKey } from "../messages/en";
 import type { ReportSnapshot } from "./contracts";
+import { AI_DISCLOSURE_STATUS_LABEL, AI_DISCLOSURE_TURN_LABEL, aiDisclosureReason } from "./disclosure";
 import { GEIST_MONO_WOFF2, GEIST_WOFF2 } from "./fonts";
 import { answerCount, testRefs } from "./fixes";
 import { localizeReportText, reportDate, reportLabel, reportStrings, type ReportLocale } from "./i18n";
@@ -94,6 +97,33 @@ function bySeverity<T extends { severity: string }>(items: T[]) {
 
 function pre(value: string) {
   return `<pre>${escapeHtml(value)}</pre>`;
+}
+
+/**
+ * The AI-disclosure check (launch L-29, gap G3): the web report's sentences
+ * (lib/evals/reports/disclosure.ts, the app catalogue), so web, PDF and Word
+ * say the same thing. Evidence, never part of the score. The quote and the
+ * conversation appear only when the copy carries them (a share without the
+ * results has neither).
+ */
+function disclosureBlock(result: ReportSnapshot["ai_disclosure"], heading: string): string {
+  if (!result) return "";
+  const m = (key: MessageKey) => escapeHtml(appText(key, locale));
+  const tone = result.status === "disclosed" ? "info" : result.status === "not_disclosed" ? "warn" : "neutral";
+  const lang = result.language === "es" ? "es" : "en";
+  const transcript = result.transcript.length
+    ? `<h3 class="sub">${m("aiDisclosureConversation")}</h3><dl class="transcript">${result.transcript
+        .map((turn) => `<div data-turn="${turn.kind}"><dt>${m(AI_DISCLOSURE_TURN_LABEL[turn.kind])}</dt><dd lang="${lang}">${turn.error || !turn.text ? `<span class="muted">${m("aiDisclosureNotCaptured")}</span>` : escapeHtml(turn.text)}</dd></div>`)
+        .join("")}</dl>`
+    : "";
+  return `<div class="block disclosure" data-ai-disclosure="${result.status}">
+  <h2>${heading}${m("aiDisclosureTitle")}</h2>
+  <p class="lead" data-disclosure-note>${m("aiDisclosureNote")}</p>
+  <div class="verdict"><span class="chip" data-tone="${tone}" data-disclosure-status>${m(AI_DISCLOSURE_STATUS_LABEL[result.status])}</span><p data-disclosure-reason>${m(aiDisclosureReason(result))}</p></div>
+  ${result.evidence ? `<blockquote lang="${lang}"><span data-disclosure-quote>${escapeHtml(result.evidence.quote)}</span><cite>${m("aiDisclosureEvidence")} · ${m(AI_DISCLOSURE_TURN_LABEL[result.evidence.turn])}</cite></blockquote>` : ""}
+  ${transcript}
+  <p class="context" data-disclosure-context>${m("aiDisclosureContext")}</p>
+</div>`;
 }
 
 /**
@@ -231,6 +261,8 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   </div>`
     : "";
   const findingsPart = show("findings") ? `<div class="block"><h2>${num()}${S.findings}</h2><p class="lead">${S.findingsLead}</p>${findingBlocks}</div>` : "";
+  // The AI-disclosure check sits after the findings, as on the web report's Overview.
+  const disclosurePart = report.ai_disclosure ? disclosureBlock(report.ai_disclosure, num()) : "";
   const improvementsPart = show("improvements") ? `<h2>${num()}${S.improvements}</h2>
   <p class="lead">${S.improvementsLead}</p>
   ${improvementRows}` : "";
@@ -275,9 +307,10 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   const body = [
     summaryPage,
     // Without the results, findings and improvements are short enough to share a page.
-    glance || findingsPart ? `<section class="section">
+    glance || findingsPart || disclosurePart ? `<section class="section">
   ${glance}
   ${findingsPart}
+  ${disclosurePart}
   ${show("results") ? "" : `<div class="block">${improvementsPart}</div>`}
 </section>` : "",
     (show("results") || !findingsPart) && (improvementsPart || resultsPart) ? `<section class="section">
@@ -303,7 +336,7 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
 @font-face{font-family:"Geist";src:url(data:font/woff2;base64,${GEIST_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${GEIST_MONO_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @page{size:A4;margin:18mm 16mm 20mm}
-:root{--ink:#141413;--ink-2:#3b3a36;--muted:#6b6a63;--faint:#9a9a94;--line:#e6e4de;--soft:#fafaf8;--pass:#15803d;--pass-soft:#e9f6ee;--warn:#b45309;--warn-soft:#fdf3e4;--fail:#b91c1c;--fail-soft:#fcebea;--neutral:#a8a49c}
+:root{--ink:#141413;--ink-2:#3b3a36;--muted:#6b6a63;--faint:#9a9a94;--line:#e6e4de;--soft:#fafaf8;--pass:#15803d;--pass-soft:#e9f6ee;--warn:#b45309;--warn-soft:#fdf3e4;--fail:#b91c1c;--fail-soft:#fcebea;--neutral:#a8a49c;--info:#1d4ed8;--info-soft:#eff6ff}
 *{box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;font-family:"Geist",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:10pt;line-height:1.5;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -382,7 +415,7 @@ table.grid .n{width:9mm;color:var(--muted);font-weight:500}
 table.grid .c{text-align:center}
 .rationale{color:var(--ink-2)}
 .chip{display:inline-block;padding:1px 6px;border-radius:4px;font-size:7.5pt;font-weight:600;white-space:nowrap;background:#f0efeb;color:#57534e}
-.chip[data-tone="pass"]{background:var(--pass-soft);color:var(--pass)}.chip[data-tone="warn"]{background:var(--warn-soft);color:var(--warn)}.chip[data-tone="fail"]{background:var(--fail-soft);color:var(--fail)}
+.chip[data-tone="info"]{background:var(--info-soft);color:var(--info)}.chip[data-tone="pass"]{background:var(--pass-soft);color:var(--pass)}.chip[data-tone="warn"]{background:var(--warn-soft);color:var(--warn)}.chip[data-tone="fail"]{background:var(--fail-soft);color:var(--fail)}
 .finding{padding:12px 0;border-top:1px solid var(--line);break-inside:avoid}
 .finding header,.evidence header{display:flex;align-items:baseline;gap:8px}
 .finding h3,.evidence h3{font-size:11pt;flex:1}
@@ -409,6 +442,17 @@ pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;f
 .denoms b{font-size:13pt;font-weight:600}
 ul.plain{margin:0;padding-left:16px}
 ul.plain li{margin:3px 0}
+.disclosure .verdict,.disclosure blockquote{break-inside:avoid}
+.disclosure .verdict{display:flex;align-items:baseline;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.disclosure .verdict p{flex:1}
+.disclosure blockquote{margin:4px 0 8px;padding:7px 10px;border-left:2px solid var(--line);background:var(--soft);font-size:9.5pt;overflow-wrap:anywhere}
+.disclosure blockquote cite{display:block;margin-top:3px;font-style:normal;font-size:7.5pt;color:var(--muted)}
+.disclosure h3.sub{font-size:9pt;color:var(--muted);font-weight:500;margin:8px 0 2px}
+.disclosure .transcript{display:grid;grid-template-columns:34mm 1fr;margin:0;font-size:9pt}
+.disclosure .transcript div{display:contents}
+.disclosure .transcript dt,.disclosure .transcript dd{margin:0;padding:4px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.disclosure .transcript dt{color:var(--muted)}
+.disclosure .context{margin-top:8px;font-size:8.5pt;color:var(--muted)}
 .disclaimer{margin-top:16px;padding-top:10px;border-top:1px solid var(--line);font-size:8pt;color:var(--muted)}
 .mono{font-family:"Geist Mono",ui-monospace,monospace;font-size:7.5pt;overflow-wrap:anywhere}
 .sample{margin:0 0 12px;padding:8px 12px;border:1px solid var(--ink);border-radius:6px;font-size:9pt;color:var(--ink-2)}

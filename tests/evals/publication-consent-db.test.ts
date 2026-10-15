@@ -216,6 +216,14 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("publication consent and the anonymous
     expect(live?.projection.public_name).toBe("Seguros Ejemplo");
     const resultsRoute = await import("@/app/[locale]/results/[slug]/page");
     expect(await resultsRoute.default({ params: Promise.resolve({ locale: "es", slug }) })).toBeTruthy();
+    // Gap G3: the live page is listed (migration 114), and the sitemap names it only once the founder indexes the pages.
+    const { listPublicResultPages } = await import("@/lib/publication/store");
+    const { GET: sitemap } = await import("@/app/page-sitemap.xml/route");
+    const inSitemap = async () => (await (await sitemap()).text()).includes(`/es/resultados/${slug}`);
+    expect((await listPublicResultPages()).find((item) => item.slug === slug)?.projection.public_name).toBe("Seguros Ejemplo");
+    expect(await inSitemap()).toBe(false);
+    vi.stubEnv("PUBLIC_RESULTS_INDEXED", "true");
+    expect(await inSitemap()).toBe(true);
 
     // The owner withdraws consent: the page goes down in the same transaction.
     const { PATCH } = await route();
@@ -226,6 +234,10 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("publication consent and the anonymous
     expect(await publicView(slug)).toEqual([]);
     expect(await getPublicResultPage(slug)).toBeNull();
     await expect(resultsRoute.default({ params: Promise.resolve({ locale: "es", slug }) })).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/);
+    // Withdrawn: gone from the list and the sitemap at once.
+    expect((await listPublicResultPages()).some((item) => item.slug === slug)).toBe(false);
+    expect(await inSitemap()).toBe(false);
+    vi.stubEnv("PUBLIC_RESULTS_INDEXED", "false");
     // A withdrawn consent cannot be published again, and its address is never reused.
     await expect(publish(admin.id, undefined, `${slug}-2`)).rejects.toThrow("CONSENT_REQUIRED");
     // The records stay: they change once and are never deleted.
@@ -246,14 +258,20 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("publication consent and the anonymous
     const deletedSlug = `otto-${randomUUID().slice(0, 6)}`;
     await publish((await consented(deleted)).id, deletedSlug);
     expect(await publicView(deletedSlug)).toHaveLength(1);
+    const { listPublicResultPages } = await import("@/lib/publication/store");
+    const listed = async (slug: string) => (await listPublicResultPages()).some((item) => item.slug === slug);
+    expect(await listed(deletedSlug)).toBe(true);
     await owner.query("UPDATE evals.workspace SET deleted_at=now() WHERE id=$1", [deleted.orgId]);
     expect(await publicView(deletedSlug)).toEqual([]);
+    expect(await listed(deletedSlug)).toBe(false);
 
     const withdrawn = await system({ members: [[otto, "owner"]] });
     const withdrawnSlug = `otto-${randomUUID().slice(0, 6)}`;
     await publish((await consented(withdrawn)).id, withdrawnSlug);
+    expect(await listed(withdrawnSlug)).toBe(true);
     await owner.query("UPDATE evals.report SET publication_status='withdrawn' WHERE id=$1", [withdrawn.reportId]);
     expect(await publicView(withdrawnSlug)).toEqual([]);
+    expect(await listed(withdrawnSlug)).toBe(false);
 
     const thin = await system({ members: [[otto, "owner"]], pass: 6, partial: 1, fail: 1 });
     await expect(publish((await consented(thin)).id, `thin-${randomUUID().slice(0, 6)}`)).rejects.toThrow("EVIDENCE_TOO_THIN");

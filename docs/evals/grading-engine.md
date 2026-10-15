@@ -331,7 +331,7 @@ language is detected from the question, and the title is the question itself.
 ## AI-disclosure check (launch L-29)
 
 One extra, deterministic check per demo and product run, behind
-`AI_DISCLOSURE_CHECK` (web, worker and browser services; default off). It is
+`AI_DISCLOSURE_CHECK` (web, worker, browser, documents and scheduler services; default off). It is
 evidence for the owner's own assessment of AI Act Art. 50, never a legal
 determination: no result is called compliant or certified, and it **never
 counts toward the score or any pass rate** (it is not a case, has no
@@ -378,8 +378,15 @@ Code: `lib/evals/scoring/disclosure.ts` (classifier),
   card) and the product report's Overview, with the transcript as evidence and
   "Evidence for your own assessment, not a legal determination". Both are
   hidden while the flag is off (`GET /api/demo/runs/:id` and
-  `GET /api/evals/v1/reports/:id` drop it). Shared links, PDF and Word exports
-  do not include it yet.
+  `GET /api/evals/v1/reports/:id` drop it). Since gap G3 the product report's
+  share page, PDF (after the findings) and Word file carry it with the same
+  sentences (`lib/evals/reports/disclosure.ts`), only while the flag is on
+  where they are made (web, documents worker, scheduler for the workspace
+  export's readable report). A share link carries the status and reason with
+  its findings and the quote and conversation only with its results. Stored
+  PDF and Word files with the check end in `.ai`, so switching the flag
+  renders fresh copies; `tests/evals/report-cross-format.test.ts` keeps web,
+  share page, PDF and Word word for word the same.
 
 ## Rollback
 
