@@ -30,7 +30,7 @@ every=${NUDGE_EVERY_MINUTES:-55}
 
 # Done when no package row in PROGRESS.md §2 is still todo or in progress.
 remaining=$(git -C "$repo" show origin/main:docs/launch/PROGRESS.md 2>/dev/null \
-  | grep -E '^\| [0-9] \| (L-[0-9]+[a-z]?|G[0-9]+) \|' | grep -cE '\| (todo|in progress) \|' || true)
+  | grep -E '^\| [0-9] \| (L-[0-9]+[a-z]?|[GR][0-9]+) \|' | grep -cE '\| (todo|in progress) \|' || true)
 if [[ ${remaining:-0} == 0 ]]; then say "all packages done or blocked; nothing to do"; exit 0; fi
 
 [[ -f $SESSION_FILE ]] || { say "session file missing: $SESSION_FILE"; exit 0; }
