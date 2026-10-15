@@ -13,16 +13,21 @@
  * and TBT for sign-up and on desktop. On mobile the landing misses LCP and TBT
  * and the demo misses LCP, so those are a warning at the target plus an error
  * at a regression ceiling. L-24b (docs/launch/L-24b.md) cut them from
- * 5.2–6.4 s to ~3.4–4.3 s and tightened the ceilings; what is left on the
- * simulated path is the framework's script, the stylesheet, Geist and the
- * italic Newsreader that below-the-fold text pulls in at the first layout.
+ * 5.2–6.4 s to ~3.4–4.3 s; L-24d (docs/launch/L-24d.md) removed the
+ * parser-blocking scripts in front of the demo's headline and in the footer
+ * and holds Newsreader and Geist Mono back until the first paint, which ended
+ * the 3.5–4.3 s runs. What is left on the simulated path is the framework's
+ * script (~180 KB), which on a fast network finishes before the first paint
+ * and so is counted, the stylesheets and Geist.
  *
- * Lantern multiplexes only HTTP/2: production (HTTP/3) and localhost
- * (HTTP/1.1) are both simulated as six connections with a round trip per
- * request, so the request count before the first paint bounds LCP more than
- * bytes. L-24c removed 141 KB of script from sign-up without moving its
- * median (2.7–2.9 s; 1.8 s over HTTP/2), and left these ceilings as they are
- * (docs/launch/L-24c.md).
+ * Lantern in this Lighthouse (12.6, @lhci/cli 0.15) multiplexes only HTTP/2:
+ * production (HTTP/3) and localhost (HTTP/1.1) are both simulated as six
+ * connections with a round trip per request. The trace engine treats HTTP/3
+ * as multiplexed from @paulirish/trace_engine 0.0.66 (Lighthouse main since
+ * 2026-10-09, not yet released): with it production's medians are landing
+ * 2.42–2.50 s, demo 1.97–2.28 s and sign-up 1.69–1.99 s. Localhost stays
+ * HTTP/1.1 in CI, so its mobile LCP keeps the six-connection model whatever
+ * the version.
  */
 const port = Number(process.env.LHCI_PORT ?? 4173);
 const local = `http://localhost:${port}`;
@@ -33,13 +38,13 @@ const desktop = process.env.LHCI_FORM_FACTOR === "desktop";
 /** Spec P-47 targets (milliseconds; CLS unitless). */
 const TARGET = { lcp: 2500, cls: 0.1, tbt: 200 };
 /**
- * Regression ceilings on mobile: the production medians after L-24b, two sets
- * (L-24b.md: landing LCP 3.43 s and 3.35 s, runs 2.83–4.24 s, TBT 212 ms and
- * 172 ms; demo LCP 3.54 s and 4.25 s, runs 3.06–4.25 s) plus a margin for the
- * swing the shared host's load causes between sets. L-24's were 7.5 s, 7.0 s
- * and 350 ms.
+ * Regression ceilings on mobile: the production medians after L-24d with
+ * Lighthouse 12.6, three sets (L-24d.md: landing LCP 3.04–3.40 s, runs
+ * 2.99–3.57 s; demo 2.93–3.46 s, runs 2.88–3.57 s) plus a margin for the
+ * swing the shared host's load causes between sets. L-24 had 7.5 s, 7.0 s and 350 ms; L-24b
+ * 4.5 s, 5.0 s and 300 ms.
  */
-const LCP_CEILING_MOBILE = { landing: 4500, demo: 5000 };
+const LCP_CEILING_MOBILE = { landing: 4000, demo: 4000 };
 const TBT_CEILING_MOBILE_LANDING = 300;
 
 const urls = {
