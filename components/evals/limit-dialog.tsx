@@ -7,7 +7,7 @@
  * mounted once in the shell, opens a dialog that names the limit, shows where
  * the workspace stands, and says what credits (pay as you go) or a managed plan
  * unlock, with "Add credits" and "Talk to us". The plan details come from
- * GET /billing/plan, which answers 404 while plans v2 is off for the workspace.
+ * GET /billing/plan, which answers `null` while plans v2 is off for the workspace.
  */
 import { useEffect, useState } from "react";
 import { CalendarDays, CreditCard } from "lucide-react";
@@ -51,7 +51,8 @@ function isPlanSummary(value: unknown): value is PlanSummaryView {
 
 /**
  * The workspace's plan summary, or null while loading, when plans v2 is off
- * for the workspace (404) or on any error: callers then keep today's screens.
+ * for the workspace (the server answers `null`) or on any error: callers then
+ * keep today's screens.
  */
 export function usePlanSummary(orgId: string, enabled = true) {
   const [state, setState] = useState<{ orgId: string; plan: PlanSummaryView | null; failed: boolean } | null>(null);
@@ -59,7 +60,8 @@ export function usePlanSummary(orgId: string, enabled = true) {
     if (!orgId || !enabled) return;
     let live = true;
     evalRequest<unknown>(`/billing/plan?orgId=${encodeURIComponent(orgId)}`).then(
-      plan => { if (live) setState({ orgId, plan: isPlanSummary(plan) ? plan : null, failed: !isPlanSummary(plan) }); },
+      // `null`: plans v2 is off for the workspace (R3; a 404 before), not a failure.
+      plan => { if (live) setState({ orgId, plan: isPlanSummary(plan) ? plan : null, failed: plan !== null && !isPlanSummary(plan) }); },
       error => { if (live) setState({ orgId, plan: null, failed: !(error instanceof EvalRequestError && error.status === 404) }); },
     );
     return () => { live = false; };

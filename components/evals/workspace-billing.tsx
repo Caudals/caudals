@@ -71,15 +71,18 @@ export function WorkspaceBilling() {
   const router = useRouter();
   const pathname = usePathname();
   const owner = summary?.level === "owner";
+  // Top up and Billing details only where buying is open: closed, each would only say it is not available (R3).
+  const buying = owner && summary?.payments?.access !== "closed";
   const invoices = useInvoices(orgId, owner);
   const views = useMemo(() => {
     const list: Array<{ value: BillingView; label: string }> = [{ value: "overview", label: t("billingOverview") }];
-    if (owner) list.push({ value: "top-up", label: t("billingTopUpTab") });
+    if (buying) list.push({ value: "top-up", label: t("billingTopUpTab") });
     list.push({ value: "usage", label: t("billingUsage") });
     if (owner && invoices.available) list.push({ value: "invoices", label: t("billingInvoices") });
-    if (owner) list.push({ value: "details", label: t("billingDetailsTitle") }, { value: "limits", label: t("billingLimits") });
+    if (buying) list.push({ value: "details", label: t("billingDetailsTitle") });
+    if (owner) list.push({ value: "limits", label: t("billingLimits") });
     return list;
-  }, [owner, invoices.available]);
+  }, [owner, buying, invoices.available]);
   const requested = params.get("view") as BillingView | null;
   const view: BillingView = requested && VIEWS.includes(requested) && views.some(item => item.value === requested) ? requested : "overview";
   const select = useCallback((value: BillingView) => {
@@ -153,7 +156,8 @@ function BillingOverview({ summary, onSelect }: { summary: BillingSummary; onSel
           credits: formatCredits(summary.nextExpiry.ucr), date: formatDate(summary.nextExpiry.at),
         })} />
       )}
-      {owner && recharge && (
+      {/* Only where buying is open: closed, there is nothing an owner could turn on (R3). */}
+      {owner && recharge && canBuy && (
         <SettingsRow title={t("billingAutoRecharge")} description={recharge.enabled
           ? tv("billingAutoRechargeOnHelp", { threshold: formatCredits(recharge.thresholdUcr), credits: formatCount(recharge.packCredits ?? 0), count: recharge.monthlyMaxCount ?? 0, euros: formatEuroCents(recharge.monthlyMaxCents ?? 0) })
           : t("billingAutoRechargeOffHelp")}>
@@ -164,6 +168,7 @@ function BillingOverview({ summary, onSelect }: { summary: BillingSummary; onSel
         </SettingsRow>
       )}
       {contract && <Status tone="info">{t("billingContractNote")}</Status>}
+      {owner && !contract && !canBuy && <Status tone="info">{t("billingUnavailable")}</Status>}
       <p className="p-cell-meta">{t("billingCreditsExplained")}</p>
       <div className="p-toolbar">
         {canBuy && <Action onClick={() => onSelect("top-up")}><CreditCard aria-hidden="true" />{t("billingAddCredits")}</Action>}
@@ -311,12 +316,15 @@ function UsagePanel({ summary }: { summary: BillingSummary }) {
             <Stat label={t("billingReturned")} value={formatCredits(data.totals.returnedUcr)} meta={t("billingRefundedMeta")} />
           </StatGrid>
           <Section title={t("billingByDay")}>
-            <DayBars days={allDays(from, to, data.days)} label={t("billingByDay")} tableLabel={t("billingDayTable")} dayHeader={t("billingDay")} valueLabel={t("billingCredits")}
-              format={value => formatCredits(BigInt(Math.round(value * 1_000_000)))} dayLabel={dayFormat} />
+            {/* An empty plot reads as a broken chart: with no usage in the period, say so. */}
+            {data.days.some(item => ucr(item.netUcr) !== BigInt(0))
+              ? <DayBars days={allDays(from, to, data.days)} label={t("billingByDay")} tableLabel={t("billingDayTable")} dayHeader={t("billingDay")} valueLabel={t("billingCredits")}
+                  format={value => formatCredits(BigInt(Math.round(value * 1_000_000)))} dayLabel={dayFormat} />
+              : <p className="p-cell-meta">{t("billingNoUsage")}</p>}
           </Section>
           <Section title={t("billingByRun")} description={t("billingByRunHelp")}>
             {data.runs.length ? (
-              <DataTable caption={t("billingByRun")} headers={[t("evaluation"), t("billingRunStarted"), t("billingReturned"), { label: t("billingCredits"), align: "end" }]}>
+              <DataTable caption={t("billingByRun")} headers={[t("evaluation"), t("billingRunStarted"), { label: t("billingReturned"), align: "num" }, { label: t("billingCredits"), align: "end" }]}>
                 {data.runs.map(row => (
                   <tr key={row.key}>
                     <RowTitle href={row.reportId ? withOrg(`/workspace/reports/${row.reportId}`) : row.evaluationId ? withOrg(`/workspace/evaluations/${row.evaluationId}`) : undefined}
@@ -324,7 +332,7 @@ function UsagePanel({ summary }: { summary: BillingSummary }) {
                       {row.evaluationTitle ?? (row.runId ? t("billingDeletedEvaluation") : t("billingSources"))}
                     </RowTitle>
                     <td>{row.runStartedAt ? <Time value={row.runStartedAt} withTime={false} /> : "—"}</td>
-                    <td>{ucr(row.returnedUcr) > BigInt(0) ? formatCredits(row.returnedUcr) : "—"}</td>
+                    <td className="p-num">{ucr(row.returnedUcr) > BigInt(0) ? formatCredits(row.returnedUcr) : "—"}</td>
                     <td className="p-table-action">{formatCredits(row.netUcr)}</td>
                   </tr>
                 ))}
@@ -333,11 +341,11 @@ function UsagePanel({ summary }: { summary: BillingSummary }) {
           </Section>
           <Section title={t("billingByModel")}>
             {data.items.length ? (
-              <DataTable caption={t("billingByModel")} headers={[t("billingItem"), t("billingQuantity"), { label: t("billingCredits"), align: "end" }]}>
+              <DataTable caption={t("billingByModel")} headers={[t("billingItem"), { label: t("billingQuantity"), align: "num" }, { label: t("billingCredits"), align: "end" }]}>
                 {data.items.map(item => (
                   <tr key={`${item.kind}:${item.key}`}>
                     <RowTitle meta={item.kind === "tokens" ? t("billingEngineTokens") : t("billingPlatformMeter")}>{item.kind === "meter" && METER_KEY[item.key] ? t(METER_KEY[item.key]) : item.key}</RowTitle>
-                    <td>{item.kind === "tokens" ? tv("billingTokens", { n: formatCount(item.tokens) }) : formatCount(item.quantity)}</td>
+                    <td className="p-num">{item.kind === "tokens" ? tv("billingTokens", { n: formatCount(item.tokens) }) : formatCount(item.quantity)}</td>
                     <td className="p-table-action">{formatCredits(item.netUcr)}</td>
                   </tr>
                 ))}
@@ -385,14 +393,15 @@ function ActivityLog({ orgId }: { orgId: string }) {
   return (
     <Section title={t("billingActivity")} description={t("billingActivityHelp")}>
       {entries.length ? (
-        <DataTable caption={t("billingActivity")} headers={[t("billingEntryType"), t("billingDate"), t("billingChange"), { label: t("billingBalanceAfter"), align: "end" }]}>
+        <DataTable caption={t("billingActivity")} headers={[t("billingEntryType"), t("billingDate"), { label: t("billingChange"), align: "num" }, { label: t("billingBalanceAfter"), align: "end" }]}>
           {entries.map(entry => {
             const amount = ucr(entry.amountUcr);
             return (
               <tr key={entry.id}>
                 <RowTitle meta={entry.meter && METER_KEY[entry.meter] ? t(METER_KEY[entry.meter]) : undefined}>{ENTRY_KEY[entry.type] ? t(ENTRY_KEY[entry.type]) : entry.type}</RowTitle>
-                <td><Time value={entry.createdAt} /></td>
-                <td>{amount > BigInt(0) ? `+${formatCredits(amount)}` : amount < BigInt(0) ? formatCredits(amount) : "0"}</td>
+                {/* A money ledger gives the exact date and time, not "26 minutes ago". */}
+                <td><time dateTime={entry.createdAt}>{formatDate(entry.createdAt, true)}</time></td>
+                <td className="p-num">{amount > BigInt(0) ? `+${formatCredits(amount)}` : amount < BigInt(0) ? formatCredits(amount) : "0"}</td>
                 <td className="p-table-action">{formatCredits(entry.availableAfterUcr)}</td>
               </tr>
             );
@@ -433,14 +442,14 @@ function InvoicesPanel({ invoices }: { invoices: { invoices: InvoiceView[] } }) 
   const { orgId } = useWorkspace();
   if (!invoices.invoices.length) return <EmptyState title={t("billingNoInvoices")}><p>{t("billingNoInvoicesHelp")}</p></EmptyState>;
   return (
-    <DataTable caption={t("billingInvoices")} headers={[t("billingInvoiceNumber"), t("billingDate"), t("billingInvoiceTotal"), { label: t("billingInvoicePdf"), align: "end" }]}>
+    <DataTable caption={t("billingInvoices")} headers={[t("billingInvoiceNumber"), t("billingDate"), { label: t("billingInvoiceTotal"), align: "num" }, { label: t("billingInvoicePdf"), align: "end" }]}>
       {invoices.invoices.map(invoice => (
         <tr key={invoice.id}>
           <RowTitle meta={invoice.kind === "invoice" ? t("billingInvoiceKind") : tv("billingCreditNoteKind", { number: invoice.rectifiesNumber ?? "—" })}>
             {invoice.number ?? t("billingInvoicePending")}
           </RowTitle>
           <td>{invoice.issueDate ? formatDate(invoice.issueDate) : formatDate(invoice.operationDate)}</td>
-          <td>{formatEuroCents(invoice.grossCents)}{invoice.taxMention ? <span className="p-cell-meta"> · {invoice.taxMention}</span> : null}</td>
+          <td className="p-num">{formatEuroCents(invoice.grossCents)}{invoice.taxMention ? <span className="p-cell-meta"> · {invoice.taxMention}</span> : null}</td>
           <td className="p-table-action">{invoice.pdfAvailable
             ? <ActionAnchor size="sm" variant="secondary" href={`/api/evals/v1/billing/invoices/${invoice.id}/pdf?orgId=${encodeURIComponent(orgId)}`}><Download aria-hidden="true" />PDF</ActionAnchor>
             : <span className="p-cell-meta">{t("billingInvoicePending")}</span>}</td>
@@ -639,15 +648,17 @@ export function PlanAndLimits({ entitlement, systems }: {
   systems: number;
 }): ReactNode {
   const items: string[] = [];
-  const limit = (value: number | null | undefined, key: MessageKey, unlimited: MessageKey) => items.push(value === null || value === undefined ? t(unlimited) : tv(key, { n: formatCount(value) }));
-  limit(entitlement.max_systems, "planLimitSystems", "planLimitSystemsAny");
-  limit(entitlement.max_tests_per_set, "planLimitQuestions", "planLimitQuestionsAny");
-  limit(entitlement.max_runs_per_month, "planLimitRuns", "planLimitRunsAny");
-  items.push(tv("planLimitActive", { n: formatCount(entitlement.max_active_runs) }));
-  if (entitlement.max_members !== null && entitlement.max_members !== undefined) items.push(tv("planLimitMembers", { n: formatCount(entitlement.max_members) }));
+  // "1 run at a time", never "1 runs" (R3): the singular has its own message in both languages.
+  const count = (value: number, many: MessageKey, one: MessageKey) => tv(value === 1 ? one : many, { n: formatCount(value) });
+  const limit = (value: number | null | undefined, key: MessageKey, one: MessageKey, unlimited: MessageKey) => items.push(value === null || value === undefined ? t(unlimited) : count(value, key, one));
+  limit(entitlement.max_systems, "planLimitSystems", "planLimitSystemsOne", "planLimitSystemsAny");
+  limit(entitlement.max_tests_per_set, "planLimitQuestions", "planLimitQuestionsOne", "planLimitQuestionsAny");
+  limit(entitlement.max_runs_per_month, "planLimitRuns", "planLimitRunsOne", "planLimitRunsAny");
+  items.push(count(entitlement.max_active_runs, "planLimitActive", "planLimitActiveOne"));
+  if (entitlement.max_members !== null && entitlement.max_members !== undefined) items.push(count(entitlement.max_members, "planLimitMembers", "planLimitMembersOne"));
   return (
     <span className="p-stack p-stack-tight">
-      <span className="p-row"><Badge tone="strong">{planName(entitlement.plan)}</Badge>{entitlement.max_systems ? <span className="p-cell-meta">{tv("planSystemsUsed", { used: systems, limit: entitlement.max_systems })}</span> : null}</span>
+      <span className="p-row"><Badge tone="strong">{planName(entitlement.plan)}</Badge>{entitlement.max_systems ? <span className="p-cell-meta">{tv(entitlement.max_systems === 1 ? "planSystemsUsedOne" : "planSystemsUsed", { used: formatCount(systems), limit: formatCount(entitlement.max_systems) })}</span> : null}</span>
       <ul className="p-plain-list" aria-label={t("planAndLimits")}>{items.map(item => <li key={item}>{item}</li>)}</ul>
       <PlanBalance compact />
     </span>

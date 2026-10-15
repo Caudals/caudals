@@ -8,11 +8,13 @@
  *
  * It asks only when the server says the billing screens may show at all
  * (`enabled`, BILLING_UI_ENABLED with the credit layer on) and the person is
- * not a viewer; GET /billing/summary then answers 404 wherever this workspace
- * is not eligible, and every billing surface stays hidden. The summary
- * refreshes every minute, when the window regains focus, every few seconds
- * while a top-up is pending, and at once on `caudals:billing-changed` (fired
- * after a purchase), so the balance updates without a reload.
+ * not a viewer; GET /billing/summary then answers `null` wherever this
+ * workspace is not eligible (a 404 before R3, logged in every customer's
+ * console), and every billing surface stays hidden without asking again until
+ * the window regains focus. The summary refreshes every minute, when the
+ * window regains focus, every few seconds while a top-up is pending, and at
+ * once on `caudals:billing-changed` (fired after a purchase), so the balance
+ * updates without a reload.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { evalRequest, EvalRequestError } from "./api";
@@ -77,7 +79,7 @@ export function BillingProvider({ enabled, children }: { enabled: boolean; child
     const load = async () => {
       let next: BillingSummary | null = null;
       try {
-        next = await evalRequest<BillingSummary>(`/billing/summary?orgId=${encodeURIComponent(orgId)}`);
+        next = await evalRequest<BillingSummary | null>(`/billing/summary?orgId=${encodeURIComponent(orgId)}`) ?? null;
       } catch (error) {
         // 404: billing does not show here. Anything else: keep what we had and try again later.
         if (!live) return;
@@ -88,6 +90,8 @@ export function BillingProvider({ enabled, children }: { enabled: boolean; child
       }
       if (!live) return;
       setState({ orgId, summary: next });
+      // Billing does not show in this workspace: no polling (focus and billing-changed still ask).
+      if (!next) return;
       const fast = Date.now() < fastUntil.current || (next.payments?.pendingOrders ?? 0) > 0;
       timer = window.setTimeout(() => void load(), document.hidden ? 120_000 : fast ? 4_000 : 60_000);
     };

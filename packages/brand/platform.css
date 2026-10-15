@@ -2281,7 +2281,8 @@
 .p-help-list {
   display: grid;
   gap: 2px;
-  margin: 0;
+  /* The items' hover padding bleeds out, so their text lines up with the search box and the headings (R3). */
+  margin: 0 -12px;
   padding: 0;
   list-style: none;
 }
@@ -2326,6 +2327,14 @@
   display: grid;
   gap: 28px;
   max-width: 760px;
+}
+.p-help-page > .p-head {
+  margin-bottom: 0;
+}
+/* An article reads in a 70ch column (about 80 characters a line at body
+   size); at 760px it ran to ~110 (R3). */
+.p-help-page[data-reading="true"] {
+  max-width: 70ch;
 }
 .p-help-method a {
   display: inline-flex;
@@ -3335,6 +3344,10 @@
 .p-settings {
   border-top: 1px solid var(--p-border-hairline);
 }
+/* Straight under the tabs, their own rule is the top edge: no second line 22px below it (R3). */
+.p-tabs + .p-settings {
+  border-top: 0;
+}
 .p-setting {
   display: flex;
   align-items: flex-start;
@@ -3370,6 +3383,15 @@
     flex-direction: column;
   }
   .p-setting-control {
+    justify-content: flex-start;
+  }
+}
+/* Rows whose controls are lists of checkboxes (Settings → Notifications): one
+   control column with one left edge, instead of each list hugging the right
+   edge at its own width (R3). */
+@media (min-width: 1024px) {
+  .p-settings[data-controls="lists"] .p-setting-control {
+    flex: 0 0 min(26rem, 45%);
     justify-content: flex-start;
   }
 }
@@ -6432,11 +6454,25 @@ button.p-nav-item {
 /* --- Billing and usage (launch L-15) ---------------------------------------
    Settings → Billing and usage, the sidebar plan-and-balance pill, the
    low-balance banner, the run estimate dialog and the model rates. */
-.p-billing { display: grid; gap: 20px; }
+/* One column that may shrink below its content's min-content width: without
+   `minmax(0, 1fr)` the implicit column grew to the pill tabs' max-content and
+   the stat grid, and the canvas scrolled sideways at 390 px (R3). */
+.p-billing { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+/* The same inside each view's stack: a wide table (it scrolls in its own frame) must not widen the column. */
+.p-billing > .p-stack { grid-template-columns: minmax(0, 1fr); }
 /* Figures the reader acts on: their captions need full contrast (axe, WCAG AA). */
 .p-billing .p-stat-meta { color: var(--p-text-secondary); }
-.p-billing-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.p-billing-head > .p-tabs { min-width: 0; max-width: 100%; overflow-x: auto; }
+/* The pill tabs scroll inside their track and always leave room for the "?" beside them (26px + the 8px gap);
+   the test-mode badge goes to the next line when the row is full. */
+.p-billing-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.p-billing-head > .p-tabs { flex: 0 1 auto; min-width: 0; max-width: calc(100% - 34px); margin-bottom: 0; overflow-x: auto; }
+.p-billing-head > :not(.p-tabs) { flex: none; }
+/* A select with its label beside a button: align them on the control, not on the label. */
+.p-billing .p-toolbar { align-items: flex-end; }
+/* On a phone the balance takes the whole first row: at 40px a five-digit balance with decimals is wider than half the card (R3). */
+@media (max-width: 639px) {
+  .p-billing .p-stats > .p-stat:has(> .p-stat-value[data-size="hero"]) { grid-column: 1 / -1; }
+}
 /* The pill is a nav row; with a low balance or a frozen account its icon carries the warn tone, and the label says it. */
 .p-billing-pill .p-nav-label-text { font-variant-numeric: tabular-nums; }
 .p-billing-pill[data-tone="warn"] svg { color: var(--p-warn); }

@@ -227,7 +227,7 @@ function Notifications({ orgId, summary, onSaved }: { orgId: string; summary: Wo
     }
   }
   return (
-    <form className="p-settings" onSubmit={save} key={JSON.stringify(summary.preferences)}>
+    <form className="p-settings" data-controls="lists" onSubmit={save} key={JSON.stringify(summary.preferences)}>
       {error && <Status error>{error}</Status>}
       <SettingsRow title={t("inAppNotifications")} description={t("inAppNotificationsHelp")}>
         <span className="p-stack p-stack-tight">

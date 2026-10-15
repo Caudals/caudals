@@ -96,7 +96,8 @@ export function WorkspaceDeletion({ orgId, workspaceName, exportFirst = false }:
         <form id="delete-workspace" className="p-stack" onSubmit={submit}>
           {error && <Status error>{error}</Status>}
           <Field id="delete-reason" label={t("deletionReason")} value={reason} onChange={(event) => setReason(event.target.value)} required minLength={3} />
-          <Field id="delete-confirm" label={`${t("typeWorkspaceName")} ${workspaceName}`} value={confirmName} onChange={(event) => setConfirmName(event.target.value)} required autoComplete="off" />
+          {/* The name to type stands out from the instruction (R3). */}
+          <Field id="delete-confirm" label={<>{t("typeWorkspaceName")} <strong>{workspaceName}</strong></>} value={confirmName} onChange={(event) => setConfirmName(event.target.value)} required autoComplete="off" />
         </form>
       </Modal>
     </>

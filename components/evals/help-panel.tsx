@@ -11,7 +11,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, CalendarDays, Mail } from "lucide-react";
 import { Action, ActionAnchor, ActionLink, SectionHeading } from "./primitives";
 import { SidePanel } from "./overlays";
-import { formatReviewDate, HelpBody, HelpListItemText, HelpSearchList, useHelpArticles, type HelpTarget } from "./help";
+import { formatReviewDate, HelpBody, HelpListItemText, HelpSearchList, TextWithEmails, useHelpArticles, useHydrated, type HelpTarget } from "./help";
 import { useWorkspace } from "./workspace-context";
 import { helpArticlePath } from "@/lib/evals/help/articles";
 import { getLocale, t, tv } from "@/lib/evals/messages/runtime";
@@ -19,17 +19,24 @@ import { marketingUrl, methodologyUrl } from "@/lib/evals/public-links";
 
 const CONTACT_EMAIL = "hello@caudals.com";
 
-/** Email and call actions, shared by the panel and the help pages. */
+/**
+ * Email and call actions, shared by the panel and the help pages. The address
+ * is kept out of Cloudflare's email obfuscation (see EmailText in ./help):
+ * text in `email_off` markers, the mailto href once interactive.
+ */
 export function HelpContact() {
+  const hydrated = useHydrated();
   return (
     <section aria-labelledby="help-contact">
       <SectionHeading id="help-contact" title={t("helpContactTitle")}>
         {t("helpContactBody")}
       </SectionHeading>
       <div className="p-toolbar">
-        <ActionAnchor variant="secondary" size="sm" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Caudals platform")}`}>
+        <ActionAnchor variant="secondary" size="sm" href={hydrated ? `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Caudals platform")}` : undefined}>
           <Mail aria-hidden="true" />
-          {t("helpEmail")}
+          <span>
+            <TextWithEmails text={t("helpEmail")} />
+          </span>
         </ActionAnchor>
         <ActionAnchor variant="secondary" size="sm" href={marketingUrl("/call", getLocale())} target="_blank" rel="noopener noreferrer">
           <CalendarDays aria-hidden="true" />

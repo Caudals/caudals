@@ -20,6 +20,8 @@ export type Role = "owner" | "editor";
 export type Options = {
   role?: Role; available?: number; held?: number; used?: number; plan?: string; billingMode?: "free" | "credits" | "contract"; gate?: "enforced" | "none";
   low?: boolean; invoices?: boolean; capCredits?: number | null; lowBalanceCredits?: number | null; runStatus?: string | null; runReason?: string | null; estimate?: Partial<Estimate>;
+  /** R3: payments closed for the workspace (no Top up, no Billing details); a period without usage. */
+  paymentsClosed?: boolean; noUsage?: boolean;
 };
 export type Estimate = typeof baseEstimate;
 export const baseEstimate = {
@@ -53,7 +55,7 @@ export function summary(o: Options) {
     alerts: (o.low ?? available < 500) ? [{ kind: "low_balance", thresholdUcr: ucr(500) }] : [],
     autoRecharge: owner ? { enabled: true, thresholdUcr: ucr(500), pack: "eur_50", packCredits: 5150, monthlyMaxCount: 3, monthlyMaxCents: 30000, failures: 0, disabledReason: null, lastFailureCode: null } : null,
     card: owner ? { brand: "visa", last4: "4242" } : null,
-    payments: owner ? { access: "test_workspace", mode: "test", pendingOrders: 0 } : null,
+    payments: owner ? { access: o.paymentsClosed ? "closed" : "test_workspace", mode: "test", pendingOrders: 0 } : null,
     asOf: new Date().toISOString(),
   };
 }
@@ -119,7 +121,7 @@ export async function routeBilling(page: Page, o: Options = {}) {
     if (path === "/billing/summary") { calls.summaries++; return json(summary({ ...o, available: state.available })); }
     if (path === "/billing/usage") {
       if (url.searchParams.get("format") === "csv") return route.fulfill({ contentType: "text/csv", body: "date_utc\n" });
-      return json(usage);
+      return json(o.noUsage ? { ...usage, totals: { grossUcr: "0", returnedUcr: "0", netUcr: "0" }, days: [], runs: [], items: [] } : usage);
     }
     if (path === "/billing/ledger") return json(ledger);
     if (path === "/billing/caps") {

@@ -61,14 +61,15 @@ export interface PlanSummary {
 
 const ALL_CONNECTIONS = ["website", "openai_compatible", "https_json", "imported_responses", "private_runner", "provider_native"] as const;
 
-export async function planSummary(identity: EvalIdentity, orgId: string, env: Env = process.env): Promise<PlanSummary> {
+/** `null` while plans v2 is off for the workspace (members only: outsiders get 404), so the probe is not a 404 in the console (R3). */
+export async function planSummary(identity: EvalIdentity, orgId: string, env: Env = process.env): Promise<PlanSummary | null> {
   await requireWorkspace(identity, orgId, "read");
   const role = identity.workspaces.find(workspace => workspace.id === orgId)?.role ?? null;
   const admin = identity.platformRole === "platform_admin";
   const seesCredits = admin || role === "owner" || role === "editor" || role === "operator";
   const period = allowancePeriod();
   const data = await withTenant({ orgId, actorId: identity.user.id }, async db => {
-    if (!await plansV2For(db, orgId, env)) return null;
+    if (!await plansV2For(db, orgId, env)) return "off" as const;
     const entitlement = (await db.query(`SELECT plan,max_systems,max_tests_per_set,max_runs_per_month,max_active_runs,max_members,
         allowed_connection_types,can_schedule,can_export FROM evals.workspace_entitlement WHERE org_id=$1`, [orgId])).rows[0];
     const usage = (await db.query("SELECT * FROM evals.plan_usage($1)", [orgId])).rows[0];
@@ -77,6 +78,7 @@ export async function planSummary(identity: EvalIdentity, orgId: string, env: En
         AND l.id=(e.lot_allocations->0->>'lot')::uuid WHERE e.org_id=$1 AND e.idempotency_key=$2`, [orgId, `grant:${allowanceKey(period)}`])).rows[0] ?? null;
     return { entitlement, usage, account, allowance };
   });
+  if (data === "off") return null;
   if (!data?.entitlement) throw new EvalError("SCOPE_DENIED", 404);
   const { entitlement, usage, account, allowance } = data;
   const plan: Plan = isPlan(entitlement.plan) ? entitlement.plan : "managed";

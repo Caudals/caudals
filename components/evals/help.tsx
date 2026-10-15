@@ -6,7 +6,7 @@
  * with the platform kit), the searchable article list, and the contextual "?"
  * link that opens an article beside the step it explains.
  */
-import { createContext, Fragment, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { CircleHelp } from "lucide-react";
 import { useWorkspace } from "./workspace-context";
@@ -98,8 +98,54 @@ export function useHelpArticles() {
   return { articles: state.index?.articles ?? null, error: state.error, retry: () => setAttempt((value) => value + 1) };
 }
 
+/** "12 October 2026" / "12 de octubre de 2026": day first, like every other date in the app (R3; was US order). */
 export function formatReviewDate(value: string) {
-  return new Intl.DateTimeFormat(getLocale() === "es" ? "es-ES" : "en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+  return new Intl.DateTimeFormat(getLocale() === "es" ? "es-ES" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+/* ---------------------------------------------------------------- emails --- */
+
+/*
+ * Email addresses in server-rendered help (R3). Cloudflare's email
+ * obfuscation rewrites every address in the served HTML ("[email protected]"
+ * inside a `__cf_email__` element) and adds a decoder script; React's payload
+ * still has the address, so whenever React hydrated before the decoder ran,
+ * hydration failed (React #418, English pages only: Spanish ones render in
+ * the browser). Addresses are therefore written inside Cloudflare's
+ * `<!--email_off-->` markers, as the public site does
+ * (components/public/email-link.tsx), and `mailto:` links get their href
+ * only once the page is interactive.
+ */
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
+const subscribeNever = () => () => undefined;
+/** False on the server and while hydrating, true after. */
+export function useHydrated() {
+  return useSyncExternalStore(subscribeNever, () => true, () => false);
+}
+
+/**
+ * An address Cloudflare leaves alone: plain text, or (`link`) a mailto link.
+ * The address comes from our own copy and matched EMAIL, which admits no
+ * markup characters, so it is safe in the HTML string.
+ */
+export function EmailText({ email, link = false }: { email: string; link?: boolean }) {
+  const html = link ? `<a href="mailto:${email}">${email}</a>` : email;
+  return <span dangerouslySetInnerHTML={{ __html: `<!--email_off-->${html}<!--/email_off-->` }} />;
+}
+
+/** Text with every address in it rendered through EmailText. */
+export function TextWithEmails({ text, link = false }: { text: string; link?: boolean }) {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(EMAIL)) {
+    const at = match.index ?? 0;
+    if (at > last) parts.push(text.slice(last, at));
+    parts.push(<EmailText key={at} email={match[0]} link={link} />);
+    last = at + match[0].length;
+  }
+  if (!parts.length) return <>{text}</>;
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
 }
 
 /* ------------------------------------------------------------------ body --- */
@@ -112,26 +158,29 @@ type BodyProps = {
   onOpenArticle?: (target: HelpTarget) => void;
 };
 
-function InlineNodes({ nodes, link }: { nodes: Inline[]; link: (href: string, children: ReactNode, key: number) => ReactNode }) {
+/** `plainEmails`: inside a link, an address stays text (no link in a link). */
+function InlineNodes({ nodes, link, plainEmails = false }: { nodes: Inline[]; link: (href: string, children: ReactNode, key: number) => ReactNode; plainEmails?: boolean }) {
   return (
     <>
       {nodes.map((node, index) =>
         node.kind === "text" ? (
-          <Fragment key={index}>{node.text}</Fragment>
+          <Fragment key={index}>
+            <TextWithEmails text={node.text} link={!plainEmails} />
+          </Fragment>
         ) : node.kind === "code" ? (
           <code key={index} className="p-code">
-            {node.text}
+            <TextWithEmails text={node.text} />
           </code>
         ) : node.kind === "strong" ? (
           <strong key={index}>
-            <InlineNodes nodes={node.children} link={link} />
+            <InlineNodes nodes={node.children} link={link} plainEmails={plainEmails} />
           </strong>
         ) : node.kind === "em" ? (
           <em key={index}>
-            <InlineNodes nodes={node.children} link={link} />
+            <InlineNodes nodes={node.children} link={link} plainEmails={plainEmails} />
           </em>
         ) : (
-          link(node.href, <InlineNodes nodes={node.children} link={link} />, index)
+          link(node.href, <InlineNodes nodes={node.children} link={link} plainEmails />, index)
         ),
       )}
     </>
@@ -141,6 +190,7 @@ function InlineNodes({ nodes, link }: { nodes: Inline[]; link: (href: string, ch
 /** An article's Markdown, rendered with the platform kit's prose rules (`.p-article`). */
 export function HelpBody({ body, idPrefix = "", onOpenArticle }: BodyProps) {
   const withOrg = useWithOrg();
+  const hydrated = useHydrated();
   const blocks = useMemo(() => parseMarkdown(body), [body]);
   const link = (href: string, children: ReactNode, key: number) => {
     if (href.startsWith("help:")) {
@@ -171,6 +221,8 @@ export function HelpBody({ body, idPrefix = "", onOpenArticle }: BodyProps) {
         </Link>
       );
     }
+    // A mailto href in the served HTML would be rewritten by Cloudflare (see EmailText): set it once interactive.
+    if (href.startsWith("mailto:")) return <a key={key} href={hydrated ? href : undefined}>{children}</a>;
     return (
       <a key={key} href={href} {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
         {children}

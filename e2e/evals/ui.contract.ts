@@ -1547,7 +1547,7 @@ test("Providers & models and AI models flag €0 paid models and show credit rat
   await expect(page.getByText("Paid models priced at €0 and not marked free: 1.", { exact: false })).toBeVisible();
   await expect(page.getByRole("row", { name: /glm-5\.3-flash/ }).getByText("€0 price · not for customers")).toBeVisible();
   await expect(page.getByRole("row", { name: /nemotron/ }).getByText("Free model", { exact: true })).toBeVisible();
-  await expect(page.getByRole("row", { name: /deepseek-v4-flash/ }).getByText("50 · 200 credits per 1M tokens in / out")).toBeVisible();
+  await expect(page.getByRole("row", { name: /deepseek-v4-flash/ }).getByText("Credits per 1M tokens: 50 in · 200 out")).toBeVisible();
 
   const writes: Array<Record<string, unknown>> = [];
   const route = (role: string) => ({ role, provider_revision_id: `rev-${role}`, model_id: "deepseek-v4-flash", adapter: "dgx", account_id: "dgx", account_name: "DGX Spark", context_limit: 131072, input_price: "0", output_price: "0", currency: "EUR", updated_at: now, usable: true, web_research: false, web_capable: false, free_model: false, price_issue: null, credit_input_ucr: "50000000", credit_output_ucr: "200000000" });
@@ -1560,7 +1560,7 @@ test("Providers & models and AI models flag €0 paid models and show credit rat
   await page.route("**/api/evals/v1/engine/models?**", (request) => request.fulfill({ json: { data: [{ id: "nvidia/nemotron-3-super-120b-a12b:free", label: "nvidia/nemotron-3-super-120b-a12b:free", detail: "262k context" }], meta: {} } }));
   await page.route("**/api/evals/v1/engine/routes", (request) => { writes.push(request.request().postDataJSON()); return request.fulfill({ json: { data: { ok: true }, meta: {} } }); });
   await page.goto("/workspace/settings/models");
-  await expect(page.getByRole("row", { name: /Grade answers/ }).getByText("50 · 200 credits per 1M tokens in / out")).toBeVisible();
+  await expect(page.getByRole("row", { name: /Grade answers/ }).getByText("Credits per 1M tokens: 50 in · 200 out")).toBeVisible();
   await page.getByRole("row", { name: /Grade answers/ }).getByRole("button", { name: "Change" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Provider", { exact: true }).selectOption("00000000-0000-4000-8000-000000000501");
@@ -2729,7 +2729,7 @@ test("notification settings choose email per category and person, at every width
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 390) await page.screenshot({ path: "/tmp/evals-ui-test-results/l07-notifications-390.png", fullPage: true });
   }
-  await expect(page.getByLabel("Test set ready and results ready")).toBeChecked();
+  await expect(page.getByLabel("Test set and results ready")).toBeChecked();
   await expect(page.getByLabel("Regressions")).toBeChecked();
   await page.getByLabel("Billing and credits").uncheck();
   await page.getByLabel("Tips for getting started").uncheck();
@@ -2751,7 +2751,7 @@ test("notification settings read a server from before the email categories, in S
   await page.goto(`/workspace/settings?owner=1&tab=notifications`);
   await expect(page.getByRole("heading", { name: "Primeros pasos" })).toBeVisible();
   // The single switch keeps its meaning: email for the in-app categories that were on.
-  await expect(page.getByLabel("Conjunto de pruebas listo y resultados listos")).toBeChecked();
+  await expect(page.getByLabel("Conjunto de pruebas y resultados listos")).toBeChecked();
   await expect(page.getByLabel("Facturación y créditos")).toBeChecked();
   await expect(page.getByLabel("Consejos para empezar")).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Se necesita tu respuesta" }).nth(1)).not.toBeChecked();
@@ -3298,7 +3298,7 @@ test("top-up: terms are required, then the owner is redirected to Stripe Checkou
   await page.goto(`/workspace/billing/top-up?owner&orgId=${id}`);
   await expect(page.getByRole("heading", { name: "Buy credits" })).toBeVisible();
   await expect(page.getByText("Test mode: no real card is charged.")).toBeVisible();
-  await expect(page.getByText("+20 % on your first top-up")).toBeVisible();
+  await expect(page.getByText("+20% on your first top-up")).toBeVisible();
   await expect(page.getByText("Spanish VAT (IVA) at 21 % is added to the price.")).toBeVisible();
   await expect(page.getByText("Total €24.20")).toBeVisible();
   await expect(page.getByRole("radio", { name: /25,000 credits/ })).toBeDisabled();

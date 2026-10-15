@@ -328,12 +328,15 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("bring your own provider key on Postgr
 
     // Flag off: no new keys, but the owner still sees and can remove the one they have.
     process.env.BYOK_WORKSPACE_IDS = (process.env.BYOK_WORKSPACE_IDS ?? "").split(",").filter((id) => id !== f.orgId && id !== free.orgId).join(",");
-    await expect(mods.byok.getByokSettings(free.as(), free.orgId)).rejects.toMatchObject({ status: 404 });
+    // Closed and no key: nothing to show, answered without a 404 (Settings asks on every tab; R3).
+    expect(await mods.byok.getByokSettings(free.as(), free.orgId)).toBeNull();
     expect(await mods.byok.getByokSettings(f.as(), f.orgId)).toMatchObject({ available: false });
     await expect(mods.byok.connectByokKey(f.as(), f.orgId, { provider: "openai", apiKey: key() })).rejects.toMatchObject({ status: 404 });
     // Removing needs neither the flag nor a recent sign-in.
     expect((await mods.byok.revokeByokKey(f.as("owner", false), f.orgId, connection.id)).routesRemoved).toBe(2);
-    await expect(mods.byok.getByokSettings(f.as(), f.orgId)).rejects.toMatchObject({ status: 404 });
+    expect(await mods.byok.getByokSettings(f.as(), f.orgId)).toBeNull();
+    // Writes still refuse with 404 while it is closed.
+    await expect(mods.byok.connectByokKey(f.as(), f.orgId, { provider: "openai", apiKey: key() })).rejects.toMatchObject({ status: 404 });
   });
 
   /* ---------------------------------------------------------- routing --- */

@@ -2,7 +2,8 @@
  * Server handlers for the customer billing screens (launch L-15, spec v2
  * §6.12, §6.16): GET /api/evals/v1/billing/{summary,usage,ledger,caps} and
  * PUT /caps. Roles are checked here, server-side, and every route answers 404
- * where billing does not show (lib/billing/billing-ui.ts):
+ * where billing does not show (lib/billing/billing-ui.ts), except GET /summary,
+ * which answers `null` to an owner or editor there (the shell's probe):
  *
  *   summary  owner, editor (operators read as editors; platform admins read)
  *   usage    owner, editor (JSON or CSV)
@@ -45,6 +46,17 @@ const s = (value: bigint) => value.toString();
 export interface BillingReader { level: BillingLevel; role: string | null; admin: boolean }
 
 /**
+ * Billing does not show in this workspace (flag off, or the workspace is not
+ * eligible) for someone who would otherwise read it. Still a 404 everywhere
+ * but GET /summary, which answers `null` to such a member instead (R3): the
+ * shell asks on every page, and a 404 there was console noise for every
+ * customer without billing.
+ */
+export class BillingNotShown extends EvalError {
+  constructor() { super("SCOPE_DENIED", 404); this.name = "BillingNotShown"; }
+}
+
+/**
  * The person's billing level in the workspace, or 404: viewers, outsiders,
  * and every workspace where billing does not show. `need: "owner"` also
  * refuses editors.
@@ -56,7 +68,7 @@ export async function requireBillingReader(identity: EvalIdentity, orgId: string
   const level = billingLevel(role, admin);
   if (!level || (need === "owner" && level !== "owner")) throw new EvalError("SCOPE_DENIED", 404);
   await requireWorkspace(identity, orgId, "read");
-  if (!(await withTenant({ orgId, actorId: identity.user.id }, db => billingUiEligible(db, orgId, env)))) throw new EvalError("SCOPE_DENIED", 404);
+  if (!(await withTenant({ orgId, actorId: identity.user.id }, db => billingUiEligible(db, orgId, env)))) throw new BillingNotShown();
   return { level, role, admin };
 }
 
@@ -69,10 +81,17 @@ function capsView(caps: SpendCaps) {
 /**
  * GET /summary: balance, plan, usage this month against the cap, alerts and
  * the next expiry for owners and editors; auto-recharge, the saved card and
- * payments for owners.
+ * payments for owners. `null` for an owner or editor of a workspace where
+ * billing does not show; 404 for viewers and outsiders.
  */
 export async function billingSummary(identity: EvalIdentity, orgId: string, env: Env = process.env) {
-  const reader = await requireBillingReader(identity, orgId, "editor", env);
+  let reader: BillingReader;
+  try {
+    reader = await requireBillingReader(identity, orgId, "editor", env);
+  } catch (error) {
+    if (error instanceof BillingNotShown) return null;
+    throw error;
+  }
   const owner = reader.level === "owner";
   const window = monthWindow();
   const data = await withTenant({ orgId, actorId: identity.user.id }, async db => {
@@ -96,7 +115,7 @@ export async function billingSummary(identity: EvalIdentity, orgId: string, env:
     const plansV2 = await plansV2For(db, orgId, env);
     return { account, plan: String(entitlement?.plan ?? "managed"), month, caps, threshold, expiry, mode, allowance: allowance.rows[0] ?? null, settings, customer, pending, funded, plansV2 };
   });
-  if (!data) throw new EvalError("SCOPE_DENIED", 404);
+  if (!data) return null;
   const { account, month, caps, threshold, expiry, settings } = data;
   const committed = month.netUcr + account.heldUcr;
   const payments = owner ? await paymentsAccessFor(orgId, env, { actorId: identity.user.id }) : "closed";

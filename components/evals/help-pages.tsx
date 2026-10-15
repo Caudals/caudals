@@ -5,8 +5,7 @@
  * every article, `/workspace/help/[slug]` shows one. Same parts as the panel.
  */
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { ActionLink, PageHeading, SectionHeading } from "./primitives";
+import { PageHeading, SectionHeading } from "./primitives";
 import { formatReviewDate, HelpBody, HelpListItemText, HelpSearchList, useHelpArticles } from "./help";
 import { HelpContact } from "./help-panel";
 import { usePageCrumb, useWorkspace } from "./workspace-context";
@@ -38,14 +37,10 @@ export function HelpCentre() {
 export function HelpArticlePage({ article, related }: { article: HelpArticle; related: Array<{ slug: HelpSlug; title: string; summary: string }> }) {
   const { withOrg } = useWorkspace();
   usePageCrumb(article.title);
+  // No in-page back link: the breadcrumb (Help › article) carries the way back (DESIGN §9, R3).
+  // The article reads in a 70ch column; the help centre's list keeps the wider one.
   return (
-    <div className="p-help-page">
-      <div className="p-row">
-        <ActionLink variant="ghost" size="sm" href={withOrg("/workspace/help")}>
-          <ArrowLeft aria-hidden="true" />
-          {t("helpAllArticles")}
-        </ActionLink>
-      </div>
+    <div className="p-help-page" data-reading="true">
       <PageHeading title={article.title} meta={<span>{tv("helpReviewed", { date: formatReviewDate(article.reviewed) })}</span>}>
         {article.summary}
       </PageHeading>

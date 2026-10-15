@@ -401,13 +401,16 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("plans v2 on the production schema (L-
     await as(f.ownerId, f.orgId, "INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'viewer')", [f.orgId, viewerId]);
     const identity = (id: string, role: "owner" | "viewer"): EvalIdentity => ({ user: { id, name: "Fixture", email: "owner@acme.test" }, platformRole: null,
       workspaces: [{ id: f.orgId, name: "Plans fixture", role }] } as unknown as EvalIdentity);
-    await expect(planSummary(identity(f.ownerId, "owner"), f.orgId)).rejects.toMatchObject({ code: "SCOPE_DENIED", status: 404 });
+    // Plans v2 off for the workspace: nothing to show, without a 404 in the member's console (R3); an outsider still gets 404.
+    expect(await planSummary(identity(f.ownerId, "owner"), f.orgId)).toBeNull();
+    const outsider = await user();
+    await expect(planSummary(identity(outsider, "owner"), f.orgId)).rejects.toMatchObject({ code: "SCOPE_DENIED", status: 404 });
     await override(f.orgId, { plansV2: true });
     process.env.BILLING_TEST_WORKSPACE_IDS = f.orgId;
     await addTarget(f);
     await addRun(f);
     await invite(f);
-    const summary = await planSummary(identity(f.ownerId, "owner"), f.orgId);
+    const summary = (await planSummary(identity(f.ownerId, "owner"), f.orgId))!;
     expect(summary).toMatchObject({
       plan: "free", role: "owner",
       limits: { systems: { used: 1, limit: FREE_LIMITS.systems }, questionsPerSet: { limit: 50 }, runsPerMonth: { used: 1, limit: 3 },

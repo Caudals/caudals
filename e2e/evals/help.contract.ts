@@ -58,13 +58,25 @@ for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/workspace/help/prepare-and-run?orgId=${orgId}`);
     await expect(page.getByRole("heading", { name: "Prepare and run your tests", level: 1 })).toBeVisible();
-    await expect(page.getByText("Reviewed October 12, 2026")).toBeVisible();
+    // Day first, like every other date in the app (R3).
+    await expect(page.getByText("Reviewed 12 October 2026")).toBeVisible();
+    // No in-page back link: the breadcrumb carries the way back (DESIGN §9).
+    await expect(page.getByRole("link", { name: "All articles" })).toHaveCount(0);
     for (const section of ["Generate the test set", "Review and approve", "Run the evaluation"]) await expect(page.getByRole("heading", { name: section, level: 2 })).toBeVisible();
     await expect(page.locator("#run")).toBeAttached();
     await expect(page.getByRole("heading", { name: "Related articles" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Upload documents and answers/ })).toHaveAttribute("href", /\/workspace\/help\/uploads/);
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Prepare and run your tests");
     expect(await noHorizontalScroll(page)).toBe(true);
+
+    // Addresses are written inside Cloudflare's email_off markers (its obfuscation broke hydration, React #418; R3)
+    // and stay real mailto links once the page is interactive.
+    await page.goto(`/workspace/help/getting-help?orgId=${orgId}`);
+    await expect(page.locator(".p-article").getByRole("link", { name: "hello@caudals.com" })).toHaveAttribute("href", "mailto:hello@caudals.com");
+    expect(await page.locator(".p-article").innerHTML()).toContain("<!--email_off--><a href=\"mailto:hello@caudals.com\">hello@caudals.com</a><!--/email_off-->");
+    await expect(page.getByRole("link", { name: "Email hello@caudals.com" })).toHaveAttribute("href", /^mailto:hello@caudals\.com\?subject=/);
+    // Reading measure: about 70 characters of body text, never the full canvas.
+    if (width === 1440) expect(await page.locator(".p-article").evaluate((node) => node.getBoundingClientRect().width)).toBeLessThan(640);
 
     await page.goto(`/workspace/help?orgId=${orgId}`);
     await expect(page.getByRole("heading", { name: "Help", level: 1 })).toBeVisible();

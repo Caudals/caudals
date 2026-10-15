@@ -79,6 +79,10 @@ export type ByokSettings = {
 };
 
 type Access = { plan: string | null; enabled: boolean };
+/** BYOK is off for the workspace and no key is left: nothing to show (GET answers `null`, every other route 404). */
+class ByokClosed extends EvalError {
+  constructor() { super("SCOPE_DENIED", 404); this.name = "ByokClosed"; }
+}
 /**
  * Owners and platform admins of a live workspace. While BYOK is off for the
  * workspace the screens answer 404, except where the workspace still has a
@@ -95,7 +99,7 @@ async function access(identity: EvalIdentity, orgId: string, env: Env): Promise<
     const plan = ((await db.query("SELECT plan FROM evals.workspace_entitlement WHERE org_id=$1", [orgId])).rows[0]?.plan as string | undefined) ?? null;
     if (!enabled) {
       const live = (await db.query("SELECT 1 FROM evals.byok_connections($1) WHERE revoked_at IS NULL", [orgId]).catch(databaseError)).rowCount;
-      if (!live) throw new EvalError("SCOPE_DENIED", 404);
+      if (!live) throw new ByokClosed();
     }
     return { plan, enabled };
   });
@@ -136,9 +140,21 @@ async function read(identity: EvalIdentity, orgId: string, scope: Access) {
   })).catch(databaseError).then((rows) => view(rows, scope));
 }
 
-/** GET: the workspace's keys (state only, never the key) and which roles use them. */
-export async function getByokSettings(identity: EvalIdentity, orgId: string, env: Env = process.env): Promise<ByokSettings> {
-  return read(identity, orgId, await access(identity, orgId, env));
+/**
+ * GET: the workspace's keys (state only, never the key) and which roles use
+ * them. `null` to an owner or platform admin while BYOK is off here and no key
+ * is left, so Settings' probe on every tab is not a 404 in the console (R3);
+ * 404 for everyone else.
+ */
+export async function getByokSettings(identity: EvalIdentity, orgId: string, env: Env = process.env): Promise<ByokSettings | null> {
+  let scope: Access;
+  try {
+    scope = await access(identity, orgId, env);
+  } catch (error) {
+    if (error instanceof ByokClosed) return null;
+    throw error;
+  }
+  return read(identity, orgId, scope);
 }
 
 const keyInput = z.strictObject({ apiKey: providerKeySchema });

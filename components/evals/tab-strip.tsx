@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { Children, useEffect, useRef, type ReactNode } from "react";
 
 /**
  * The scrolling row behind `Tabs` and `TabLinks` (launch R4). On a narrow
@@ -25,6 +25,8 @@ export function TabStrip({
   "data-variant"?: string;
 }) {
   const ref = useRef<HTMLElement | null>(null);
+  // A tab that arrives later (Billing → Invoices once its API answers) shifts the current one: bring it back into view (R3).
+  const count = Children.count(children);
 
   useEffect(() => {
     const strip = ref.current;
@@ -57,7 +59,7 @@ export function TabStrip({
     // Leave a little of the neighbour showing, so the row still reads as scrollable.
     if (tab.left < box.left) strip.scrollLeft += tab.left - box.left - 24;
     else if (tab.right > box.right) strip.scrollLeft += tab.right - box.right + 24;
-  }, [current]);
+  }, [current, count]);
 
   return (
     <Element ref={ref as never} className={className} {...props}>

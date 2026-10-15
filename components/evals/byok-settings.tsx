@@ -35,14 +35,15 @@ const ROLE_KEY: Record<ByokRole, { title: MessageKey; help: MessageKey }> = {
 
 /**
  * The workspace's BYOK settings, for owners and platform admins while the
- * server opens them (404 otherwise: the tab then stays hidden).
+ * server opens them (`null` otherwise, or 404 for anyone else: the tab then
+ * stays hidden).
  */
 export function useByokSettings(orgId: string, enabled: boolean) {
   const key = enabled && orgId ? orgId : "";
   const [state, setState] = useState<{ key: string; data: ByokSettingsData | null }>({ key: "", data: null });
   const fetchSettings = useCallback(async (target: string) => {
     try {
-      return { key: target, data: await evalRequest<ByokSettingsData>(`/engine/byok?orgId=${encodeURIComponent(target)}`) };
+      return { key: target, data: (await evalRequest<ByokSettingsData | null>(`/engine/byok?orgId=${encodeURIComponent(target)}`)) ?? null };
     } catch (error) {
       if (error instanceof EvalRequestError && (error.status === 404 || error.status === 403)) return { key: target, data: null };
       return null;

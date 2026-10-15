@@ -619,7 +619,7 @@ export function Field({
   id,
   hint,
   ...props
-}: ComponentProps<"input"> & { label: string; id: string; hint?: ReactNode }) {
+}: ComponentProps<"input"> & { label: ReactNode; id: string; hint?: ReactNode }) {
   return (
     <div className="p-field">
       <label htmlFor={id}>{label}</label>
@@ -774,7 +774,8 @@ export function DataTable({
   stack = false,
 }: {
   caption: string;
-  headers: Array<string | { label: string; align?: "end"; hidden?: boolean }>;
+  /** `align: "end"` is the narrow last column (actions, a final amount); `"num"` right-aligns a numeric column anywhere (cells take `p-num`). */
+  headers: Array<string | { label: string; align?: "end" | "num"; hidden?: boolean }>;
   children: ReactNode;
   /**
    * Under 640px each row becomes a block instead of the table scrolling
@@ -792,10 +793,10 @@ export function DataTable({
           <tr>
             {headers.map((header) => {
               const label = typeof header === "string" ? header : header.label;
-              const end = typeof header !== "string" && header.align === "end";
+              const align = typeof header === "string" ? undefined : header.align;
               const hidden = typeof header !== "string" && header.hidden;
               return (
-                <th scope="col" key={label} className={end ? "p-table-action" : undefined}>
+                <th scope="col" key={label} className={align === "end" ? "p-table-action" : align === "num" ? "p-num" : undefined}>
                   {hidden ? <span className="sr-only">{label}</span> : label}
                 </th>
               );

@@ -157,30 +157,33 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("billing and usage screens on the prod
   it("shows billing only with BILLING_UI_ENABLED and an eligible workspace", async () => {
     const f = await seed();
     await grant(f, 100);
-    // Off: 404 for the owner too.
-    await expect(billingSummary(f.owner, f.orgId)).rejects.toMatchObject({ code: "SCOPE_DENIED", status: 404 });
-    // On, but the workspace is neither a test workspace nor allowlisted: 404.
+    // Off: nothing to show, for the owner too. The summary answers `null` to a member (the shell
+    // asks on every page; a 404 was console noise, R3); the other billing routes stay 404.
+    expect(await billingSummary(f.owner, f.orgId)).toBeNull();
+    await expect(billingCaps(f.owner, f.orgId)).rejects.toMatchObject({ code: "SCOPE_DENIED", status: 404 });
+    // On, but the workspace is neither a test workspace nor allowlisted: nothing.
     open();
-    await expect(billingSummary(f.owner, f.orgId)).rejects.toMatchObject({ status: 404 });
-    // Credits off: 404 whatever the UI flag says.
+    expect(await billingSummary(f.owner, f.orgId)).toBeNull();
+    expect(await billingSummary(f.editor, f.orgId)).toBeNull();
+    // Credits off: nothing, whatever the UI flag says.
     open(f.orgId);
     process.env.BILLING_CREDITS_ENABLED = "false";
-    await expect(billingSummary(f.owner, f.orgId)).rejects.toMatchObject({ status: 404 });
+    expect(await billingSummary(f.owner, f.orgId)).toBeNull();
     // A test workspace (Stripe test mode, internal).
     open(f.orgId);
-    expect((await billingSummary(f.owner, f.orgId)).balance.availableUcr).toBe(c(100).toString());
+    expect((await billingSummary(f.owner, f.orgId))!.balance.availableUcr).toBe(c(100).toString());
     // An admin override: plans v2 or live payments.
     open();
     const admin = { orgId: f.orgId, actorId: f.admin.user.id };
     await tx(admin, db => setWorkspaceOverride(db, { orgId: f.orgId, enforcement: "inherit", livePayments: false, plansV2: true, reason: "L-15 fixture" }));
-    expect((await billingSummary(f.owner, f.orgId)).plan).toBe("free");
+    expect((await billingSummary(f.owner, f.orgId))!.plan).toBe("free");
     await tx(admin, db => setWorkspaceOverride(db, { orgId: f.orgId, enforcement: "inherit", livePayments: true, plansV2: false, reason: "L-15 fixture" }));
-    expect((await billingSummary(f.editor, f.orgId)).level).toBe("editor");
+    expect((await billingSummary(f.editor, f.orgId))!.level).toBe("editor");
     await tx(admin, db => setWorkspaceOverride(db, { orgId: f.orgId, enforcement: "inherit", livePayments: false, plansV2: false, reason: "L-15 fixture" }));
-    await expect(billingSummary(f.owner, f.orgId)).rejects.toMatchObject({ status: 404 });
+    expect(await billingSummary(f.owner, f.orgId)).toBeNull();
     // Gate B: every workspace.
     process.env.PLANS_V2_ENABLED = "true";
-    expect((await billingSummary(f.owner, f.orgId)).level).toBe("owner");
+    expect((await billingSummary(f.owner, f.orgId))!.level).toBe("owner");
   });
 
   /* ----------------------------------------------------------------- roles --- */
@@ -189,9 +192,9 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("billing and usage screens on the prod
     const f = await seed();
     open(f.orgId);
     await grant(f, 250);
-    const ownerView = await billingSummary(f.owner, f.orgId);
+    const ownerView = (await billingSummary(f.owner, f.orgId))!;
     expect(ownerView).toMatchObject({ level: "owner", payments: { access: "test_workspace", mode: "test" }, autoRecharge: { enabled: false } });
-    const editorView = await billingSummary(f.editor, f.orgId);
+    const editorView = (await billingSummary(f.editor, f.orgId))!;
     expect(editorView).toMatchObject({ level: "editor", autoRecharge: null, card: null, payments: null, balance: ownerView.balance });
     const params = (orgId: string, extra = "") => new URLSearchParams(`orgId=${orgId}${extra}`);
     expect(await billingUsage(f.editor, params(f.orgId))).toHaveProperty("totals");
@@ -210,7 +213,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("billing and usage screens on the prod
     const other = await seed();
     await expect(billingSummary({ ...other.owner, workspaces: [...other.owner.workspaces, { id: f.orgId, name: "x", role: "owner" }] }, f.orgId)).rejects.toMatchObject({ status: 404 });
     // Platform admins read (audited) but never change a customer's limits.
-    expect((await billingSummary(f.admin, f.orgId)).level).toBe("owner");
+    expect((await billingSummary(f.admin, f.orgId))!.level).toBe("owner");
     expect(Number((await owner.query("SELECT count(*) FROM evals.audit_event WHERE org_id=$1 AND actor_id=$2 AND action='support.read'", [f.orgId, f.admin.user.id])).rows[0].count)).toBeGreaterThan(0);
     const body = { orgId: f.orgId, monthlyCapCredits: 5000, perRun: { mode: "multiplier" as const, multiplier: 2 } };
     const put = (key = randomUUID()) => new Request("https://app.caudals.test/api/evals/v1/billing/caps", { method: "PUT", headers: { "idempotency-key": key } });
@@ -252,7 +255,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("billing and usage screens on the prod
     expect(await issues(f.orgId)).toEqual([]);
 
     const balances = await account(f.orgId), usage = await ledgerUsage(f.orgId);
-    const summary = await billingSummary(f.owner, f.orgId);
+    const summary = (await billingSummary(f.owner, f.orgId))!;
     expect(summary.balance).toEqual({ availableUcr: balances.available.toString(), heldUcr: balances.held.toString() });
     expect(balances.held).toBe(c(7));
     expect(summary.month.usedUcr).toBe(usage.net.toString());
@@ -439,7 +442,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("billing and usage screens on the prod
     const events = (await owner.query("SELECT actor_id,details FROM evals.audit_event WHERE org_id=$1 AND action='billing.low_balance_threshold_saved'", [f.orgId])).rows;
     expect(events).toEqual([{ actor_id: f.ownerUser.id, details: expect.objectContaining({ before: { low_balance_threshold_ucr: null }, after: { low_balance_threshold_ucr: Number(c(800)) } }) }]);
     // The banner and the alert use it: 700 < 800.
-    expect((await billingSummary(f.owner, f.orgId)).lowBalance).toEqual({ thresholdUcr: String(c(800)), below: true });
+    expect((await billingSummary(f.owner, f.orgId))!.lowBalance).toEqual({ thresholdUcr: String(c(800)), below: true });
     const tick = await runBillingWatch({ orgId: f.orgId, actorId: SCHEDULER }, { env, send, pool: runtime });
     expect(tick.alerts).toContain("low_balance");
     expect(sent.find(message => /balance is low/.test(message.subject))?.text).toContain("below your alert threshold of 800");

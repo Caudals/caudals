@@ -64,7 +64,8 @@ export function CommandPalette({
     // Platform admins always have the tab; editors and viewers never do.
     if (ownerOnly)
       void evalRequest<unknown>(`/engine/byok?orgId=${encodeURIComponent(orgId)}`)
-        .then(() => live && setModelsFor(orgId))
+        // `null`: own keys are closed in this workspace (R3; a 404 before).
+        .then((value) => live && setModelsFor(value ? orgId : ""))
         .catch(() => live && setModelsFor(""));
     return () => {
       live = false;

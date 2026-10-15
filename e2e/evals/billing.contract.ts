@@ -15,10 +15,22 @@ import { expectSpanishOnly } from "./spanish-leaks";
  */
 const axePath = join(process.cwd(), "node_modules/axe-core/axe.min.js");
 
+/** Elements of the shell's canvas that scroll sideways: [] when nothing overflows. */
+const canvasOverflow = (page: Page) => page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".p-canvas, #p-main")]
+  .filter(node => node.scrollWidth > node.clientWidth + 1)
+  .map(node => {
+    // The outermost elements past the edge that no scrolling box in between clips.
+    const clipped = (child: HTMLElement) => { for (let at = child.parentElement; at && at !== node; at = at.parentElement) if (getComputedStyle(at).overflowX !== "visible") return true; return false; };
+    const past = [...node.querySelectorAll<HTMLElement>("*")].filter(child => child.getBoundingClientRect().right > node.getBoundingClientRect().right + 1 && !clipped(child));
+    return `${node.id || node.className}: ${node.scrollWidth} > ${node.clientWidth}; past the edge: ${past.slice(0, 4).map(child => `${child.tagName.toLowerCase()}.${String(child.className).split(" ")[0]} (${Math.round(child.getBoundingClientRect().width)})`).join(" | ")}`;
+  }));
+
 async function noHorizontalScroll(page: Page) {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal scroll at ${width}px`).toBe(true);
+    // The shell scrolls inside its canvas: the document can stay put while the canvas scrolls sideways (R3).
+    expect(await canvasOverflow(page), `no canvas overflow at ${width}px`).toEqual([]);
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
 }
@@ -118,7 +130,7 @@ test("billing: limits and alerts save both caps with an Idempotency-Key", async 
   await expect(page.getByText("owner@acme.example")).toBeVisible();
   await expect(page.getByLabel("Low-balance alert")).toHaveValue("default");
   await expect(page.getByRole("option", { name: "Default: 500 credits" })).toHaveCount(1);
-  await expect(page.getByText("500 credits, or 20 % of your last pack when that is more.")).toBeVisible();
+  await expect(page.getByText("500 credits, or 20% of your last pack when that is more.")).toBeVisible();
   await page.getByLabel("Monthly limit (credits)").fill("8000");
   await page.getByLabel("Limit", { exact: true }).selectOption("3");
   await page.getByRole("button", { name: "Save limits" }).click();
@@ -198,9 +210,11 @@ test("billing: editors see the balance and usage only; viewers see no billing", 
 });
 
 test("billing: nothing shows where billing is off for the workspace", async ({ page }) => {
+  let summaries = 0;
   await page.route("**/api/evals/v1/**", route => {
     const path = new URL(route.request().url()).pathname;
-    if (path.endsWith("/billing/summary")) return route.fulfill({ status: 404, json: { error: { code: "SCOPE_DENIED" } } });
+    // The server answers `null` to a member where billing is off (a 404 before R3, logged on every page).
+    if (path.endsWith("/billing/summary")) { summaries++; return route.fulfill({ json: { data: null, meta: {} } }); }
     if (path.endsWith("/workspace/summary")) return route.fulfill({ json: { data: workspaceSummary({ plan: "free" }), meta: {} } });
     return route.fulfill({ json: { data: [], meta: {} } });
   });
@@ -209,6 +223,54 @@ test("billing: nothing shows where billing is off for the workspace", async ({ p
   await expect(page.getByRole("tab", { name: "Billing and usage" })).toHaveCount(0);
   await expect(page.getByTestId("billing-pill")).toHaveCount(0);
   await expect(page.locator("#plan-and-limits")).not.toContainText("credits available");
+  expect(summaries).toBeGreaterThan(0);
+});
+
+test("billing: closed payments, an empty period and singular plan limits read cleanly (R3)", async ({ page }) => {
+  await routeBilling(page, { paymentsClosed: true, noUsage: true });
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing`);
+  await expect(page.getByTestId("workspace-billing")).toBeVisible();
+  // Buying is closed: no view that would only say so, one sentence on the overview, no auto-recharge row to turn on.
+  for (const name of ["Top up", "Billing details"]) await expect(page.getByRole("tab", { name, exact: true })).toHaveCount(0);
+  for (const name of ["Overview", "Usage", "Limits and alerts"]) await expect(page.getByRole("tab", { name, exact: true })).toBeVisible();
+  await expect(page.getByText("Buying credits is not available in this workspace.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Auto-recharge" })).toHaveCount(0);
+  await noHorizontalScroll(page);
+  // A deep link to a hidden view falls back to the overview.
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=top-up`);
+  await expect(page.getByRole("tab", { name: "Overview", exact: true })).toHaveAttribute("aria-selected", "true");
+  // No usage: a sentence, not an empty plot; amounts right-aligned under their headers.
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=usage`);
+  const byDay = page.locator("section").filter({ has: page.getByRole("heading", { name: "Credits used by day" }) });
+  await expect(byDay.getByText("No usage in this period.")).toBeVisible();
+  await expect(page.locator(".p-daybars")).toHaveCount(0);
+  const activity = page.getByRole("region", { name: "Account activity" });
+  await expect(activity.getByRole("columnheader", { name: "Change" })).toHaveCSS("text-align", "right");
+  await expect(activity.getByText("+2,000")).toHaveCSS("text-align", "right");
+  // The ledger gives exact dates, not "n minutes ago".
+  await expect(activity.getByText("12 Oct 2026", { exact: false }).first()).toBeVisible();
+  await noHorizontalScroll(page);
+  // Plan and limits on a plan of ones: singular wording ("1 runs at a time" before).
+  const base = workspaceSummary({ plan: "free" });
+  await page.route("**/api/evals/v1/workspace/summary**", route => route.fulfill({ json: { data: { ...base,
+    entitlement: { ...base.entitlement, max_systems: 1, max_tests_per_set: 1, max_runs_per_month: 1, max_active_runs: 1, max_members: 1 } }, meta: {} } }));
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=general`);
+  const plan = page.locator("#plan-and-limits");
+  for (const text of ["1 of 1 AI system in use", "Up to 1 AI system", "Up to 1 question per test set", "1 run a month", "1 run at a time", "Up to 1 member"]) await expect(plan.getByText(text, { exact: true })).toBeVisible();
+});
+
+test("billing: the selected view stays in view in the pill track at 390 px (R3)", async ({ page }) => {
+  await routeBilling(page, { invoices: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/workspace/settings?owner&billing&orgId=${id}&tab=billing&view=limits`);
+  const selected = page.getByRole("tab", { name: "Limits and alerts", exact: true });
+  await expect(selected).toHaveAttribute("aria-selected", "true");
+  await expect(selected).toBeInViewport({ ratio: 1 });
+  // The "?" stays beside the track, on the same line.
+  const track = await page.locator(".p-billing-head .p-tabs").boundingBox();
+  const help = await page.locator(".p-billing-head .p-help-link").boundingBox();
+  expect(Math.abs((track!.y + track!.height / 2) - (help!.y + help!.height / 2))).toBeLessThan(4);
+  await noHorizontalScroll(page);
 });
 
 /* ------------------------------------------------------------ Spanish --- */
@@ -228,6 +290,8 @@ test("billing: Facturación y uso in Spanish at 390 and 1440 px", async ({ page 
     await expectSpanishOnly(page, `billing ${view}`);
     await page.setViewportSize({ width: 390, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    // The canvas too, where the overflow actually was (Spanish labels are the widest; R3).
+    expect(await canvasOverflow(page), `billing ${view} at 390 px`).toEqual([]);
     await page.setViewportSize({ width: 1440, height: 1000 });
   }
   await expect(page.getByRole("heading", { name: "Elige un paquete" })).toBeVisible();
