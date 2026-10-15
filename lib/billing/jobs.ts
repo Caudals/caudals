@@ -104,13 +104,15 @@ export async function runBillingReconciler(actorId: string, mode: EngineBillingM
 
 /**
  * Shadow admissions (§6.8 step 1) for runs started in the last minutes, off
- * the request path, in workspaces whose credit mode is shadow (BILLING_ENFORCE
- * or the workspace's override, L-14).
+ * the request path: runs admitted in shadow mode (BILLING_ENFORCE or the
+ * workspace's override, L-14), by the mode frozen on the run at admission
+ * (L-16b), so switching an override after a run never changes which ledger
+ * the run is reconciled against.
  */
 export async function runShadowAdmissions(scope: { orgId: string; actorId: string }, processMode: EngineBillingMode = engineBillingMode()): Promise<number> {
   if (processMode === "off") return 0;
   const runs = await withTenant(scope, async db =>
-    (await workspaceEngineMode(db, processMode, scope.orgId)) === "shadow" ? pendingShadowAdmissions(db, scope.orgId) : []);
+    pendingShadowAdmissions(db, scope.orgId, await workspaceEngineMode(db, processMode, scope.orgId)));
   let recorded = 0;
   for (const run of runs) if (await withTenant(scope, db => recordShadowAdmission(db, scope.orgId, run))) recorded++;
   return recorded;

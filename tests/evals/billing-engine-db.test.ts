@@ -7,6 +7,7 @@
  * path is the real worker against scripts/evals/test-db.sh.
  */
 import { randomBytes, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { Pool, type PoolClient } from "pg";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
@@ -19,7 +20,7 @@ import { controlRun, createSelfServiceRun } from "../../lib/evals/repositories/s
 import { BudgetExceeded, reserve, settle } from "../../lib/evals/budget/ledger";
 import { adjustCredits, CreditsExhausted, expireDue, grantCredits, verifyAccounts } from "../../lib/billing/ledger";
 import {
-  admissionRequirementUcr, captureEngineCall, chargeMeter, engineChargeUcr, engineHoldUcr, holdEngineCall, shadowFailureCount, type EngineBillingMode,
+  admissionRequirementUcr, captureEngineCall, chargeMeter, engineChargeUcr, engineHoldUcr, holdEngineCall, recordShadowAdmission, shadowFailureCount, type EngineBillingMode,
 } from "../../lib/billing/engine";
 import { runBillingReconciler, runShadowAdmissions, runShadowReport, shadowDiff } from "../../lib/billing/jobs";
 import { setWorkspaceOverride, type EnforcementOverride } from "../../lib/billing/overrides";
@@ -588,6 +589,10 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
     return withTenant({ orgId, actorId: adminId }, db => setWorkspaceOverride(db, { orgId, enforcement, livePayments: false, plansV2: false, reason: "L-14 engine override test" }));
   }
 
+  /** The credit mode a run was admitted under (frozen at insert, migration 111). */
+  const admissionMode = async (runId: string) =>
+    (await owner.query("SELECT billing_admission_mode FROM evals.run WHERE id=$1", [runId])).rows[0].billing_admission_mode as string | null;
+
   it("enforces credits for an overridden workspace while BILLING_ENFORCE is shadow, and the reverse (L-14)", async () => {
     // Process mode shadow, workspace overridden to enforce: admission refuses without credits, meters are real.
     setMode("shadow");
@@ -597,6 +602,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
     const required = await withTenant(f.scope, db => admissionRequirementUcr(db, f.orgId, { evaluationId: f.evaluationId, suiteVersionId: f.suiteVersionId, targetRevisionId: f.revisionId }));
     await withTenant({ orgId: f.orgId, actorId: SYSTEM }, db => grantCredits(db, { orgId: f.orgId, key: `grant-${randomUUID()}`, amountUcr: required.requiredUcr + c(5), source: "grant" }), schedulerPool);
     const run = await createSelfServiceRun(f.scope, { evaluationId: f.evaluationId }, randomUUID());
+    expect(await admissionMode(run.id)).toBe("enforce");
     const shadowWorker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "shadow", execute: async (_config, input, context) => observation(input, context) });
     for (const step of await f.steps(run.id)) await shadowWorker.handle(job(f.orgId, step));
     const api = await meterRate(await runRevision(run.id), "api_question");
@@ -615,6 +621,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
     const g = await apiEvaluation(2);
     await override(g.orgId, "shadow");
     const free = await createSelfServiceRun(g.scope, { evaluationId: g.evaluationId }, randomUUID());
+    expect(await admissionMode(free.id)).toBe("shadow");
     const enforceWorker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "enforce", execute: async (_config, input, context) => observation(input, context) });
     for (const step of await g.steps(free.id)) await enforceWorker.handle(job(g.orgId, step));
     expect((await owner.query("SELECT status FROM evals.run WHERE id=$1", [free.id])).rows[0].status).toBe("completed");
@@ -626,6 +633,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
     const h = await apiEvaluation(1);
     await override(h.orgId, "enforce");
     const off = await createSelfServiceRun(h.scope, { evaluationId: h.evaluationId }, randomUUID());
+    expect(await admissionMode(off.id)).toBe("off");
     for (const step of await h.steps(off.id)) await new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "off", execute: async (_config, input, context) => observation(input, context) }).handle(job(h.orgId, step));
     expect(await entries(h.orgId)).toEqual([]);
     expect(await shadow(h.orgId)).toEqual([]);
@@ -652,6 +660,108 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("credit engine hooks on the production
     const diff = await withTenant({ orgId: "", actorId: SYSTEM }, async db => (await db.query("SELECT billing.shadow_diff($1::date,$2::uuid) AS d", [today, f.orgId])).rows[0].d, schedulerPool);
     expect(diff.checks.completed_without_capture).toBe(0);
   });
+
+  /* ------------------------ admission mode and reconciliation (L-16b) --- */
+
+  /** An answered question that was never metered (a fault the diff must catch). */
+  async function unmeteredSuccess(orgId: string, runId: string) {
+    const unit = (await owner.query("SELECT case_revision_id FROM evals.case_unit WHERE run_id=$1 LIMIT 1", [runId])).rows[0];
+    await owner.query("INSERT INTO evals.case_unit(id,org_id,run_id,case_revision_id,repetition,status) VALUES($1,$2,$3,$4,99,'succeeded')",
+      [randomUUID(), orgId, runId, unit.case_revision_id]);
+  }
+  const todayDiff = async (orgId: string) =>
+    await shadowDiff(SYSTEM, new Date().toISOString().slice(0, 10), orgId) as { mismatches: number; checks: Record<string, number>; runs: Record<string, number> };
+  async function enforcedRun(repetitions: number) {
+    const f = await apiEvaluation(repetitions);
+    await override(f.orgId, "enforce");
+    const required = await withTenant(f.scope, db => admissionRequirementUcr(db, f.orgId, { evaluationId: f.evaluationId, suiteVersionId: f.suiteVersionId, targetRevisionId: f.revisionId }));
+    await withTenant({ orgId: f.orgId, actorId: SYSTEM }, db => grantCredits(db, { orgId: f.orgId, key: `grant-${randomUUID()}`, amountUcr: required.requiredUcr + c(5), source: "grant" }), schedulerPool);
+    const run = await createSelfServiceRun(f.scope, { evaluationId: f.evaluationId }, randomUUID());
+    // The workers run in shadow mode, as in production; the workspace's override makes the meters real.
+    const worker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "shadow", execute: async (_config, input, context) => observation(input, context) });
+    for (const step of await f.steps(run.id)) await worker.handle(job(f.orgId, step));
+    expect((await owner.query("SELECT status FROM evals.run WHERE id=$1", [run.id])).rows[0].status).toBe("completed");
+    const api = await meterRate(await runRevision(run.id), "api_question");
+    expect((await entries(f.orgId, "action")).map(row => [row.meter, B(row.amount_ucr)])).toEqual(Array.from({ length: repetitions }, () => ["api_question", -api]));
+    expect(await shadow(f.orgId)).toEqual([]);
+    return { ...f, run };
+  }
+
+  it("reconciles a run admitted under an enforce override against the real ledger after the override goes back to shadow (L-16b, 2026-10-14)", async () => {
+    // BILLING_ENFORCE=shadow; one workspace is overridden to enforce for a run (L-18's production check).
+    setMode("shadow");
+    const f = await enforcedRun(3);
+    expect(await admissionMode(f.run.id)).toBe("enforce");
+    // The override goes back to inherit within five minutes of the run. The scheduler's pass sees the
+    // workspace in shadow mode now, but the run was admitted under enforce: no shadow admission.
+    await override(f.orgId, "inherit");
+    expect(await runShadowAdmissions({ orgId: f.orgId, actorId: SYSTEM }, "shadow")).toBe(0);
+    expect(await shadow(f.orgId)).toEqual([]);
+    // The day's diff reconciles its three answered questions against the real ledger: zero drift.
+    const diff = await todayDiff(f.orgId);
+    expect(diff.mismatches).toBe(0);
+    expect(diff.checks).toMatchObject({ success_without_action: 0, enforced_success_without_action: 0 });
+    expect(diff.runs).toMatchObject({ enforce: 1, shadow: 0 });
+    // The mode is frozen: nobody can change it afterwards.
+    await expect(owner.query("UPDATE evals.run SET billing_admission_mode='shadow' WHERE id=$1", [f.run.id])).rejects.toThrow("immutable run admission mode");
+    // An answered question of an enforce-admitted run without its real-ledger meter is drift.
+    await unmeteredSuccess(f.orgId, f.run.id);
+    expect((await todayDiff(f.orgId)).checks).toMatchObject({ enforced_success_without_action: 1, success_without_action: 0 });
+    expect(await issues(f.orgId)).toEqual([]);
+
+    // The stored 2026-10-14 shape: a run without a recorded mode (created before migration 111) that the old
+    // pass gave a shadow admission after the override switch. Its real-ledger meters classify it as enforce.
+    const g = await enforcedRun(2);
+    await override(g.orgId, "inherit");
+    const client = await owner.connect();
+    try {
+      await client.query("SET session_replication_role = replica");
+      await client.query("UPDATE evals.run SET billing_admission_mode=NULL WHERE id=$1", [g.run.id]);
+    } finally { await client.query("SET session_replication_role = origin"); client.release(); }
+    expect(await admissionMode(g.run.id)).toBeNull();
+    // Today's pass skips it too: it already charged the real ledger.
+    expect(await runShadowAdmissions({ orgId: g.orgId, actorId: SYSTEM }, "shadow")).toBe(0);
+    // What the old pass recorded on 2026-10-14.
+    const legacy = (await owner.query("SELECT id,evaluation_id,suite_version_id,target_revision_id FROM evals.run WHERE id=$1", [g.run.id])).rows[0];
+    expect(await withTenant({ orgId: g.orgId, actorId: SYSTEM }, db => recordShadowAdmission(db, g.orgId,
+      { runId: legacy.id, evaluationId: legacy.evaluation_id, suiteVersionId: legacy.suite_version_id, targetRevisionId: legacy.target_revision_id }), schedulerPool)).toBe(true);
+    expect(await withTenant({ orgId: g.orgId, actorId: SYSTEM }, async db =>
+      (await db.query("SELECT billing.run_admission_mode($1,$2) AS m", [g.orgId, g.run.id])).rows[0].m, schedulerPool)).toBe("enforce");
+    const legacyDiff = await todayDiff(g.orgId);
+    expect(legacyDiff.mismatches).toBe(0);
+    expect(legacyDiff.checks).toMatchObject({ success_without_action: 0, enforced_success_without_action: 0 });
+    expect(legacyDiff.runs).toMatchObject({ enforce: 1 });
+
+    // The rollback refuses once runs recorded their mode (billing evidence).
+    const down = await owner.connect();
+    try {
+      await down.query("BEGIN");
+      await expect(down.query(readFileSync("db/rollbacks/111_billing_shadow_admission_mode_down.sql", "utf8").replace(/^BEGIN;\s*$/m, "").replace(/^COMMIT;\s*$/m, "")))
+        .rejects.toThrow("Rollback blocked: runs recorded their credit admission mode");
+    } finally { await down.query("ROLLBACK"); down.release(); }
+  }, 60_000);
+
+  it("keeps shadow-admitted runs on shadow expectations after the workspace switches to enforce (L-16b)", async () => {
+    // BILLING_ENFORCE=enforce; the workspace is overridden to shadow for a run, then back to inherit (enforce).
+    setMode("enforce");
+    const f = await apiEvaluation(2);
+    await override(f.orgId, "shadow");
+    const run = await createSelfServiceRun(f.scope, { evaluationId: f.evaluationId }, randomUUID());
+    expect(await admissionMode(run.id)).toBe("shadow");
+    const worker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: WORKER, workerId: randomUUID(), billing: () => "enforce", execute: async (_config, input, context) => observation(input, context) });
+    for (const step of await f.steps(run.id)) await worker.handle(job(f.orgId, step));
+    expect(await entries(f.orgId)).toEqual([]);
+    await override(f.orgId, "inherit");
+    // The pass records the admission of a run admitted in shadow mode, whatever the workspace's mode now.
+    expect(await runShadowAdmissions({ orgId: f.orgId, actorId: SYSTEM }, "enforce")).toBe(1);
+    expect(await shadow(f.orgId, "admission")).toHaveLength(1);
+    const diff = await todayDiff(f.orgId);
+    expect(diff.mismatches).toBe(0);
+    expect(diff.runs).toMatchObject({ shadow: 1, enforce: 0 });
+    // Shadow runs keep their check: an answered question without its shadow meter is drift.
+    await unmeteredSuccess(f.orgId, run.id);
+    expect((await todayDiff(f.orgId)).checks).toMatchObject({ success_without_action: 1, enforced_success_without_action: 0 });
+  }, 30_000);
 
   /* ---------------------------------------------- monthly window (G8) --- */
 

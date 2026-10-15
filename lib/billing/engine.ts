@@ -32,6 +32,13 @@
  * switch for every workspace. A capture or release follows its hold: a call
  * held in shadow mode is settled in shadow mode after a switch to enforce.
  *
+ * The mode a run is admitted under is frozen on the run when it is created
+ * (evals.run.billing_admission_mode, migration 111: withTenant passes the
+ * process mode, the insert trigger applies the override). Shadow admissions
+ * and the shadow diff classify runs by it (L-16b): a run admitted under an
+ * `enforce` override is reconciled against the real ledger even after the
+ * override goes back to `inherit`.
+ *
  * The amounts come from the pure functions below in both modes, so the shadow
  * report is enforce-mode maths by construction.
  */
@@ -431,11 +438,21 @@ export async function recordShadowAdmission(db: PoolClient, orgId: string, run: 
   return recorded;
 }
 
-/** Runs created in the last few minutes that have no shadow admission yet (the scheduler's tick). */
-export async function pendingShadowAdmissions(db: PoolClient, orgId: string, withinMinutes = 5, limit = 20): Promise<AdmissionRun[]> {
+/**
+ * Runs created in the last few minutes that were admitted in shadow mode and
+ * have no shadow admission yet (the scheduler's tick). The mode is the one the
+ * run was admitted under (evals.run.billing_admission_mode, frozen at insert;
+ * L-16b), never the workspace's mode now: a run admitted under an `enforce`
+ * override charges the real ledger even if the override is back to `inherit`
+ * when the scheduler looks. Runs without a recorded mode (created before
+ * migration 111) are classified by their charges (billing.run_admission_mode),
+ * else by `workspaceMode`, the workspace's mode now.
+ */
+export async function pendingShadowAdmissions(db: PoolClient, orgId: string, workspaceMode: EngineBillingMode, withinMinutes = 5, limit = 20): Promise<AdmissionRun[]> {
   const rows = (await db.query(`SELECT r.id,r.evaluation_id,r.suite_version_id,r.target_revision_id FROM evals.run r
     WHERE r.org_id=$1 AND r.created_at > now()-$2::int*interval '1 minute' AND r.price_book_revision_id IS NOT NULL
+      AND coalesce(billing.run_admission_mode(r.org_id,r.id),$4)='shadow'
       AND NOT EXISTS (SELECT 1 FROM billing.shadow_entry s WHERE s.org_id=r.org_id AND s.kind='admission' AND s.entry_key='admission:'||r.id)
-    ORDER BY r.created_at LIMIT $3`, [orgId, withinMinutes, limit])).rows;
+    ORDER BY r.created_at LIMIT $3`, [orgId, withinMinutes, limit, workspaceMode])).rows;
   return rows.map(row => ({ runId: row.id, evaluationId: row.evaluation_id, suiteVersionId: row.suite_version_id, targetRevisionId: row.target_revision_id }));
 }

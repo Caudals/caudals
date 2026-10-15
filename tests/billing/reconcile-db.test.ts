@@ -20,6 +20,8 @@ import { createTopUpOrder, saveProfile, type ProfileInput } from "../../lib/bill
 import { settlePayment, WEBHOOK_ACTOR } from "../../lib/billing/settlement";
 import { refundTopUp } from "../../lib/billing/refunds";
 import { runReconciliation } from "../../lib/billing/reconcile";
+import { chargeAction, grantCredits } from "../../lib/billing/ledger";
+import { creditsToUcr } from "../../lib/billing/units";
 import { reconciliationForAdmin, runReconciliationForAdmin } from "../../lib/billing/ops-reports";
 import type { BalanceTransaction } from "../../lib/billing/invoicing/export";
 import { testDatabaseUrls } from "../helpers/test-database";
@@ -66,6 +68,36 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("daily reconciliation on the productio
   const run = (extra: BalanceTransaction[] = [], intentOrders = new Map<string, string>()) =>
     runReconciliation(SCHEDULER, today, false, { pool: runtime, listTransactions: async () => [...movements, ...extra], intentOrders: async () => intentOrders });
 
+  /**
+   * Runs at data level for the shadow diff (L-16b): `mode` is the credit mode
+   * frozen at admission (NULL: a run from before migration 111). Each of
+   * `answered` succeeded questions gets its real-ledger meter, its shadow
+   * meter or none; `admission` adds the shadow admission the scheduler's pass
+   * records. The run row skips its foreign keys (replica), like the injected
+   * faults below.
+   */
+  async function admittedRun(orgId: string, mode: "shadow" | "enforce" | null, answered: number, meter: "real" | "shadow" | "none", admission: boolean) {
+    const runId = randomUUID(), scope = { orgId, actorId: SCHEDULER };
+    await replica(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,created_by,billing_admission_mode)
+      VALUES($1,$2,$3,$4,$5,'deployed_system','completed','done','fixture',$6)`, [runId, orgId, randomUUID(), randomUUID(), randomUUID(), mode]);
+    for (let repetition = 0; repetition < answered; repetition++) {
+      const unitId = randomUUID();
+      await replica("INSERT INTO evals.case_unit(id,org_id,run_id,case_revision_id,repetition,status) VALUES($1,$2,$3,$4,$5,'succeeded')", [unitId, orgId, runId, randomUUID(), repetition]);
+      if (meter === "real") await tx(scope, db => chargeAction(db, { orgId, key: `unit:${unitId}`, meter: "api_question", amountUcr: creditsToUcr(2), runId, caseUnitId: unitId }));
+      if (meter === "shadow") await tx(scope, db => db.query("SELECT billing.shadow_charge($1,'action',$2,'api_question',$3::bigint,1,$4,$5,NULL,NULL)", [orgId, `unit:${unitId}`, creditsToUcr(2).toString(), runId, unitId]));
+    }
+    if (admission) await tx(scope, db => db.query("SELECT billing.shadow_charge($1,'admission',$2,NULL,$3::bigint,NULL,$4,NULL,NULL,NULL)", [orgId, `admission:${runId}`, creditsToUcr(7).toString(), runId]));
+    return runId;
+  }
+  /** A free-plan workspace (billing mode free; contract workspaces never carry credit meters) with credits. */
+  async function creditedWorkspace() {
+    const w = await buyer();
+    await owner.query("UPDATE evals.workspace_entitlement SET plan='free' WHERE org_id=$1", [w.orgId]);
+    expect((await owner.query("SELECT billing_mode FROM billing.credit_account WHERE org_id=$1", [w.orgId])).rows[0].billing_mode).toBe("free");
+    await tx({ orgId: w.orgId, actorId: SCHEDULER }, db => grantCredits(db, { orgId: w.orgId, key: `grant-${randomUUID()}`, amountUcr: creditsToUcr(100), source: "grant" }));
+    return w;
+  }
+
   let a: { orgId: string; ownerId: string }, first: Awaited<ReturnType<typeof paid>>, second: Awaited<ReturnType<typeof paid>>;
 
   it("reconciles clean data with zero differences and stores the report", async () => {
@@ -74,9 +106,18 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("daily reconciliation on the productio
     second = await paid(a);
     await refundTopUp({ orgId: a.orgId, orderId: second.id, reason: "Customer asked within 14 days", actorId: SCHEDULER }, stripeRefunds, runtime);
     movements.push({ id: `txn_${randomUUID().slice(0, 8)}`, type: "refund", amount: -second.grossCents, fee: 0, net: -second.grossCents, currency: "eur", created: now(), sourceId: null, paymentIntentId: second.pi });
+    // The 2026-10-14 case (L-16b): on an otherwise shadow system, runs admitted under a workspace's enforce
+    // override charged the real ledger, and the scheduler's pass gave them a shadow admission after the
+    // override went back to inherit. One run carries its frozen mode, one is from before migration 111.
+    const e = await creditedWorkspace();
+    await admittedRun(e.orgId, "enforce", 3, "real", true);
+    await admittedRun(e.orgId, null, 3, "real", true);
+    // A shadow run beside them, metered in shadow.
+    await admittedRun(e.orgId, "shadow", 2, "shadow", true);
     const report = await run();
     const failing = Object.entries(report.checks).filter(([, check]) => check.count > 0);
     expect(failing).toEqual([]);
+    expect(report.checks.shadow_drift).toMatchObject({ count: 0, details: { success_without_action: 0, enforced_success_without_action: 0 } });
     expect(report).toMatchObject({ day: today, livemode: false, discrepancies: 0, stripeChecked: true, stripe: { matched: 3, issues: [], unpaidOrders: [] } });
     const stored = (await owner.query("SELECT discrepancies, stripe_checked FROM billing.reconciliation_report WHERE id=$1", [report.id])).rows[0];
     expect(stored).toEqual({ discrepancies: 0, stripe_checked: true });
@@ -107,11 +148,17 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("daily reconciliation on the productio
     // Ledger: an entry whose amount no longer matches the balance.
     const entry = (await owner.query("SELECT id FROM billing.ledger_entry WHERE org_id=$1 AND entry_type='purchase' ORDER BY created_at LIMIT 1", [a.orgId])).rows[0].id;
     await replica("UPDATE billing.ledger_entry SET amount_ucr=amount_ucr+1000000, available_delta_ucr=available_delta_ucr+1000000 WHERE id=$1", [entry]);
+    // Shadow drift (L-16b): a shadow-admitted run's answered question without its shadow meter, and an
+    // enforce-admitted run's answered question without its real-ledger meter.
+    const d = await creditedWorkspace();
+    await admittedRun(d.orgId, "shadow", 1, "none", true);
+    await admittedRun(d.orgId, "enforce", 1, "none", false);
     const report = await run();
     expect(report.checks.paid_order_purchase_mismatch.ids).toContain(o.id);
     expect(report.checks.paid_order_invoice_mismatch.ids).toContain(first.id);
     expect(report.checks.inconsistent_accounts.ids).toContain(a.orgId);
-    expect(report.discrepancies).toBeGreaterThanOrEqual(3);
+    expect(report.checks.shadow_drift).toMatchObject({ count: 2, details: { success_without_action: 1, enforced_success_without_action: 1 } });
+    expect(report.discrepancies).toBeGreaterThanOrEqual(5);
   });
 
   it("serves stored reports and the streak to platform admins; running one needs a recent sign-in", async () => {

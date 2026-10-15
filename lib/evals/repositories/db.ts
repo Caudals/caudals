@@ -1,6 +1,7 @@
 import "server-only";
 import { Pool, type PoolClient } from "pg";
 import { getSecretEnvValue } from "@/lib/env/secrets";
+import { billingCreditsEnabled, billingEnforceMode } from "@/lib/billing/config";
 
 let pool: Pool | undefined;
 export function getEvalsPool() {
@@ -23,7 +24,11 @@ export async function withTenant<T>(context: TenantContext, callback: (client: P
         WHERE n.nspname='evals' AND c.relowner=r.oid) AS unsafe
       FROM pg_roles r WHERE r.rolname=current_user`);
     if (rows[0]?.unsafe !== false) throw new Error("Evaluation runtime must be a non-owner NOBYPASSRLS role");
-    await client.query("SELECT set_config('evals.org_id',$1,true),set_config('evals.actor_id',$2,true),set_config('statement_timeout','10000',true)", [context.orgId, context.actorId]);
+    // billing.engine_mode: this process's credit mode (lib/billing/engine.ts engineBillingMode).
+    // A run inserted in the transaction freezes it, with the workspace's override, as the
+    // mode it was admitted under (evals.run.billing_admission_mode, migration 111).
+    const creditMode = billingCreditsEnabled() ? billingEnforceMode() : "off";
+    await client.query("SELECT set_config('evals.org_id',$1,true),set_config('evals.actor_id',$2,true),set_config('statement_timeout','10000',true),set_config('billing.engine_mode',$3,true)", [context.orgId, context.actorId, creditMode]);
     const result = await callback(client);
     await client.query("COMMIT");
     return result;
