@@ -1498,7 +1498,7 @@ Rules carried over from the overview: discount one-off work, never the subscript
   - (a) agencies and integrators that build chatbots and agents on conversational platforms;
   - (b) CX consultancies and contact-centre outsourcers;
   - (c) AI consultancies;
-  - (d) the programmes shown on our site, for introductions and events: NVIDIA Inception, AWS for Startups, Claude for Startups, Wolaria, Santander X, FUESCYL · Junta de Castilla y León, Universidad de Valladolid, IdeVa, Iniciativa Campus Emprendedor and Consolida Startup. These logos show programme support, not customers or introductions;
+  - (d) the programmes shown on our site, for introductions and events: NVIDIA Inception, Claude for Startups, AWS for Startups, Santander X, Wolaria, Consolida Startup, IdeVa, Universidad de Valladolid, Junta de Castilla y León and Iniciativa Campus Emprendedor. These logos show programme support, not customers or introductions;
   - (e) professional colleges and associations, for expert recruiting and sector credibility.
 - **Offer v1, before L-28:**
   - A referral agreement paying 20 % of first-year revenue on referred pilots and subscriptions, or the credit equivalent.
