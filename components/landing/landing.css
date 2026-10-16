@@ -474,6 +474,19 @@
 .lp-logo-row img:hover {
   opacity: 1;
 }
+/* keep five marks per row on tablets instead of orphaning one */
+@media (max-width: 1100px) {
+  .lp-logo-row {
+    --k: 0.85;
+    column-gap: 40px;
+  }
+}
+@media (max-width: 900px) {
+  .lp-logo-row {
+    --k: 0.75;
+    column-gap: 28px;
+  }
+}
 
 /* ── the problem ── */
 .lp-problem {
@@ -1499,9 +1512,21 @@
   .fw-neq {
     display: none;
   }
+  /* one balanced grid on phones: both rows flow into two even columns */
+  .lp-logo-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px 20px;
+    width: 100%;
+    max-width: 380px;
+    align-items: center;
+  }
   .lp-logo-row {
+    display: contents;
     --k: 0.8;
-    gap: 20px 30px;
+  }
+  .lp-logo-row img {
+    max-width: 100%;
+    object-fit: contain;
   }
   .hc-u,
   .hc-row {
