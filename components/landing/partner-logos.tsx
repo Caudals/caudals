@@ -9,23 +9,23 @@ import { createScopedTranslator } from "@/lib/i18n/messages";
  */
 const ROWS = [
   [
-    { name: "NVIDIA Inception Program", src: "/logos/nvidia-inception.svg", h: 46 },
-    { name: "Claude", src: "/logos/claude.svg", h: 29 },
+    { name: "NVIDIA Inception Program", src: "/logos/nvidia-inception.svg", h: 40 },
+    { name: "Claude", src: "/logos/claude.svg", h: 30 },
     { name: "AWS", src: "/logos/aws.svg", h: 32 },
     { name: "Santander X", src: "/logos/santander-x.svg", h: 20 },
-    { name: "Wolaria · Aceleradora de Castilla y León", src: "/logos/wolaria.png", h: 38 },
+    { name: "Wolaria · Aceleradora de Castilla y León", src: "/logos/wolaria.svg", h: 32 },
   ],
   [
-    { name: "Consolida Startup", src: "/logos/consolida-startup.png", h: 21 },
-    { name: "IdeVa · Agencia de Innovación y Desarrollo Económico de Valladolid", src: "/logos/ideva.svg", h: 38 },
-    { name: "Universidad de Valladolid", src: "/logos/uva.png", h: 42 },
-    { name: "Junta de Castilla y León", src: "/logos/junta-castilla-y-leon.svg", h: 46 },
-    { name: "Iniciativa Campus Emprendedor", src: "/logos/campus-emprendedor.png", h: 46 },
+    { name: "Consolida Startup", src: "/logos/consolida-startup.png", h: 20 },
+    { name: "IdeVa · Agencia de Innovación y Desarrollo Económico de Valladolid", src: "/logos/ideva.svg", h: 36 },
+    { name: "Universidad de Valladolid", src: "/logos/uva.png", h: 40 },
+    { name: "Junta de Castilla y León", src: "/logos/junta-castilla-y-leon.svg", h: 44 },
+    { name: "Iniciativa Campus Emprendedor", src: "/logos/campus-emprendedor.png", h: 44 },
   ],
 ] as const;
 
 /** Bump when a file under /logos is replaced in place; the CDN caches them for hours. */
-const LOGO_VERSION = "2";
+const LOGO_VERSION = "3";
 
 export function PartnerLogos({ locale }: { locale: Locale }) {
   const t = createScopedTranslator(locale, "partners");
