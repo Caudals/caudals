@@ -1283,7 +1283,7 @@ This is the part that is blocked today. Every market fact below is dated and sou
 | The pipeline is idle | Both Hermes campaigns are paused. 62 researched companies are waiting for review and 6 are approved | Research effort isn't turning into conversations |
 | No audience | 2 confirmed newsletter subscribers. Blog and newsletter hidden. Last issue 2026-08-12 | No warm demand to launch to |
 | No proof | No case study, named customer or published benchmark. The landing logos are support programmes, not customers | Every conversation starts from zero trust |
-| Spread thin | 8 sector pages, 2 campaigns and 3 entry offers (40-question diagnostic, 30–100-case regional pilot, 150–300-case pilot) | No message is sharp enough to repeat |
+| Spread thin | 8 sector pages, 2 campaigns and 3 entry offers (40-question diagnostic, 30–100-case regional pilot, 150–300-case pilot). The founder withdrew the regional pilot on 2026-10-17 | No message is sharp enough to repeat |
 | Nothing to buy | No prices, no checkout | Interested people stall |
 | Trust friction | Legal notice placeholders. Marketplace-era terms | Procurement and careful buyers stop |
 

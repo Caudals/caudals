@@ -29,7 +29,7 @@ Each step sells the next. The report names the gaps; the gaps size the subscript
 
 ## Offers and Pricing
 
-Reviewed 2026-09-28: these are internal offer/pricing references, not verified current public tariffs or booked revenue. The landing publishes the free diagnostic and quotes paid work by scope; it has no price section. The founder confirms that the 30–100-case regional pilot and the broader offer are experiments, not a definitive replacement of either. Confirm actual scope and price before quoting.
+Reviewed 2026-09-28: these are internal offer/pricing references, not verified current public tariffs or booked revenue. The landing publishes the free diagnostic and quotes paid work by scope; it has no price section. The founder withdrew the 30–100-case regional pilot on 2026-10-17; do not offer it. Confirm actual scope and price before quoting.
 
 | Offer | Price | Time | Scope | Deliverable |
 | --- | --- | --- | --- | --- |
